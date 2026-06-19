@@ -505,6 +505,15 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
+  async function deleteCollection(collectionId) {
+    setNotice(""); setError("");
+    try {
+      await api.deleteCollection(collectionId);
+      setCollections((c) => c.filter((col) => col.id !== collectionId));
+      setNotice("Colaboración eliminada.");
+    } catch (err) { setError(err.message); }
+  }
+
   async function updateMatchFeePayment(paymentId, payload) {
     setNotice(""); setError("");
     try {
@@ -704,6 +713,7 @@ export default function App() {
             onCreateCollection={createCollection}
             onUpdateCollectionPayment={updateCollectionPayment}
             onCloseCollection={closeCollection}
+            onDeleteCollection={deleteCollection}
             onUpdateMatchFeePayment={updateMatchFeePayment}
             onReviewProof={reviewProof} />
         )}

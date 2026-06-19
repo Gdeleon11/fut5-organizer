@@ -771,6 +771,17 @@ export const api = {
     );
   },
 
+  async deleteCollection(collectionId) {
+    const client = requireSupabase();
+
+    const { error } = await client
+      .from("collections")
+      .delete()
+      .eq("id", collectionId);
+
+    raise(error);
+  },
+
   async updateCollectionPayment(paymentId, payload) {
     const client = requireSupabase();
 
@@ -837,23 +848,45 @@ export const api = {
   },
 
   // ---------------------------------------------------------------------------
-  // Payment proofs (comprobantes de pago)
+  // Payment proofs (comprobantes de pago) - Simplified version
   // ---------------------------------------------------------------------------
 
   /**
    * Generate a token for payment proof upload.
-   * Token contains payment_id, profile_id, payment_type, and expiry.
+   * Simple base64 encoding of payment info.
    */
   async generateProofToken(paymentId, paymentType) {
     const client = requireSupabase();
 
-    const { data, error } = await client.rpc("generate_proof_token", {
-      payment_id: paymentId,
-      payment_type: paymentType,
-    });
+    // Get payment info
+    let paymentData;
+    if (paymentType === "match_fee") {
+      const { data } = await client
+        .from("match_fee_payments")
+        .select("id, profile_id, group_id")
+        .eq("id", paymentId)
+        .single();
+      paymentData = data;
+    } else {
+      const { data } = await client
+        .from("collection_payments")
+        .select("id, profile_id, group_id")
+        .eq("id", paymentId)
+        .single();
+      paymentData = data;
+    }
 
-    raise(error);
-    return data;
+    if (!paymentData) throw new Error("Pago no encontrado");
+
+    // Create simple token
+    const tokenData = {
+      pid: paymentId,
+      uid: paymentData.profile_id,
+      type: paymentType,
+      gid: paymentData.group_id,
+    };
+
+    return btoa(JSON.stringify(tokenData));
   },
 
   /**
@@ -862,12 +895,72 @@ export const api = {
   async verifyProofToken(token) {
     const client = requireSupabase();
 
-    const { data, error } = await client.rpc("verify_proof_token", {
-      token: token,
-    });
+    try {
+      const tokenData = JSON.parse(atob(token));
+      const { pid: paymentId, uid: profileId, type: paymentType, gid: groupId } = tokenData;
 
-    raise(error);
-    return data;
+      // Get payment details
+      let paymentRecord;
+      if (paymentType === "match_fee") {
+        const { data } = await client
+          .from("match_fee_payments")
+          .select(`
+            id, profile_id, group_id, status, proof_status, proof_url,
+            match_fees!inner(per_player_amount, match_id, due_before),
+            matches!inner(title)
+          `)
+          .eq("id", paymentId)
+          .eq("profile_id", profileId)
+          .single();
+        paymentRecord = data;
+      } else {
+        const { data } = await client
+          .from("collection_payments")
+          .select(`
+            id, profile_id, group_id, status, proof_status, proof_url,
+            collections!inner(amount_per_player, title, due_date)
+          `)
+          .eq("id", paymentId)
+          .eq("profile_id", profileId)
+          .single();
+        paymentRecord = data;
+      }
+
+      if (!paymentRecord) {
+        return { valid: false, error: "Pago no encontrado" };
+      }
+
+      // Check expiry
+      const dueDate = paymentType === "match_fee"
+        ? paymentRecord.match_fees?.due_before
+        : paymentRecord.collections?.due_date;
+
+      if (dueDate && new Date(dueDate) < new Date()) {
+        return { valid: false, error: "Este cobro ya venció" };
+      }
+
+      return {
+        valid: true,
+        payment_id: paymentId,
+        profile_id: profileId,
+        group_id: groupId,
+        payment_type: paymentType,
+        payment_status: paymentRecord.status,
+        proof_status: paymentRecord.proof_status || "pending",
+        proof_url: paymentRecord.proof_url,
+        amount: paymentType === "match_fee"
+          ? paymentRecord.match_fees?.per_player_amount
+          : paymentRecord.collections?.amount_per_player,
+        title: paymentType === "match_fee"
+          ? paymentRecord.matches?.title
+          : paymentRecord.collections?.title,
+        match_id: paymentType === "match_fee"
+          ? paymentRecord.match_fees?.match_id
+          : null,
+      };
+    } catch (err) {
+      return { valid: false, error: "Token inválido" };
+    }
   },
 
   /**
@@ -895,12 +988,16 @@ export const api = {
 
     const proofUrl = urlData.publicUrl;
 
-    // Update payment record
-    const { error: updateError } = await client.rpc("submit_payment_proof", {
-      payment_id: paymentId,
-      payment_type: paymentType,
-      proof_url: proofUrl,
-    });
+    // Update payment record directly
+    const table = paymentType === "match_fee" ? "match_fee_payments" : "collection_payments";
+    const { error: updateError } = await client
+      .from(table)
+      .update({
+        proof_url: proofUrl,
+        proof_status: "submitted",
+        proof_submitted_at: new Date().toISOString(),
+      })
+      .eq("id", paymentId);
 
     raise(updateError);
 
@@ -912,48 +1009,27 @@ export const api = {
    */
   async reviewPaymentProof(paymentId, paymentType, status, rejectionReason = null) {
     const client = requireSupabase();
+    const table = paymentType === "match_fee" ? "match_fee_payments" : "collection_payments";
 
-    const { data, error } = await client.rpc("review_payment_proof", {
-      payment_id: paymentId,
-      payment_type: paymentType,
-      new_status: status,
-      rejection_reason: rejectionReason,
-    });
+    const updateData = {
+      proof_status: status,
+      proof_reviewed_at: new Date().toISOString(),
+      proof_rejection_reason: rejectionReason,
+    };
 
-    raise(error);
-    return data;
-  },
-
-  /**
-   * Get payment proof details for admin view.
-   */
-  async getPaymentProofDetails(paymentId, paymentType) {
-    const client = requireSupabase();
-
-    let query;
-    if (paymentType === "match_fee") {
-      query = client
-        .from("match_fee_payments")
-        .select(`
-          id, proof_url, proof_status, proof_submitted_at, proof_reviewed_at,
-          proof_rejection_reason, status, profile_id,
-          profiles!inner(id, full_name, nickname, avatar_url)
-        `)
-        .eq("id", paymentId)
-        .single();
-    } else {
-      query = client
-        .from("collection_payments")
-        .select(`
-          id, proof_url, proof_status, proof_submitted_at, proof_reviewed_at,
-          proof_rejection_reason, status, profile_id,
-          profiles!inner(id, full_name, nickname, avatar_url)
-        `)
-        .eq("id", paymentId)
-        .single();
+    // If approved, also mark as paid
+    if (status === "approved") {
+      updateData.status = "paid";
+      updateData.paid_at = new Date().toISOString();
     }
 
-    return readOne(query);
+    const { error } = await client
+      .from(table)
+      .update(updateData)
+      .eq("id", paymentId);
+
+    raise(error);
+    return { success: true };
   },
 
   latestRatingsByProfile,

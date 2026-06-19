@@ -375,6 +375,7 @@ function CollectionsPanel({
   onCreateCollection,
   onUpdatePayment,
   onCloseCollection,
+  onDeleteCollection,
   onReviewProof,
 }) {
   const [showForm, setShowForm] = useState(false);
@@ -549,6 +550,22 @@ function CollectionsPanel({
                   onClick={() => onCloseCollection(col.id)}
                 >
                   Cerrar colaboración
+                </button>
+              </div>
+            )}
+
+            {isAdmin && col.status === "closed" && (
+              <div className="button-row ledger-actions">
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => {
+                    if (confirm("¿Eliminar esta colaboración cerrada?")) {
+                      onDeleteCollection(col.id);
+                    }
+                  }}
+                >
+                  Eliminar
                 </button>
               </div>
             )}
@@ -733,6 +750,7 @@ export default function FeesPage({
   onCreateCollection,
   onUpdateCollectionPayment,
   onCloseCollection,
+  onDeleteCollection,
   onUpdateMatchFeePayment,
   onReviewProof,
 }) {
@@ -792,6 +810,7 @@ export default function FeesPage({
         onCreateCollection={onCreateCollection}
         onUpdatePayment={onUpdateCollectionPayment}
         onCloseCollection={onCloseCollection}
+        onDeleteCollection={onDeleteCollection}
         onReviewProof={onReviewProof}
       />
     </div>
