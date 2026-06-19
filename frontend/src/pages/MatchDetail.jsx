@@ -1,0 +1,194 @@
+import AttendanceAction from "../components/AttendanceAction.jsx";
+import CourtPhoto from "../components/CourtPhoto.jsx";
+import ExportCard from "../components/ExportCard.jsx";
+import MatchPhotoUpload from "../components/MatchPhotoUpload.jsx";
+import TeamCards from "../components/TeamCards.jsx";
+import { useState } from "react";
+import {
+  attendanceLabel,
+  displayName,
+  formatMatchDate,
+  matchInvitationText,
+  teamAnnouncementText,
+} from "../utils.js";
+
+function MatchPhotoSection({ match, onUploadMatchPhoto }) {
+  return (
+    <section className="court-upload-block">
+      <div>
+        <p className="eyebrow">Foto de la cancha</p>
+        <strong>{match.court_photo_url ? "Foto cargada" : "Sin foto todavía"}</strong>
+        <small>
+          Subí una imagen para que los jugadores ubiquen rápido el lugar.
+        </small>
+      </div>
+      <MatchPhotoUpload match={match} onUploadMatchPhoto={onUploadMatchPhoto} />
+    </section>
+  );
+}
+
+export default function MatchDetail({
+  attendances,
+  confirmedCount,
+  fineAmount,
+  isAdmin,
+  match,
+  myAttendance,
+  onCheckIn,
+  onConfirm,
+  onCancel,
+  onDeleteMatch,
+  onGenerateTeams,
+  onUploadMatchPhoto,
+  onMarkNoShow,
+  profile,
+  profileById,
+  teams,
+}) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  return (
+    <div className="page-grid">
+      <section className="panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Detalle del partido</p>
+            <h2>{match.title || "Chamuscón"}</h2>
+          </div>
+          <span className="count-pill">{confirmedCount} confirmados</span>
+        </div>
+        <p className="muted">
+          {formatMatchDate(match)} · {match.venue || "Cancha pendiente"}
+        </p>
+        <CourtPhoto match={match} />
+        {isAdmin && (
+          <MatchPhotoSection
+            match={match}
+            onUploadMatchPhoto={onUploadMatchPhoto}
+          />
+        )}
+        <AttendanceAction
+          attendance={myAttendance}
+          fineAmount={fineAmount}
+          match={match}
+          onConfirm={onConfirm}
+          onCancel={onCancel}
+          profile={profile}
+        />
+        {isAdmin && (
+          <div className="button-row">
+            <button type="button" onClick={onGenerateTeams}>
+              Generar equipos
+            </button>
+            {confirmingDelete ? (
+              <>
+                <button
+                  className="danger-button"
+                  type="button"
+                  onClick={() => onDeleteMatch(match.id)}
+                >
+                  Confirmar eliminar
+                </button>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <button
+                className="danger-button"
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Eliminar partido
+              </button>
+            )}
+          </div>
+        )}
+        {confirmingDelete && (
+          <p className="confirm-delete-msg">
+            ¿Eliminar "{match.title || "Chamuscón"}"? Se borran equipos,
+            asistencias y cobros asociados.
+          </p>
+        )}
+        <ExportCard
+          label="Invitación para WhatsApp"
+          text={matchInvitationText(match, confirmedCount)}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="section-heading">
+          <h2>Equipos</h2>
+          <span className="count-pill">{teams.length}</span>
+        </div>
+        {teams.length === 0 ? (
+          <div className="empty-state compact">
+            Los equipos aparecerán cuando un admin los genere.
+          </div>
+        ) : (
+          <>
+            <TeamCards teams={teams} />
+            {isAdmin && (
+              <ExportCard
+                label="Equipos para WhatsApp"
+                text={teamAnnouncementText(match, teams)}
+              />
+            )}
+          </>
+        )}
+      </section>
+
+      {isAdmin && (
+        <section className="panel">
+          <div className="section-heading">
+            <h2>Asistencia</h2>
+            <span className="count-pill">{attendances.length}</span>
+          </div>
+          <div className="player-list">
+            {attendances.length === 0 ? (
+              <div className="empty-state compact">Aún no hay confirmaciones.</div>
+            ) : (
+              attendances.map((attendance) => {
+                const player = profileById.get(attendance.profile_id);
+                return (
+                  <div className="player-row" key={attendance.id}>
+                    <div>
+                      <strong>{displayName(player)}</strong>
+                      <small>
+                        {attendanceLabel(
+                          attendance.status,
+                          attendance.checked_in,
+                        )}
+                      </small>
+                    </div>
+                    <div className="button-row">
+                      <button
+                        className="secondary-button"
+                        disabled={attendance.checked_in}
+                        type="button"
+                        onClick={() => onCheckIn(attendance)}
+                      >
+                        Registrar
+                      </button>
+                      <button
+                        disabled={attendance.status === "no_show"}
+                        type="button"
+                        onClick={() => onMarkNoShow(attendance)}
+                      >
+                        No llegó
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
