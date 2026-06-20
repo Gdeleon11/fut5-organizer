@@ -981,6 +981,50 @@ small, .muted {
   letter-spacing: 0.06em;
 }
 
+.star-level-grid.compact { grid-template-columns: repeat(4, 1fr); }
+.star-level-grid.compact button { min-height: 52px; }
+
+.position-rating-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.position-rating-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.position-rating-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.position-rating-display {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.position-rating-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.position-rating-item small {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
 .player-filter-grid { grid-template-columns: repeat(2, 1fr); }
 
 .role-status-group {

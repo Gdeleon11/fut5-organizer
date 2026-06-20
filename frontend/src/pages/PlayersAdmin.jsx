@@ -1,6 +1,9 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar.jsx";
-import StarRatingControl from "../components/StarRatingControl.jsx";
+import StarRatingControl, {
+  PositionRatingControl,
+  PositionRatingDisplay,
+} from "../components/StarRatingControl.jsx";
 import Stars from "../components/Stars.jsx";
 import { FILTER_LABELS, POSITION_OPTIONS } from "../constants.js";
 import {
@@ -106,7 +109,7 @@ export default function PlayersAdmin({
                 <small>
                   {positionLabel(player.preferred_position)} ·{" "}
                   {ratingMap.has(player.id) ? (
-                    <Stars rating={ratingMap.get(player.id)} />
+                    <PositionRatingDisplay ratings={ratingMap.get(player.id)} />
                   ) : (
                     "Sin estrellas"
                   )}
@@ -173,7 +176,7 @@ export default function PlayersAdmin({
               <span>
                 <strong>
                   {ratingMap.has(selected.id) ? (
-                    <Stars rating={ratingMap.get(selected.id)} />
+                    <PositionRatingDisplay ratings={ratingMap.get(selected.id)} />
                   ) : (
                     "Sin estrellas"
                   )}
@@ -192,15 +195,22 @@ export default function PlayersAdmin({
                     </div>
                     <span className="count-pill">
                       {ratingMap.has(selected.id) ? (
-                        <Stars rating={ratingMap.get(selected.id)} />
+                        <PositionRatingDisplay ratings={ratingMap.get(selected.id)} />
                       ) : (
                         "sin estrellas"
                       )}
                     </span>
                   </div>
-                  <StarRatingControl
-                    currentRating={ratingMap.get(selected.id)}
-                    onSelect={(level) => onAssignRating(selected.id, level)}
+                  <PositionRatingControl
+                    ratings={ratingMap.get(selected.id) || {
+                      attack_rating: 2,
+                      defense_rating: 2,
+                      midfield_rating: 2,
+                      goalkeeper_rating: 2,
+                    }}
+                    onSelect={(key, level) =>
+                      onAssignRating(selected.id, key, level)
+                    }
                   />
                 </div>
               )}
@@ -210,7 +220,7 @@ export default function PlayersAdmin({
                     <div><h2>Estrellas</h2></div>
                     <span className="count-pill">
                       {ratingMap.has(selected.id) ? (
-                        <Stars rating={ratingMap.get(selected.id)} />
+                        <PositionRatingDisplay ratings={ratingMap.get(selected.id)} />
                       ) : (
                         "sin estrellas"
                       )}

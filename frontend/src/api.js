@@ -63,7 +63,13 @@ function latestRatingsByProfile(ratings = []) {
   [...ratings]
     .sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
     .forEach((rating) => {
-      latest.set(rating.profile_id, rating.rating);
+      latest.set(rating.profile_id, {
+        rating: rating.rating,
+        attack_rating: rating.attack_rating || rating.rating,
+        defense_rating: rating.defense_rating || rating.rating,
+        midfield_rating: rating.midfield_rating || rating.rating,
+        goalkeeper_rating: rating.goalkeeper_rating || rating.rating,
+      });
     });
 
   return latest;
@@ -310,7 +316,7 @@ export const api = {
     );
   },
 
-  async assignRating(groupId, profileId, rating, adminProfileId) {
+  async assignRating(groupId, profileId, rating, adminProfileId, positionRatings = {}) {
     const client = requireSupabase();
 
     return readOne(
@@ -320,6 +326,10 @@ export const api = {
           group_id: groupId,
           profile_id: profileId,
           rating,
+          attack_rating: positionRatings.attack_rating || rating,
+          defense_rating: positionRatings.defense_rating || rating,
+          midfield_rating: positionRatings.midfield_rating || rating,
+          goalkeeper_rating: positionRatings.goalkeeper_rating || rating,
           assigned_by: adminProfileId,
         })
         .select("*")
@@ -484,10 +494,17 @@ export const api = {
         (profile) =>
           profile.membership_is_active && confirmedIds.includes(profile.id),
       )
-      .map((profile) => ({
-        ...profile,
-        rating: ratingMap.get(profile.id) || 2,
-      }));
+      .map((profile) => {
+        const r = ratingMap.get(profile.id) || {};
+        return {
+          ...profile,
+          rating: r.rating || 2,
+          attack_rating: r.attack_rating || r.rating || 2,
+          defense_rating: r.defense_rating || r.rating || 2,
+          midfield_rating: r.midfield_rating || r.rating || 2,
+          goalkeeper_rating: r.goalkeeper_rating || r.rating || 2,
+        };
+      });
     const generated = generateBalancedTeams(players);
 
     await client.from("teams").delete().eq("match_id", match.id);

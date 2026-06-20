@@ -1,6 +1,9 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar.jsx";
-import StarRatingControl from "../components/StarRatingControl.jsx";
+import StarRatingControl, {
+  PositionRatingControl,
+  PositionRatingDisplay,
+} from "../components/StarRatingControl.jsx";
 import Stars from "../components/Stars.jsx";
 import { ROLE_OPTIONS } from "../constants.js";
 import {
@@ -145,15 +148,20 @@ function PlayerRoleCard({
           <small>Estrellas</small>
           <span className="count-pill">
             {ratingMap.has(player.id) ? (
-              <Stars rating={ratingMap.get(player.id)} />
+              <PositionRatingDisplay ratings={ratingMap.get(player.id)} />
             ) : (
               "sin estrellas"
             )}
           </span>
         </div>
-        <StarRatingControl
-          currentRating={ratingMap.get(player.id)}
-          onSelect={(level) => onAssignRating(player.id, level)}
+        <PositionRatingControl
+          ratings={ratingMap.get(player.id) || {
+            attack_rating: 2,
+            defense_rating: 2,
+            midfield_rating: 2,
+            goalkeeper_rating: 2,
+          }}
+          onSelect={(key, level) => onAssignRating(player.id, key, level)}
         />
       </div>
 

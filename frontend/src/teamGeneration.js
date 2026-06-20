@@ -17,8 +17,37 @@ function isGoalkeeper(player) {
   return player.preferred_position === "Goalkeeper";
 }
 
+function playerEffectiveRating(player) {
+  const position = player.preferred_position;
+  switch (position) {
+    case "Forward":
+      return player.attack_rating || player.rating || 2;
+    case "Defender":
+      return player.defense_rating || player.rating || 2;
+    case "Midfielder":
+      return player.midfield_rating || player.rating || 2;
+    case "Goalkeeper":
+      return player.goalkeeper_rating || player.rating || 2;
+    case "Flexible":
+    default: {
+      const ratings = [
+        player.attack_rating,
+        player.defense_rating,
+        player.midfield_rating,
+        player.goalkeeper_rating,
+      ].filter(Boolean);
+      return ratings.length
+        ? ratings.reduce((a, b) => a + b, 0) / ratings.length
+        : player.rating || 2;
+    }
+  }
+}
+
 function totalRating(team) {
-  return team.players.reduce((total, player) => total + player.rating, 0);
+  return team.players.reduce(
+    (total, player) => total + playerEffectiveRating(player),
+    0,
+  );
 }
 
 function goalkeeperCount(team) {
@@ -44,8 +73,11 @@ function sortPlayers(players) {
       return isGoalkeeper(first) ? -1 : 1;
     }
 
-    if (second.rating !== first.rating) {
-      return second.rating - first.rating;
+    const firstRating = playerEffectiveRating(first);
+    const secondRating = playerEffectiveRating(second);
+
+    if (secondRating !== firstRating) {
+      return secondRating - firstRating;
     }
 
     return (first.nickname || first.full_name || "").localeCompare(
@@ -140,9 +172,14 @@ function improveWithSwaps(teams) {
 }
 
 export function generateBalancedTeams(players) {
+  const clamp = (v) => Math.max(1, Math.min(4, Number(v) || 2));
   const normalizedPlayers = players.map((player) => ({
     ...player,
-    rating: Math.max(1, Math.min(4, Number(player.rating) || 2)),
+    rating: clamp(player.rating),
+    attack_rating: clamp(player.attack_rating),
+    defense_rating: clamp(player.defense_rating),
+    midfield_rating: clamp(player.midfield_rating),
+    goalkeeper_rating: clamp(player.goalkeeper_rating),
   }));
   const teamCount = teamCountForPlayers(normalizedPlayers.length);
   const teams = improveWithSwaps(greedyAssign(normalizedPlayers, teamCount));

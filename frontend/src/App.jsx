@@ -401,10 +401,31 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
-  async function assignRating(profileId, rating) {
+  async function assignRating(profileId, positionKey, level) {
     setNotice(""); setError("");
     try {
-      const created = await api.assignRating(activeGroupId, profileId, rating, profile.id);
+      const current = ratingMap.get(profileId) || {};
+      const positionRatings = {
+        attack_rating: current.attack_rating || current.rating || 2,
+        defense_rating: current.defense_rating || current.rating || 2,
+        midfield_rating: current.midfield_rating || current.rating || 2,
+        goalkeeper_rating: current.goalkeeper_rating || current.rating || 2,
+      };
+      positionRatings[positionKey] = level;
+      const values = [
+        positionRatings.attack_rating,
+        positionRatings.defense_rating,
+        positionRatings.midfield_rating,
+        positionRatings.goalkeeper_rating,
+      ];
+      const overallRating = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+      const created = await api.assignRating(
+        activeGroupId,
+        profileId,
+        overallRating,
+        profile.id,
+        positionRatings,
+      );
       setRatings((c) => [created, ...c]);
       setNotice("Estrellas asignadas.");
     } catch (err) { setError(err.message); }
