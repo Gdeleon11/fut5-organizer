@@ -221,6 +221,13 @@ export default function App() {
     setProfiles(profileRows); setTeamsByMatch(teamsMap);
     setVenues(venueRows); setCollections(collectionRows);
     setMatchFees(feePairs.filter(Boolean));
+
+    const activeIds = profileRows
+      .filter((p) => p.membership_is_active)
+      .map((p) => p.id);
+    await api.syncCollectionPayments(groupId, activeIds);
+    const updatedCollections = await api.listCollections(groupId);
+    setCollections(updatedCollections);
     if (!matchRows.some((m) => m.id === selectedMatchId))
       setSelectedMatchId(matchRows[0]?.id || null);
   }

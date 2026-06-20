@@ -747,6 +747,51 @@ export const api = {
     );
   },
 
+  async syncCollectionPayments(groupId, activeProfileIds) {
+    const client = requireSupabase();
+
+    const openCollections = await readMany(
+      client
+        .from("collections")
+        .select("id")
+        .eq("group_id", groupId)
+        .eq("status", "open"),
+    );
+
+    if (openCollections.length === 0 || activeProfileIds.length === 0) return;
+
+    const existing = await readMany(
+      client
+        .from("collection_payments")
+        .select("collection_id, profile_id")
+        .eq("group_id", groupId),
+    );
+
+    const existingSet = new Set(
+      existing.map((r) => `${r.collection_id}|${r.profile_id}`),
+    );
+
+    const missing = [];
+    for (const col of openCollections) {
+      for (const profileId of activeProfileIds) {
+        if (!existingSet.has(`${col.id}|${profileId}`)) {
+          missing.push({
+            collection_id: col.id,
+            group_id: groupId,
+            profile_id: profileId,
+            status: "pending",
+          });
+        }
+      }
+    }
+
+    if (missing.length > 0) {
+      await readMany(
+        client.from("collection_payments").insert(missing).select("*"),
+      );
+    }
+  },
+
   /**
    * Create a collection and auto-generate payment rows for all active members.
    */
