@@ -29,7 +29,11 @@ alter table public.profiles
 create table if not exists public.player_ratings (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references public.profiles(id) on delete cascade,
-  rating integer not null check (rating between 1 and 4),
+  rating integer not null,
+  attack_rating integer check (attack_rating between 1 and 4),
+  defense_rating integer check (defense_rating between 1 and 4),
+  midfield_rating integer check (midfield_rating between 1 and 4),
+  goalkeeper_rating integer check (goalkeeper_rating between 1 and 4),
   assigned_by uuid references public.profiles(id) on delete set null,
   created_at timestamptz not null default now()
 );
