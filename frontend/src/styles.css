@@ -1073,6 +1073,18 @@ small, .muted {
   justify-content: flex-end;
 }
 
+.date-range-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.date-range-filter button {
+  font-size: 0.72rem;
+  padding: 0.3rem 0.6rem;
+}
+
 .role-controls {
   display: grid;
   grid-template-columns: 1fr auto;

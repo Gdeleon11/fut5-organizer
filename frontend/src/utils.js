@@ -82,6 +82,10 @@ export function fineReasonLabel(reason) {
   const labels = {
     no_show: "No llegó",
     late_cancel: "Canceló tarde",
+    custom: "Multa especial",
+    damaged_equipment: "Equipo dañado",
+    late_arrival: "Llegó tarde",
+    other: "Otro",
   };
   return labels[reason] || reason || "Multa";
 }

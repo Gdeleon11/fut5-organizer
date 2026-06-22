@@ -11,6 +11,7 @@ import MatchesPage from "./pages/MatchesPage.jsx";
 import PlayersAdmin from "./pages/PlayersAdmin.jsx";
 import ProfileForm from "./pages/ProfileForm.jsx";
 import ProofUploadPage from "./pages/ProofUploadPage.jsx";
+import SimPage from "./pages/SimPage.jsx";
 import SuperAdminPage from "./pages/SuperAdminPage.jsx";
 import TeamPage from "./pages/TeamPage.jsx";
 import VenuesPage from "./pages/VenuesPage.jsx";
@@ -82,6 +83,7 @@ export default function App() {
       { id: "admin", label: "Admin" },
       { id: "players", label: "Jugadores" },
       { id: "venues", label: "Canchas" },
+      { id: "sim", label: "Simular" },
     ] : []),
     ...(isSuperAdmin ? [{ id: "superadmin", label: "Super Admin" }] : []),
   ], [isAdmin, isSuperAdmin]);
@@ -500,6 +502,16 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
+  async function createFine(payload) {
+    setNotice(""); setError("");
+    try {
+      const fine = await api.createFine(payload);
+      setFines((c) => [fine, ...c]);
+      setNotice("Multa creada.");
+      return fine;
+    } catch (err) { setError(err.message); }
+  }
+
   async function createVenue(payload, photoFile) {
     setNotice(""); setError("");
     try {
@@ -757,7 +769,9 @@ export default function App() {
           <FinesPage fines={fines} isAdmin={isAdmin} matches={matches}
             onForgive={(f) => updateFine(f.id, { status: "forgiven" })}
             onPay={(f) => updateFine(f.id, { status: "paid" })}
-            profileById={profileById} />
+            onCreateFine={createFine}
+            profileById={profileById} profile={currentPlayer}
+            profiles={profiles} activeGroupId={activeGroupId} />
         )}
         {page === "fees" && (
           <FeesPage collections={collections} isAdmin={isAdmin} matchFees={matchFees}
@@ -799,6 +813,9 @@ export default function App() {
         {page === "venues" && isAdmin && (
           <VenuesPage groupId={activeGroupId} profileId={profile?.id} venues={venues}
             onCreateVenue={createVenue} onUpdateVenue={updateVenue} />
+        )}
+        {page === "sim" && isAdmin && (
+          <SimPage profiles={profiles} ratingMap={ratingMap} isAdmin={isAdmin} />
         )}
         {page === "superadmin" && isSuperAdmin && (
           <SuperAdminPage fines={fines} profiles={profiles} ratingMap={ratingMap}
