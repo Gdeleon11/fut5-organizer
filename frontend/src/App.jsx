@@ -305,7 +305,21 @@ export default function App() {
   async function confirmMatch(match) {
     setNotice(""); setError("");
     if (!isActiveMember) {
-      setError("Tu membresía está inactiva. Pedile a un admin que te active."); return;
+      const isMember = memberships.some((m) => m.group_id === activeGroupId);
+      if (!isMember && activeGroupId) {
+        try {
+          const membership = await api.joinGroup(activeGroupId, profile.id);
+          setMemberships((c) => [...c, membership]);
+          const updatedProfiles = await api.listGroupProfiles(activeGroupId);
+          setProfiles(updatedProfiles);
+          setNotice("Te uniste al grupo. Un admin debe activarte para poder confirmar asistencia.");
+        } catch (joinErr) {
+          setError("No se pudo unir al grupo. Intentá de nuevo.");
+        }
+      } else {
+        setError("Tu membresía está inactiva. Pedile a un admin que te active.");
+      }
+      return;
     }
     try {
       const row = await api.confirmAttendance(match.id, profile.id);
@@ -341,7 +355,19 @@ export default function App() {
   async function joinWaitlist(match) {
     setNotice(""); setError("");
     if (!isActiveMember) {
-      setError("Tu membresía está inactiva."); return;
+      const isMember = memberships.some((m) => m.group_id === activeGroupId);
+      if (!isMember && activeGroupId) {
+        try {
+          const membership = await api.joinGroup(activeGroupId, profile.id);
+          setMemberships((c) => [...c, membership]);
+          setNotice("Te uniste al grupo. Un admin debe activarte para unirte a la lista de espera.");
+        } catch (joinErr) {
+          setError("No se pudo unir al grupo.");
+        }
+      } else {
+        setError("Tu membresía está inactiva.");
+      }
+      return;
     }
     try {
       const row = await api.joinWaitlist(match.id, profile.id, activeGroupId);
