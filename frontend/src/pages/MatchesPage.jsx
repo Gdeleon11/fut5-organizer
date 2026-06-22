@@ -2,6 +2,7 @@ import AttendanceAction from "../components/AttendanceAction.jsx";
 import CourtPhoto from "../components/CourtPhoto.jsx";
 import ExportCard from "../components/ExportCard.jsx";
 import MatchForm from "../components/MatchForm.jsx";
+import SectionBanner from "../components/SectionBanner.jsx";
 import { useState } from "react";
 import {
   formatMatchDate,
@@ -43,6 +44,7 @@ export default function MatchesPage({
 
   return (
     <div className="page-grid">
+      <SectionBanner section="partidos" />
       <section className="panel">
         <div className="section-heading">
           <div>

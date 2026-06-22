@@ -131,6 +131,7 @@ export default function AuthScreen() {
   return (
     <div className="app auth-shell">
       <section className="panel auth-panel">
+        <img className="auth-brand-mark" src="/icon.svg" alt="Fut5 Organizer" />
         <div>
           <p className="eyebrow">fut5-organizer</p>
           <h1>{isSignup ? "Crear cuenta" : "Entrar"}</h1>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import Avatar from "./components/Avatar.jsx";
+import SectionHero from "./components/SectionHero.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import AuthScreen from "./pages/AuthScreen.jsx";
 import FeesPage from "./pages/FeesPage.jsx";
@@ -738,9 +739,8 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="identity-block">
-          <Avatar profile={profile} size="lg" />
+          <img className="topbar-logo" src="/brand/fut5-logo-source.png" alt="Fut5" />
           <div>
-            <p className="eyebrow">fut5-organizer</p>
             <h1>{displayName(profile)}</h1>
             <small>
               {activeGroup
@@ -781,6 +781,8 @@ export default function App() {
           </button>
         ))}
       </nav>
+
+      <SectionHero page={page} />
 
       {error && <div className="alert error">{error}</div>}
       {notice && <div className="alert success">{notice}</div>}

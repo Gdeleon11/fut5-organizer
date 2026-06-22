@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
+import SectionBanner from "../components/SectionBanner.jsx";
 import { generateBalancedTeams } from "../teamGeneration.js";
 import { displayName } from "../utils.js";
 
@@ -78,6 +79,7 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin }) 
 
   return (
     <div className="page-grid">
+      <SectionBanner section="simular" />
       <section className="panel">
         <div className="section-heading">
           <div>

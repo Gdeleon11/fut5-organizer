@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Stat from "../components/Stat.jsx";
+import SectionBanner from "../components/SectionBanner.jsx";
 import { api } from "../api.js";
 import { classNames, displayName, formatMatchDate, formatMoney } from "../utils.js";
 
@@ -775,6 +776,7 @@ export default function FeesPage({
 
   return (
     <div className="page-grid">
+      <SectionBanner section="cobros" />
       {matchesWithFees.length > 0 && (
         <section className="panel">
           <div className="section-heading">

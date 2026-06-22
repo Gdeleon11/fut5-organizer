@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import SectionBanner from "../components/SectionBanner.jsx";
 import { formatMoney } from "../utils.js";
 
 function VenueForm({ initial, onSave, onCancel }) {
@@ -117,6 +118,7 @@ export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, 
 
   return (
     <div className="page-grid">
+      <SectionBanner section="canchas" />
       <section className="panel">
         <div className="section-heading">
           <div>

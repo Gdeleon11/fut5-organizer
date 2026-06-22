@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
+import SectionBanner from "../components/SectionBanner.jsx";
 import StarRatingControl, {
   PositionRatingControl,
   PositionRatingDisplay,
@@ -60,6 +61,7 @@ export default function PlayersAdmin({
 
   return (
     <div className="players-admin-grid">
+      <SectionBanner section="jugadores" />
       <section className="panel">
         <div className="section-heading">
           <h2>Jugadores registrados</h2>

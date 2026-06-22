@@ -1,4 +1,5 @@
 import Avatar from "../components/Avatar.jsx";
+import SectionBanner from "../components/SectionBanner.jsx";
 import { displayName, formatMatchDate } from "../utils.js";
 
 export default function TeamPage({ matches, profile, teamsByMatch }) {
@@ -15,6 +16,7 @@ export default function TeamPage({ matches, profile, teamsByMatch }) {
 
   return (
     <div className="page-grid">
+      <SectionBanner section="equipo" />
       <section className="panel">
         <div className="section-heading">
           <h2>Mis equipos</h2>

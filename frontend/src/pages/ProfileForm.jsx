@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
+import SectionBanner from "../components/SectionBanner.jsx";
 import { POSITION_OPTIONS, emptyProfileForm } from "../constants.js";
 import { positionLabel } from "../utils.js";
 
@@ -72,7 +73,9 @@ export default function ProfileForm({ initialProfile, mode, onSave, onSignOut, o
   }
 
   return (
-    <section className="panel auth-panel">
+    <div className="page-grid">
+      <SectionBanner section="perfil" />
+      <section className="panel auth-panel">
       <div className="section-heading">
         <div>
           <p className="eyebrow">{isComplete ? "Primer ingreso" : "Mi perfil"}</p>
@@ -186,5 +189,6 @@ export default function ProfileForm({ initialProfile, mode, onSave, onSignOut, o
         </div>
       )}
     </section>
+    </div>
   );
 }

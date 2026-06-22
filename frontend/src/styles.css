@@ -181,6 +181,14 @@ a { color: var(--accent); }
   min-width: 0;
 }
 
+.topbar-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .avatar {
   display: inline-grid;
   overflow: hidden;
@@ -279,12 +287,89 @@ a { color: var(--accent); }
 .bottom-nav { display: none; }
 
 /* ============================================================
+   Section hero artwork
+   ============================================================ */
+
+.section-hero {
+  position: relative;
+  min-height: 230px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  margin: 0 0 1.25rem;
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  background-color: var(--surface-1);
+  isolation: isolate;
+}
+
+.section-hero::before {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  content: "";
+  background-image: var(--hero-image);
+  background-position: center;
+  background-size: cover;
+}
+
+.section-hero::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  background: linear-gradient(90deg, rgba(7, 18, 10, 0.96) 0%, rgba(7, 18, 10, 0.82) 38%, rgba(7, 18, 10, 0.08) 72%);
+}
+
+.section-hero-copy {
+  width: min(48%, 520px);
+  padding: 2rem;
+}
+
+.section-hero h2 {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.section-hero-copy > p:last-child {
+  max-width: 38ch;
+  margin: 0.75rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.auth-brand-mark {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto -0.25rem;
+  filter: drop-shadow(0 8px 24px rgba(57, 229, 90, 0.18));
+}
+
+/* ============================================================
    Page grid
    ============================================================ */
 
 .page-grid {
   display: grid;
   gap: 1rem;
+}
+
+.section-banner {
+  border-radius: var(--radius-lg, 16px);
+  overflow: hidden;
+  width: 100%;
+  max-height: 160px;
+}
+
+.section-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* ============================================================
@@ -1355,6 +1440,31 @@ small, .muted {
    ============================================================ */
 
 @media (max-width: 719px) {
+  .section-hero {
+    min-height: 190px;
+    border-radius: 10px;
+  }
+
+  .section-hero::before {
+    background-position: 58% center;
+  }
+
+  .section-hero::after {
+    background: linear-gradient(90deg, rgba(7, 18, 10, 0.94) 0%, rgba(7, 18, 10, 0.68) 58%, rgba(7, 18, 10, 0.16) 100%);
+  }
+
+  .section-hero-copy {
+    width: 75%;
+    padding: 1.25rem;
+  }
+
+  .section-hero h2 {
+    font-size: clamp(1.8rem, 10vw, 2.7rem);
+  }
+
+  .section-hero-copy > p:last-child {
+    font-size: 0.85rem;
+  }
   button, input, select { min-height: 50px; }
   textarea { min-height: 120px; }
 

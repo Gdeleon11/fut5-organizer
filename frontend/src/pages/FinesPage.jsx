@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Stat from "../components/Stat.jsx";
+import SectionBanner from "../components/SectionBanner.jsx";
 import { fineLabel, fineReasonLabel, formatMatchDate, formatMoney } from "../utils.js";
 import { classNames, displayName } from "../utils.js";
 
@@ -126,6 +127,7 @@ export default function FinesPage({
 
   return (
     <div className="page-grid">
+      <SectionBanner section="multas" />
       <section className="stat-grid">
         <Stat label="Saldo pendiente" value={formatMoney(openTotal)} />
         <Stat
