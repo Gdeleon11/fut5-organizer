@@ -1,6 +1,5 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar.jsx";
-import SectionBanner from "../components/SectionBanner.jsx";
 import StarRatingControl, {
   PositionRatingControl,
   PositionRatingDisplay,
@@ -217,7 +216,6 @@ export default function SuperAdminPage({
 }) {
   return (
     <div className="page-grid">
-      <SectionBanner section="super-admin" />
       <section className="panel">
         <div className="section-heading">
           <div>

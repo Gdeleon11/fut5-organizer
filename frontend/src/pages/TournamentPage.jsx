@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
-import SectionBanner from "../components/SectionBanner.jsx";
 import { api } from "../api.js";
 import { generateFixtures, updateStandings } from "../tournamentEngine.js";
 import { displayName, formatMatchDate } from "../utils.js";
@@ -400,7 +399,6 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
   if (!selected) {
     return (
       <div className="page-grid">
-        <SectionBanner section="torneos" />
         <section className="panel">
           <div className="section-heading">
             <div>

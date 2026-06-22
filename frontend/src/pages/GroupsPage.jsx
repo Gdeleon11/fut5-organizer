@@ -1,6 +1,5 @@
 import { useState } from "react";
 import ExportCard from "../components/ExportCard.jsx";
-import SectionBanner from "../components/SectionBanner.jsx";
 import { classNames, groupInvitationText } from "../utils.js";
 
 export default function GroupsPage({
@@ -31,7 +30,6 @@ export default function GroupsPage({
 
   return (
     <div className="page-grid">
-      <SectionBanner section="grupos" />
       <section className="panel">
         <div className="section-heading">
           <div>
