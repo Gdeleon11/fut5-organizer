@@ -300,6 +300,13 @@ export default function App() {
     const attendance = myAttendance(match.id);
     if (!attendance) return;
     try {
+      const existing = fines.find(
+        (f) => f.match_id === match.id && f.profile_id === profile.id && f.reason === "late_cancel"
+      );
+      if (existing) {
+        setNotice("Ya existe una multa por cancelación tardía para este partido.");
+        return;
+      }
       const { attendance: updated, fine } = await api.cancelAttendance(
         attendance.id, activeGroupId, profile.id, match.id, lateCancelFineAmount
       );
@@ -456,6 +463,13 @@ export default function App() {
   async function markNoShow(attendance) {
     setNotice(""); setError("");
     try {
+      const existing = fines.find(
+        (f) => f.match_id === attendance.match_id && f.profile_id === attendance.profile_id && f.reason === "no_show"
+      );
+      if (existing) {
+        setNotice("Ya existe una multa por no llegada para este jugador en este partido.");
+        return;
+      }
       const updated = await updateAttendance(attendance.id, { status: "no_show", checked_in: false });
       const fine = await api.createFine({
         group_id: activeGroupId, profile_id: attendance.profile_id,
