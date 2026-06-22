@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import Avatar from "../components/Avatar.jsx";
+import PlayerBadge from "../components/PlayerBadge.jsx";
 import { POSITION_OPTIONS, emptyProfileForm } from "../constants.js";
 import { positionLabel } from "../utils.js";
 
-export default function ProfileForm({ initialProfile, mode, onSave, onSignOut, onDeleteAccount }) {
+export default function ProfileForm({ initialProfile, mode, onSave, onSignOut, onDeleteAccount, ratingMap }) {
   const [form, setForm] = useState({
     ...emptyProfileForm,
     full_name: initialProfile?.full_name || "",
@@ -95,6 +96,11 @@ export default function ProfileForm({ initialProfile, mode, onSave, onSignOut, o
             <input accept="image/*" type="file" onChange={updateAvatar} />
           </span>
         </label>
+        {ratingMap && (
+          <div className="profile-badge-row">
+            <PlayerBadge rating={ratingMap.get(initialProfile?.id)} />
+          </div>
+        )}
         <label>
           Nombre completo
           <input

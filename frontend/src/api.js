@@ -569,6 +569,13 @@ export const api = {
     );
   },
 
+  async deleteFine(fineId) {
+    const client = requireSupabase();
+
+    const { error } = await client.from("fines").delete().eq("id", fineId);
+    raise(error);
+  },
+
   async listSettings(groupId) {
     const client = requireSupabase();
 

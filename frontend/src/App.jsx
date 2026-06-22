@@ -277,7 +277,17 @@ export default function App() {
     try {
       const row = await api.confirmAttendance(match.id, profile.id);
       setAttendances((c) => [...c.filter((a) => a.id !== row.id), row]);
-      // Recalculate match fee if this match has a court cost
+
+      const relatedFines = fines.filter(
+        (f) => f.match_id === match.id && f.profile_id === profile.id && ["no_show", "late_cancel"].includes(f.reason)
+      );
+      for (const fine of relatedFines) {
+        await api.deleteFine(fine.id);
+      }
+      if (relatedFines.length > 0) {
+        setFines((c) => c.filter((f) => !relatedFines.some((rf) => rf.id === f.id)));
+      }
+
       const match_ = matches.find((m) => m.id === match.id);
       if (Number(match_?.court_cost) > 0) {
         const newConfirmed = [...confirmedAttendances(match.id).map((a) => a.profile_id),
@@ -766,6 +776,7 @@ export default function App() {
               mode="edit"
               onSave={saveProfile}
               onDeleteAccount={deleteMyAccount}
+              ratingMap={ratingMap}
             />
           </div>
         )}

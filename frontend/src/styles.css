@@ -1025,6 +1025,44 @@ small, .muted {
   color: var(--text-muted);
 }
 
+.profile-badge-row {
+  display: flex;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+
+.player-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.badge-gold {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #422006;
+}
+
+.badge-silver {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+  color: #0f172a;
+}
+
+.badge-bronze {
+  background: linear-gradient(135deg, #d97706, #92400e);
+  color: #fef3c7;
+}
+
+.badge-iron {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: #e5e7eb;
+}
+
 .player-filter-grid { grid-template-columns: repeat(2, 1fr); }
 
 .role-status-group {
