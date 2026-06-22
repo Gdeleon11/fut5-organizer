@@ -14,6 +14,7 @@ import ProofUploadPage from "./pages/ProofUploadPage.jsx";
 import SimPage from "./pages/SimPage.jsx";
 import SuperAdminPage from "./pages/SuperAdminPage.jsx";
 import TeamPage from "./pages/TeamPage.jsx";
+import TournamentPage from "./pages/TournamentPage.jsx";
 import VenuesPage from "./pages/VenuesPage.jsx";
 import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
 import { classNames, displayName, profileComplete, roleLabel } from "./utils.js";
@@ -85,7 +86,10 @@ export default function App() {
       { id: "venues", label: "Canchas" },
       { id: "sim", label: "Simular" },
     ] : []),
-    ...(isSuperAdmin ? [{ id: "superadmin", label: "Super Admin" }] : []),
+    ...(isSuperAdmin ? [
+      { id: "tournaments", label: "Torneos" },
+      { id: "superadmin", label: "Super Admin" },
+    ] : []),
   ], [isAdmin, isSuperAdmin]);
 
   const sortedMatches = useMemo(
@@ -816,6 +820,10 @@ export default function App() {
         )}
         {page === "sim" && isAdmin && (
           <SimPage profiles={profiles} ratingMap={ratingMap} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
+        )}
+        {page === "tournaments" && isSuperAdmin && (
+          <TournamentPage activeGroupId={activeGroupId} profiles={profiles} ratingMap={ratingMap}
+            isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
         )}
         {page === "superadmin" && isSuperAdmin && (
           <SuperAdminPage fines={fines} profiles={profiles} ratingMap={ratingMap}

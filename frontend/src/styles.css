@@ -1124,6 +1124,54 @@ small, .muted {
   gap: 0.6rem;
 }
 
+.standings-table {
+  width: 100%;
+  font-size: 0.82rem;
+}
+
+.standings-header,
+.standings-row {
+  display: grid;
+  grid-template-columns: 32px 1fr repeat(7, 42px);
+  align-items: center;
+  padding: 0.5rem 0.4rem;
+  gap: 0.2rem;
+}
+
+.standings-header {
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.standings-row {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.standings-row:last-child { border-bottom: none; }
+
+.col-pos { text-align: center; font-weight: 700; }
+
+.col-team {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+}
+
+.team-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.col-stat { text-align: center; }
+.col-pts { font-weight: 800; color: var(--accent); }
+
 .role-label-inline { display: grid; gap: 0.2rem; }
 .role-label-inline select { min-height: 42px; }
 

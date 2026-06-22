@@ -1119,5 +1119,197 @@ export const api = {
     return { success: true };
   },
 
+  // ---------------------------------------------------------------------------
+  // Tournaments
+  // ---------------------------------------------------------------------------
+
+  async listTournaments(groupId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("tournaments").select("*").eq("group_id", groupId).order("created_at", { ascending: false }),
+    );
+  },
+
+  async getTournament(tournamentId) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("tournaments").select("*").eq("id", tournamentId).single(),
+    );
+  },
+
+  async createTournament(payload) {
+    const client = requireSupabase();
+    return readOne(client.from("tournaments").insert(payload).select("*").single());
+  },
+
+  async updateTournament(tournamentId, payload) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("tournaments").update(payload).eq("id", tournamentId).select("*").single(),
+    );
+  },
+
+  async deleteTournament(tournamentId) {
+    const client = requireSupabase();
+    const { error } = await client.from("tournaments").delete().eq("id", tournamentId);
+    raise(error);
+  },
+
+  async createTournamentTeams(tournamentId, teams) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("tournament_teams").insert(teams).select("*"),
+    );
+  },
+
+  async listTournamentTeams(tournamentId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("tournament_teams").select("*").eq("tournament_id", tournamentId).order("team_order"),
+    );
+  },
+
+  async addTournamentTeamMembers(teamId, profileIds) {
+    const client = requireSupabase();
+    const rows = profileIds.map((pid) => ({ tournament_team_id: teamId, profile_id: pid }));
+    return readMany(client.from("tournament_team_members").insert(rows).select("*"));
+  },
+
+  async listTournamentTeamMembers(tournamentId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("tournament_team_members")
+        .select("*, profiles(*)")
+        .eq("tournament_team_id", tournamentId),
+    );
+  },
+
+  async listAllTournamentTeamMembers(tournamentId) {
+    const client = requireSupabase();
+    const teams = await readMany(
+      client.from("tournament_teams").select("id").eq("tournament_id", tournamentId),
+    );
+    if (teams.length === 0) return [];
+    const teamIds = teams.map((t) => t.id);
+    return readMany(
+      client.from("tournament_team_members")
+        .select("*, profiles(*)")
+        .in("tournament_team_id", teamIds),
+    );
+  },
+
+  async createTournamentMatches(matches) {
+    const client = requireSupabase();
+    return readMany(client.from("tournament_matches").insert(matches).select("*"));
+  },
+
+  async listTournamentMatches(tournamentId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("tournament_matches")
+        .select("*, home_team:tournament_teams!home_team_id(*), away_team:tournament_teams!away_team_id(*)")
+        .eq("tournament_id", tournamentId)
+        .order("round")
+        .order("match_order"),
+    );
+  },
+
+  async updateTournamentMatch(matchId, payload) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("tournament_matches").update(payload).eq("id", matchId).select("*").single(),
+    );
+  },
+
+  async initStandings(tournamentId, teamIds) {
+    const client = requireSupabase();
+    const rows = teamIds.map((tid) => ({ tournament_id: tournamentId, tournament_team_id: tid }));
+    return readMany(client.from("tournament_standings").insert(rows).select("*"));
+  },
+
+  async listStandings(tournamentId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("tournament_standings")
+        .select("*, tournament_team:tournament_teams(*)")
+        .eq("tournament_id", tournamentId)
+        .order("points", { ascending: false })
+        .order("goals_for", { ascending: false }),
+    );
+  },
+
+  async updateStanding(standingId, payload) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("tournament_standings").update(payload).eq("id", standingId).select("*").single(),
+    );
+  },
+
+  async upsertMatchStat(payload) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("match_stats").upsert(payload, { onConflict: "match_id,profile_id" }).select("*").single(),
+    );
+  },
+
+  async listMatchStats(matchId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("match_stats").select("*, profiles(*)").eq("match_id", matchId),
+    );
+  },
+
+  async getPlayerStats(groupId) {
+    const client = requireSupabase();
+    const { data, error } = await client.rpc("get_player_stats", { p_group_id: groupId }).maybeSingle();
+    if (error) return [];
+    return data || [];
+  },
+
+  async listRecurringMatches(groupId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("recurring_matches").select("*").eq("group_id", groupId),
+    );
+  },
+
+  async createRecurringMatch(payload) {
+    const client = requireSupabase();
+    return readOne(client.from("recurring_matches").insert(payload).select("*").single());
+  },
+
+  async updateRecurringMatch(id, payload) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("recurring_matches").update(payload).eq("id", id).select("*").single(),
+    );
+  },
+
+  async generateRecurringMatch(recurring) {
+    const client = requireSupabase();
+    const nextDate = new Date();
+    const dayMap = { 0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday", 4: "thursday", 5: "friday", 6: "saturday" };
+    const targetDay = recurring.day_of_week;
+    const diff = ((targetDay - nextDate.getDay()) % 7 + 7) % 7 || 7;
+    nextDate.setDate(nextDate.getDate() + diff);
+    const dateStr = nextDate.toISOString().split("T")[0];
+
+    const match = await readOne(
+      client.from("matches").insert({
+        group_id: recurring.group_id,
+        title: recurring.title,
+        match_date: dateStr,
+        start_time: recurring.match_time,
+        venue: recurring.venue,
+        min_players: recurring.min_players,
+        max_players: recurring.max_players,
+        status: "upcoming",
+      }).select("*").single(),
+    );
+
+    await client.from("recurring_matches").update({ last_generated_date: dateStr }).eq("id", recurring.id);
+    return match;
+  },
+
   latestRatingsByProfile,
 };
