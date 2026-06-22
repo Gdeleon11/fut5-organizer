@@ -130,7 +130,12 @@ export const api = {
         upsert: true,
       });
 
-    raise(error);
+    if (error) {
+      if (error.message?.includes("bucket")) {
+        throw new Error("Error de almacenamiento: el bucket 'avatars' no existe. Pedile al admin que corra la migración de storage.");
+      }
+      raise(error);
+    }
 
     const { data } = client.storage.from("avatars").getPublicUrl(path);
 
@@ -155,7 +160,12 @@ export const api = {
         upsert: true,
       });
 
-    raise(error);
+    if (error) {
+      if (error.message?.includes("bucket")) {
+        throw new Error("Error de almacenamiento: el bucket 'match-photos' no existe. Pedile al admin que corra la migración de storage.");
+      }
+      raise(error);
+    }
 
     const { data } = client.storage.from("match-photos").getPublicUrl(path);
 
@@ -636,7 +646,12 @@ export const api = {
       .from("venue-photos")
       .upload(path, file, { cacheControl: "3600", contentType: file.type, upsert: true });
 
-    raise(error);
+    if (error) {
+      if (error.message?.includes("bucket")) {
+        throw new Error("Error de almacenamiento: el bucket 'venue-photos' no existe. Pedile al admin que corra la migración de storage.");
+      }
+      raise(error);
+    }
 
     const { data } = client.storage.from("venue-photos").getPublicUrl(path);
 
@@ -1039,7 +1054,6 @@ export const api = {
     const client = requireSupabase();
     const path = `${paymentId}/${Date.now()}.${fileExtension(file)}`;
 
-    // Upload image to storage
     const { error: uploadError } = await client.storage
       .from("payment-proofs")
       .upload(path, file, {
@@ -1048,9 +1062,13 @@ export const api = {
         upsert: true,
       });
 
-    raise(uploadError);
+    if (uploadError) {
+      if (uploadError.message?.includes("bucket")) {
+        throw new Error("Error de almacenamiento: el bucket 'payment-proofs' no existe. Pedile al admin que corra la migración de storage.");
+      }
+      raise(uploadError);
+    }
 
-    // Get public URL
     const { data: urlData } = client.storage
       .from("payment-proofs")
       .getPublicUrl(path);
