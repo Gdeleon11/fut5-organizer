@@ -261,6 +261,21 @@ export default function App() {
     await api.syncCollectionPayments(groupId, activeIds);
     const updatedCollections = await api.listCollections(groupId);
     setCollections(updatedCollections);
+
+    const memberIds = new Set(profileRows.map((p) => p.id));
+    const orphanProfileIds = [...new Set(
+      attendanceRows
+        .filter((a) => !memberIds.has(a.profile_id))
+        .map((a) => a.profile_id)
+    )];
+    if (orphanProfileIds.length > 0) {
+      for (const pid of orphanProfileIds) {
+        try { await api.joinGroup(groupId, pid); } catch (e) { /* already joined */ }
+      }
+      const refreshed = await api.listGroupProfiles(groupId);
+      setProfiles(refreshed);
+    }
+
     if (!matchRows.some((m) => m.id === selectedMatchId))
       setSelectedMatchId(matchRows[0]?.id || null);
   }
