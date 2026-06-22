@@ -1128,6 +1128,11 @@ small, .muted {
   letter-spacing: 0.06em;
 }
 
+.badge-platinum {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+  color: #f5f3ff;
+}
+
 .badge-gold {
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #422006;
