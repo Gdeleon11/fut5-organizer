@@ -52,9 +52,11 @@ function fileExtension(file, fallback = "jpg") {
   const cleanedName = safeFileName(file.name || fallback);
   const mimeExtension = file.type?.split("/").pop()?.replace("jpeg", "jpg");
 
-  return cleanedName.includes(".")
+  const ext = cleanedName.includes(".")
     ? cleanedName.split(".").pop()
     : mimeExtension || fallback;
+
+  return ext || fallback;
 }
 
 function safeContentType(file, fallback = "image/jpeg") {
@@ -129,7 +131,8 @@ export const api = {
 
   async uploadAvatar(profileId, file) {
     const client = requireSupabase();
-    const path = `${profileId}/${Date.now()}.${fileExtension(file)}`;
+    const ext = fileExtension(file) || "jpg";
+    const path = `${profileId}/${Date.now()}.${ext}`;
     const { error } = await client.storage
       .from("avatars")
       .upload(path, file, {
@@ -159,7 +162,8 @@ export const api = {
 
   async uploadMatchPhoto(matchId, file) {
     const client = requireSupabase();
-    const path = `${matchId}/${Date.now()}.${fileExtension(file)}`;
+    const ext = fileExtension(file) || "jpg";
+    const path = `${matchId || "misc"}/${Date.now()}.${ext}`;
     const { error } = await client.storage
       .from("match-photos")
       .upload(path, file, {
@@ -695,7 +699,8 @@ export const api = {
 
   async uploadVenuePhoto(venueId, file) {
     const client = requireSupabase();
-    const path = `${venueId}/${Date.now()}.${fileExtension(file)}`;
+    const ext = fileExtension(file) || "jpg";
+    const path = `${venueId || "misc"}/${Date.now()}.${ext}`;
     const { error } = await client.storage
       .from("venue-photos")
       .upload(path, file, { cacheControl: "3600", contentType: safeContentType(file), upsert: true });
@@ -1106,7 +1111,8 @@ export const api = {
    */
   async uploadPaymentProof(paymentId, paymentType, file) {
     const client = requireSupabase();
-    const path = `${paymentId}/${Date.now()}.${fileExtension(file)}`;
+    const ext = fileExtension(file) || "jpg";
+    const path = `${paymentId || "misc"}/${Date.now()}.${ext}`;
 
     const { error: uploadError } = await client.storage
       .from("payment-proofs")
