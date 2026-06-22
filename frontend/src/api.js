@@ -70,12 +70,13 @@ function latestRatingsByProfile(ratings = []) {
   [...ratings]
     .sort((first, second) => new Date(first.created_at) - new Date(second.created_at))
     .forEach((rating) => {
+      const fallback = rating.rating || 2;
       latest.set(rating.profile_id, {
         rating: rating.rating,
-        attack_rating: rating.attack_rating || rating.rating,
-        defense_rating: rating.defense_rating || rating.rating,
-        midfield_rating: rating.midfield_rating || rating.rating,
-        goalkeeper_rating: rating.goalkeeper_rating || rating.rating,
+        attack_rating: rating.attack_rating || fallback,
+        defense_rating: rating.defense_rating || fallback,
+        midfield_rating: rating.midfield_rating || fallback,
+        goalkeeper_rating: rating.goalkeeper_rating || fallback,
       });
     });
 
