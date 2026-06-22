@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import Avatar from "../components/Avatar.jsx";
+import PlayerBadge from "../components/PlayerBadge.jsx";
 import { generateBalancedTeams } from "../teamGeneration.js";
-import { displayName, formatMoney } from "../utils.js";
+import { displayName } from "../utils.js";
 
-export default function SimPage({ profiles, ratingMap, isAdmin }) {
+export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin }) {
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
 
@@ -25,10 +27,36 @@ export default function SimPage({ profiles, ratingMap, isAdmin }) {
     [profiles, ratingMap],
   );
 
+  function toggle(id) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setResult(null);
+  }
+
+  function selectAll() {
+    setSelectedIds(new Set(activePlayers.map((p) => p.id)));
+    setResult(null);
+  }
+
+  function deselectAll() {
+    setSelectedIds(new Set());
+    setResult(null);
+  }
+
   function simulate() {
     setError("");
+    const selected = activePlayers.filter((p) => selectedIds.has(p.id));
+    if (selected.length < 10) {
+      setError("Se necesitan al menos 10 jugadores seleccionados.");
+      setResult(null);
+      return;
+    }
     try {
-      const generated = generateBalancedTeams(activePlayers);
+      const generated = generateBalancedTeams(selected);
       setResult(generated);
     } catch (err) {
       setError(err.message);
@@ -36,12 +64,12 @@ export default function SimPage({ profiles, ratingMap, isAdmin }) {
     }
   }
 
-  if (!isAdmin) {
+  if (!isSuperAdmin) {
     return (
       <div className="page-grid">
         <section className="panel">
           <div className="empty-state compact">
-            Solo los admins pueden generar simulaciones.
+            Solo el Super Admin puede generar simulaciones.
           </div>
         </section>
       </div>
@@ -54,18 +82,52 @@ export default function SimPage({ profiles, ratingMap, isAdmin }) {
         <div className="section-heading">
           <div>
             <p className="eyebrow">Simulación</p>
-            <h2>Generar equipos</h2>
-            <small>Armá equipos con los {activePlayers.length} jugadores activos registrados.</small>
+            <h2>Seleccionar jugadores</h2>
+            <small>Elegí los jugadores para simular un partido.</small>
           </div>
-          <button type="button" onClick={simulate}>
-            Simular
-          </button>
+          <div className="button-row">
+            <span className="count-pill">
+              {selectedIds.size}/{activePlayers.length}
+            </span>
+            <button className="secondary-button" type="button" onClick={selectAll}>
+              Todos
+            </button>
+            <button className="secondary-button" type="button" onClick={deselectAll}>
+              Ninguno
+            </button>
+            <button type="button" onClick={simulate} disabled={selectedIds.size < 10}>
+              Simular
+            </button>
+          </div>
         </div>
         {error && <p className="form-message">{error}</p>}
-        {activePlayers.length < 10 && (
+        {activePlayers.length < 10 ? (
           <p className="muted" style={{ fontSize: "0.85rem" }}>
             Se necesitan al menos 10 jugadores activos para generar equipos.
           </p>
+        ) : (
+          <div className="player-list sim-player-list">
+            {activePlayers.map((player) => (
+              <label
+                className={`player-row sim-player-row ${selectedIds.has(player.id) ? "is-selected" : ""}`}
+                key={player.id}
+              >
+                <div className="sim-player-info">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(player.id)}
+                    onChange={() => toggle(player.id)}
+                  />
+                  <Avatar profile={player} size="sm" />
+                  <div>
+                    <strong>{displayName(player)}</strong>
+                    <small>{player.preferred_position || "Flexible"}</small>
+                  </div>
+                </div>
+                <PlayerBadge rating={ratingMap.get(player.id)} />
+              </label>
+            ))}
+          </div>
         )}
       </section>
 
@@ -91,6 +153,7 @@ export default function SimPage({ profiles, ratingMap, isAdmin }) {
                       <span className="team-member">
                         <Avatar profile={player} size="sm" />
                         {displayName(player)}
+                        <PlayerBadge rating={ratingMap.get(player.id)} />
                       </span>
                     </li>
                   ))}

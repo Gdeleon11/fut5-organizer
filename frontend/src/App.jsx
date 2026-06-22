@@ -815,7 +815,7 @@ export default function App() {
             onCreateVenue={createVenue} onUpdateVenue={updateVenue} />
         )}
         {page === "sim" && isAdmin && (
-          <SimPage profiles={profiles} ratingMap={ratingMap} isAdmin={isAdmin} />
+          <SimPage profiles={profiles} ratingMap={ratingMap} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
         )}
         {page === "superadmin" && isSuperAdmin && (
           <SuperAdminPage fines={fines} profiles={profiles} ratingMap={ratingMap}

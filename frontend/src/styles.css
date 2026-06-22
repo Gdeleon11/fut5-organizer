@@ -1085,6 +1085,38 @@ small, .muted {
   padding: 0.3rem 0.6rem;
 }
 
+.sim-player-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.sim-player-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.sim-player-row:hover {
+  background: var(--bg-hover);
+}
+
+.sim-player-row.is-selected {
+  background: var(--bg-selected);
+  border-color: var(--accent);
+}
+
+.sim-player-info {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.sim-player-info input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .role-controls {
   display: grid;
   grid-template-columns: 1fr auto;
