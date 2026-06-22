@@ -50,13 +50,17 @@ function safeFileName(name = "avatar") {
 }
 
 function fileExtension(file, fallback = "jpg") {
-  const name = file.name || "";
-  const dotIdx = name.lastIndexOf(".");
-  if (dotIdx >= 0 && dotIdx < name.length - 1) {
-    return name.slice(dotIdx + 1).toLowerCase().replace(/[^a-z0-9]/g, "") || fallback;
+  try {
+    const name = file?.name || "";
+    const dotIdx = name.lastIndexOf(".");
+    if (dotIdx >= 0 && dotIdx < name.length - 1) {
+      return name.slice(dotIdx + 1).toLowerCase().replace(/[^a-z0-9]/g, "") || fallback;
+    }
+    const mimeExtension = file?.type?.split("/").pop()?.replace("jpeg", "jpg");
+    return mimeExtension || fallback;
+  } catch {
+    return fallback;
   }
-  const mimeExtension = file.type?.split("/").pop()?.replace("jpeg", "jpg");
-  return mimeExtension || fallback;
 }
 
 function safeContentType(file, fallback = "image/jpeg") {
@@ -162,8 +166,10 @@ export const api = {
 
   async uploadMatchPhoto(matchId, file) {
     const client = requireSupabase();
-    const ext = fileExtension(file) || "jpg";
-    const path = `${matchId || "misc"}/${Date.now()}.${ext}`;
+    const ext = fileExtension(file);
+    const folder = matchId || "misc";
+    const path = `${folder}/${Date.now()}.${ext}`;
+    console.log("Upload path:", path, "file:", file?.name, "type:", file?.type);
     const { error } = await client.storage
       .from("match-photos")
       .upload(path, file, {
