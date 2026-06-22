@@ -420,6 +420,52 @@ export const api = {
     );
   },
 
+  async joinWaitlist(matchId, profileId, groupId) {
+    const client = requireSupabase();
+
+    return readOne(
+      client
+        .from("attendances")
+        .upsert(
+          {
+            match_id: matchId,
+            profile_id: profileId,
+            group_id: groupId,
+            status: "waitlist",
+            checked_in: false,
+          },
+          { onConflict: "match_id,profile_id" },
+        )
+        .select("*")
+        .single(),
+    );
+  },
+
+  async promoteFromWaitlist(matchId) {
+    const client = requireSupabase();
+
+    const waitlisted = await readMany(
+      client
+        .from("attendances")
+        .select("*")
+        .eq("match_id", matchId)
+        .eq("status", "waitlist")
+        .order("created_at", { ascending: true })
+        .limit(1),
+    );
+
+    if (waitlisted.length === 0) return null;
+
+    return readOne(
+      client
+        .from("attendances")
+        .update({ status: "confirmed" })
+        .eq("id", waitlisted[0].id)
+        .select("*")
+        .single(),
+    );
+  },
+
   async updateAttendance(attendanceId, payload) {
     const client = requireSupabase();
 

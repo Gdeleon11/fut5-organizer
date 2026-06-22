@@ -6,20 +6,24 @@ import { useState } from "react";
 import {
   formatMatchDate,
   isConfirmedAttendance,
+  isFullMatch,
   matchInvitationText,
+  waitlistPosition,
 } from "../utils.js";
 
 export default function MatchesPage({
+  attendances,
   isAdmin,
   matchAttendances,
   matches,
   myAttendance,
   nextMatch,
-  onConfirm,
   onCancel,
-  onOpenMatch,
+  onConfirm,
+  onJoinWaitlist,
   onCreateMatch,
   onDeleteMatch,
+  onOpenMatch,
   profile,
   fineAmount,
   venues,
@@ -61,7 +65,10 @@ export default function MatchesPage({
               attendance={myAttendance(nextMatch.id)}
               fineAmount={fineAmount}
               match={nextMatch}
+              isFull={isFullMatch(nextMatch, attendances)}
+              waitlistPos={waitlistPosition(nextMatch.id, profile?.id, attendances)}
               onConfirm={() => onConfirm(nextMatch)}
+              onJoinWaitlist={() => onJoinWaitlist(nextMatch)}
               onCancel={() => onCancel(nextMatch)}
               profile={profile}
             />

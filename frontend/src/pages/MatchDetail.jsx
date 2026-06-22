@@ -8,8 +8,10 @@ import {
   attendanceLabel,
   displayName,
   formatMatchDate,
+  isFullMatch,
   matchInvitationText,
   teamAnnouncementText,
+  waitlistPosition,
 } from "../utils.js";
 
 function MatchPhotoSection({ match, onUploadMatchPhoto }) {
@@ -37,6 +39,7 @@ export default function MatchDetail({
   onCheckIn,
   onConfirm,
   onCancel,
+  onJoinWaitlist,
   onDeleteMatch,
   onGenerateTeams,
   onUploadMatchPhoto,
@@ -71,7 +74,10 @@ export default function MatchDetail({
           attendance={myAttendance}
           fineAmount={fineAmount}
           match={match}
+          isFull={isFullMatch(match, attendances)}
+          waitlistPos={waitlistPosition(match.id, profile?.id, attendances)}
           onConfirm={onConfirm}
+          onJoinWaitlist={onJoinWaitlist}
           onCancel={onCancel}
           profile={profile}
         />

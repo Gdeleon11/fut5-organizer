@@ -65,6 +65,7 @@ export function attendanceLabel(status, checkedIn = false) {
     canceled: "Canceló",
     no_show: "No llegó",
     checked_in: "Registrado",
+    waitlist: "Lista de espera",
   };
   return labels[status] || "Sin confirmar";
 }
@@ -147,6 +148,37 @@ export function groupInvitationText(group) {
     "",
     "Abrí el link, creá tu perfil y esperá que el admin te active.",
   ].join("\n");
+}
+
+export function matchReminderText(match, confirmedCount) {
+  return [
+    "RECORDATORIO FUT5",
+    "",
+    "El partido es en 1 hora",
+    "",
+    match.title || "Chamuscón",
+    `Cuándo: ${formatMatchDate(match)}`,
+    `Dónde: ${match.venue || "Cancha pendiente"}`,
+    `Confirmados: ${confirmedCount}`,
+    "",
+    "Nos vemos ahí!",
+  ].join("\n");
+}
+
+export function isFullMatch(match, attendances) {
+  if (!match.max_players) return false;
+  const confirmed = attendances.filter(
+    (a) => a.match_id === match.id && ["confirmed", "checked_in"].includes(a.status),
+  ).length;
+  return confirmed >= match.max_players;
+}
+
+export function waitlistPosition(matchId, profileId, attendances) {
+  const waitlisted = attendances
+    .filter((a) => a.match_id === matchId && a.status === "waitlist")
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const idx = waitlisted.findIndex((a) => a.profile_id === profileId);
+  return idx >= 0 ? idx + 1 : null;
 }
 
 export async function copyToClipboard(text) {

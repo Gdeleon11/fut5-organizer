@@ -138,6 +138,32 @@ export default function App() {
     window.history.replaceState({}, "", window.location.pathname);
   }, [matches]);
 
+  useEffect(() => {
+    if (matches.length === 0 || typeof window === "undefined") return;
+    const now = new Date();
+    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+    const upcoming = matches.filter((m) => {
+      if (m.status !== "upcoming" || !m.match_date || !m.start_time) return false;
+      const matchTime = new Date(`${m.match_date}T${m.start_time}`);
+      return matchTime >= now && matchTime <= oneHourLater;
+    });
+    if (upcoming.length === 0) return;
+    const lastReminded = JSON.parse(localStorage.getItem("fut5_reminded") || "{}");
+    const newReminders = [];
+    upcoming.forEach((m) => {
+      if (!lastReminded[m.id]) {
+        const confirmed = confirmedAttendances(m.id).length;
+        const text = `RECORDATORIO FUT5\n\n${m.title || "Chamuscón"}\nCuándo: ${formatMatchDate(m)}\nDónde: ${m.venue || "Cancha pendiente"}\nConfirmados: ${confirmed}\n\nNos vemos ahí!`;
+        newReminders.push({ match: m, text });
+        lastReminded[m.id] = now.toISOString();
+      }
+    });
+    if (newReminders.length > 0) {
+      localStorage.setItem("fut5_reminded", JSON.stringify(lastReminded));
+      setNotice(`Recordatorio: ${newReminders.length} partido(s) empiezan en 1 hora.`);
+    }
+  }, [matches]);
+
   function resetState() {
     setProfile(null); setMemberships([]); setActiveGroupId("");
     setProfiles([]); setRatings([]); setMatches([]); setAttendances([]);
@@ -311,6 +337,18 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
+  async function joinWaitlist(match) {
+    setNotice(""); setError("");
+    if (!isActiveMember) {
+      setError("Tu membresía está inactiva."); return;
+    }
+    try {
+      const row = await api.joinWaitlist(match.id, profile.id, activeGroupId);
+      setAttendances((c) => [...c.filter((a) => a.id !== row.id), row]);
+      setNotice("Te agregaste a la lista de espera.");
+    } catch (err) { setError(err.message); }
+  }
+
   async function cancelMatch(match) {
     setNotice(""); setError("");
     const attendance = myAttendance(match.id);
@@ -328,7 +366,14 @@ export default function App() {
       );
       setAttendances((c) => c.map((a) => (a.id === updated.id ? updated : a)));
       setFines((c) => [fine, ...c]);
-      setNotice(`Asistencia cancelada. Multa de Q${lateCancelFineAmount} generada.`);
+
+      const promoted = await api.promoteFromWaitlist(match.id);
+      if (promoted) {
+        setAttendances((c) => [...c.filter((a) => a.id !== promoted.id), promoted]);
+        setNotice(`Asistencia cancelada. Multa de Q${lateCancelFineAmount}. Alguien de la lista de espera fue promovido.`);
+      } else {
+        setNotice(`Asistencia cancelada. Multa de Q${lateCancelFineAmount} generada.`);
+      }
     } catch (err) { setError(err.message); }
   }
 
@@ -746,7 +791,7 @@ export default function App() {
           <MatchesPage attendances={attendances} fineAmount={lateCancelFineAmount}
             isAdmin={isAdmin} matchAttendances={matchAttendances} matches={upcomingMatches}
             myAttendance={myAttendance} nextMatch={nextMatch}
-            onCancel={cancelMatch} onConfirm={confirmMatch}
+            onCancel={cancelMatch} onConfirm={confirmMatch} onJoinWaitlist={joinWaitlist}
             onCreateMatch={createMatch} onDeleteMatch={deleteMatch}
             onOpenMatch={openMatch} profile={currentPlayer} teamsByMatch={teamsByMatch}
             venues={venues} />
@@ -759,6 +804,7 @@ export default function App() {
             onCancel={() => cancelMatch(selectedMatch)}
             onCheckIn={(a) => updateAttendance(a.id, { checked_in: true, status: "checked_in" })}
             onConfirm={() => confirmMatch(selectedMatch)}
+            onJoinWaitlist={() => joinWaitlist(selectedMatch)}
             onDeleteMatch={deleteMatch}
             onGenerateTeams={() => generateTeams(selectedMatch)}
             onMarkNoShow={markNoShow}

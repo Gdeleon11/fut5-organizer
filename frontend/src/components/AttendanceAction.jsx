@@ -1,20 +1,12 @@
 import { attendanceLabel, displayName } from "../utils.js";
 
-/**
- * Shows the confirm / cancel attendance control for the current player.
- *
- * Props:
- *   attendance   – current attendance row (may be null)
- *   match        – match object
- *   onConfirm    – () => void
- *   onCancel     – () => void  (triggers late-cancel fine)
- *   profile      – current player profile (with is_active flag)
- *   fineAmount   – amount that will be charged on cancellation (from settings)
- */
 export default function AttendanceAction({
   attendance,
   match,
+  isFull,
+  waitlistPos,
   onConfirm,
+  onJoinWaitlist,
   onCancel,
   profile,
   fineAmount,
@@ -23,12 +15,13 @@ export default function AttendanceAction({
   const isActive = Boolean(profile?.is_active);
   const status = attendance?.status;
   const isConfirmed = ["confirmed", "checked_in"].includes(status);
+  const isWaitlisted = status === "waitlist";
   const isCanceled = status === "canceled";
   const isNoShow = status === "no_show";
   const isCheckedIn = status === "checked_in";
 
-  // Determine confirm button state
-  const confirmDisabled = isConfirmed || !isActive || !isUpcoming;
+  const confirmDisabled = isConfirmed || !isActive || !isUpcoming || isWaitlisted;
+  const waitlistDisabled = isConfirmed || isWaitlisted || !isActive || !isUpcoming;
   let confirmLabel = "Confirmar asistencia";
   let message = "Un toque confirma tu lugar.";
 
@@ -44,6 +37,9 @@ export default function AttendanceAction({
   } else if (isConfirmed) {
     confirmLabel = "Confirmado";
     message = attendanceLabel(status, attendance?.checked_in);
+  } else if (isWaitlisted) {
+    confirmLabel = `En lista (#${waitlistPos || "?"})`;
+    message = `Estás en la lista de espera. Posición: #${waitlistPos || "?"}`;
   } else if (isCanceled) {
     confirmLabel = "Cancelaste";
     message = fineAmount
@@ -52,10 +48,12 @@ export default function AttendanceAction({
   } else if (isNoShow) {
     confirmLabel = "No llegaste";
     message = "El admin te marcó como ausente.";
+  } else if (isFull) {
+    confirmLabel = "Lleno";
+    message = "Este partido está lleno. Unite a la lista de espera.";
   }
 
-  // Cancel is only available if confirmed (not yet checked-in) and match is upcoming
-  const canCancel = isConfirmed && !isCheckedIn && isUpcoming;
+  const canCancel = (isConfirmed || isWaitlisted) && !isCheckedIn && isUpcoming;
 
   return (
     <div className="self-confirm">
@@ -64,14 +62,25 @@ export default function AttendanceAction({
         <small>{message}</small>
       </div>
       <div className="attendance-buttons">
-        <button
-          className={isConfirmed ? "confirmed-button" : ""}
-          disabled={confirmDisabled}
-          type="button"
-          onClick={onConfirm}
-        >
-          {confirmLabel}
-        </button>
+        {isFull && !isConfirmed && !isWaitlisted ? (
+          <button
+            className="secondary-button"
+            disabled={waitlistDisabled}
+            type="button"
+            onClick={onJoinWaitlist}
+          >
+            Lista de espera
+          </button>
+        ) : (
+          <button
+            className={isConfirmed ? "confirmed-button" : ""}
+            disabled={confirmDisabled}
+            type="button"
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </button>
+        )}
         {canCancel && onCancel && (
           <button
             className="secondary-button cancel-attendance-btn"
@@ -79,7 +88,6 @@ export default function AttendanceAction({
             onClick={onCancel}
           >
             Cancelar asistencia
-            {fineAmount ? ` (multa Q${fineAmount})` : ""}
           </button>
         )}
       </div>
