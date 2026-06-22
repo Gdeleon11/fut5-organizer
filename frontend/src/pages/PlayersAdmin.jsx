@@ -7,6 +7,7 @@ import StarRatingControl, {
 import Stars from "../components/Stars.jsx";
 import { FILTER_LABELS, POSITION_OPTIONS } from "../constants.js";
 import {
+  appShareUrl,
   attendanceLabel,
   classNames,
   displayName,
@@ -14,10 +15,12 @@ import {
   fineReasonLabel,
   formatMatchDate,
   formatMoney,
+  groupInvitationText,
   positionLabel,
 } from "../utils.js";
 
 export default function PlayersAdmin({
+  activeGroupId,
   attendances,
   fines,
   isSuperAdmin,
@@ -30,6 +33,7 @@ export default function PlayersAdmin({
 }) {
   const [filter, setFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
+  const [copied, setCopied] = useState(false);
   const selected =
     profiles.find((item) => item.id === selectedId) || profiles[0];
 
@@ -58,7 +62,27 @@ export default function PlayersAdmin({
       <section className="panel">
         <div className="section-heading">
           <h2>Jugadores registrados</h2>
-          <span className="count-pill">{filteredProfiles.length}</span>
+          <div className="button-row">
+            <span className="count-pill">{filteredProfiles.length}</span>
+            {isSuperAdmin && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={async () => {
+                  const url = appShareUrl(null, activeGroupId);
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  } catch {
+                    prompt("Copiá este link:", url);
+                  }
+                }}
+              >
+                {copied ? "Copiado ✓" : "Invitar jugador"}
+              </button>
+            )}
+          </div>
         </div>
         <div className="player-filter-grid">
           {["all", "active", "inactive", "unrated", "unpaid"].map((item) => (

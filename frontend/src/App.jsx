@@ -766,7 +766,7 @@ export default function App() {
             onUploadMatchPhoto={uploadMatchPhoto} teamsByMatch={teamsByMatch} />
         )}
         {page === "players" && isAdmin && (
-          <PlayersAdmin attendances={attendances} fines={fines} matches={matches}
+          <PlayersAdmin activeGroupId={activeGroupId} attendances={attendances} fines={fines} matches={matches}
             onAssignRating={isSuperAdmin ? assignRating : undefined}
             onUpdateMember={updateGroupMember} onUpdateProfile={updateProfileAdmin}
             profiles={profiles} ratingMap={ratingMap} isSuperAdmin={isSuperAdmin} />
