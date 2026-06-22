@@ -1,14 +1,14 @@
 import Avatar from "./Avatar.jsx";
 import { displayName } from "../utils.js";
 
-export default function TeamCards({ teams }) {
+export default function TeamCards({ teams, isAdmin }) {
   return (
     <div className="team-grid">
       {teams.map((team) => (
         <article className="team-card" key={team.id}>
           <div className="team-header">
             <strong>{team.name}</strong>
-            <span>{team.total_rating || 0} estrellas</span>
+            {isAdmin && <span>{team.total_rating || 0} estrellas</span>}
           </div>
           <ul>
             {(team.team_members || []).map((member) => (

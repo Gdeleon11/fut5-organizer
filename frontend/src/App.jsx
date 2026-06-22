@@ -815,7 +815,7 @@ export default function App() {
             teams={teamsByMatch[selectedMatch.id] || []} />
         )}
         {page === "team" && (
-          <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} />
+          <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} isAdmin={isAdmin} />
         )}
         {page === "fines" && (
           <FinesPage fines={fines} isAdmin={isAdmin} matches={matches}

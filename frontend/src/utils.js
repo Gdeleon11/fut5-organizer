@@ -197,6 +197,45 @@ export async function copyToClipboard(text) {
   document.body.removeChild(textarea);
 }
 
+export function teamNotificationText(match, teams) {
+  const lines = [
+    "TUS EQUIPOS FUT5",
+    "",
+    match.title || "Chamuscón",
+    `Cuándo: ${formatMatchDate(match)}`,
+    `Dónde: ${match.venue || "Cancha pendiente"}`,
+    "",
+    "---",
+    "",
+  ];
+  teams.forEach((team) => {
+    lines.push(`${team.name}:`);
+    (team.team_members || []).forEach((member) => {
+      lines.push(`- ${displayName(member.profiles)}`);
+    });
+    lines.push("");
+  });
+  return lines.join("\n").trim();
+}
+
+export function playerTeamText(playerName, team, match) {
+  return [
+    "TU EQUIPO FUT5",
+    "",
+    `Hola ${playerName}!`,
+    "",
+    `Tu equipo: ${team.name}`,
+    `Partido: ${match.title || "Chamuscón"}`,
+    `Cuándo: ${formatMatchDate(match)}`,
+    `Dónde: ${match.venue || "Cancha pendiente"}`,
+    "",
+    "Compañeros:",
+    ...(team.team_members || []).map((m) => `- ${displayName(m.profiles)}`),
+    "",
+    "Nos vemos ahí!",
+  ].join("\n");
+}
+
 export function waUrl(text) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }

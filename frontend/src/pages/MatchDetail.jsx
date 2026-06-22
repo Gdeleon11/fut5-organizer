@@ -11,6 +11,7 @@ import {
   isFullMatch,
   matchInvitationText,
   teamAnnouncementText,
+  teamNotificationText,
   waitlistPosition,
 } from "../utils.js";
 
@@ -137,12 +138,18 @@ export default function MatchDetail({
           </div>
         ) : (
           <>
-            <TeamCards teams={teams} />
+            <TeamCards teams={teams} isAdmin={isAdmin} />
             {isAdmin && (
-              <ExportCard
-                label="Equipos para WhatsApp"
-                text={teamAnnouncementText(match, teams)}
-              />
+              <>
+                <ExportCard
+                  label="Equipos para WhatsApp"
+                  text={teamAnnouncementText(match, teams)}
+                />
+                <ExportCard
+                  label="Notificar equipos a jugadores"
+                  text={teamNotificationText(match, teams)}
+                />
+              </>
             )}
           </>
         )}

@@ -1,7 +1,7 @@
 import Avatar from "../components/Avatar.jsx";
 import { displayName, formatMatchDate } from "../utils.js";
 
-export default function TeamPage({ matches, profile, teamsByMatch }) {
+export default function TeamPage({ matches, profile, teamsByMatch, isAdmin }) {
   const assigned = matches
     .map((match) => {
       const team = (teamsByMatch[match.id] || []).find((item) =>
@@ -30,7 +30,7 @@ export default function TeamPage({ matches, profile, teamsByMatch }) {
               <article className="team-card" key={`${match.id}-${team.id}`}>
                 <div className="team-header">
                   <strong>{team.name}</strong>
-                  <span>{team.total_rating || 0} estrellas</span>
+                  {isAdmin && <span>{team.total_rating || 0} estrellas</span>}
                 </div>
                 <small>{formatMatchDate(match)}</small>
                 <ul>
