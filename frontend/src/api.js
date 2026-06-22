@@ -57,6 +57,13 @@ function fileExtension(file, fallback = "jpg") {
     : mimeExtension || fallback;
 }
 
+function safeContentType(file, fallback = "image/jpeg") {
+  if (file.type && file.type !== "") return file.type;
+  const ext = fileExtension(file);
+  const map = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", heic: "image/heic" };
+  return map[ext] || fallback;
+}
+
 function latestRatingsByProfile(ratings = []) {
   const latest = new Map();
 
@@ -126,7 +133,7 @@ export const api = {
       .from("avatars")
       .upload(path, file, {
         cacheControl: "3600",
-        contentType: file.type,
+        contentType: safeContentType(file),
         upsert: true,
       });
 
@@ -156,7 +163,7 @@ export const api = {
       .from("match-photos")
       .upload(path, file, {
         cacheControl: "3600",
-        contentType: file.type,
+        contentType: safeContentType(file),
         upsert: true,
       });
 
@@ -690,7 +697,7 @@ export const api = {
     const path = `${venueId}/${Date.now()}.${fileExtension(file)}`;
     const { error } = await client.storage
       .from("venue-photos")
-      .upload(path, file, { cacheControl: "3600", contentType: file.type, upsert: true });
+      .upload(path, file, { cacheControl: "3600", contentType: safeContentType(file), upsert: true });
 
     if (error) {
       if (error.message?.includes("bucket")) {
@@ -1104,7 +1111,7 @@ export const api = {
       .from("payment-proofs")
       .upload(path, file, {
         cacheControl: "3600",
-        contentType: file.type,
+        contentType: safeContentType(file),
         upsert: true,
       });
 
