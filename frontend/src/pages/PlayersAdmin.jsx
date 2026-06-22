@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar.jsx";
+import PlayerBadge from "../components/PlayerBadge.jsx";
 import StarRatingControl, {
   PositionRatingControl,
   PositionRatingDisplay,
@@ -138,6 +139,9 @@ export default function PlayersAdmin({
                     "Sin estrellas"
                   )}
                 </small>
+                <div className="player-card-badge">
+                  <PlayerBadge rating={ratingMap.get(player.id)} />
+                </div>
                 <div className="button-row">
                   <button
                     className="secondary-button"
@@ -206,6 +210,12 @@ export default function PlayersAdmin({
                   )}
                 </strong>
                 <small>Estrellas</small>
+              </span>
+              <span>
+                <strong>
+                  <PlayerBadge rating={ratingMap.get(selected.id)} />
+                </strong>
+                <small>Nivel</small>
               </span>
             </div>
 

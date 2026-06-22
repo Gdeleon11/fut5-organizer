@@ -1117,6 +1117,10 @@ small, .muted {
   cursor: pointer;
 }
 
+.player-card-badge {
+  margin-top: 0.3rem;
+}
+
 .role-controls {
   display: grid;
   grid-template-columns: 1fr auto;
