@@ -45,18 +45,18 @@ function safeFileName(name = "avatar") {
     .toLowerCase()
     .replace(/[^a-z0-9.]+/g, "-")
     .replace(/^-+|-+$/g, "")
+    .replace(/\.+/g, ".")
     .slice(0, 80) || "avatar";
 }
 
 function fileExtension(file, fallback = "jpg") {
-  const cleanedName = safeFileName(file.name || fallback);
+  const name = file.name || "";
+  const dotIdx = name.lastIndexOf(".");
+  if (dotIdx >= 0 && dotIdx < name.length - 1) {
+    return name.slice(dotIdx + 1).toLowerCase().replace(/[^a-z0-9]/g, "") || fallback;
+  }
   const mimeExtension = file.type?.split("/").pop()?.replace("jpeg", "jpg");
-
-  const ext = cleanedName.includes(".")
-    ? cleanedName.split(".").pop()
-    : mimeExtension || fallback;
-
-  return ext || fallback;
+  return mimeExtension || fallback;
 }
 
 function safeContentType(file, fallback = "image/jpeg") {
