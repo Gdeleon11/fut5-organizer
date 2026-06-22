@@ -169,7 +169,6 @@ export const api = {
     const ext = fileExtension(file);
     const folder = matchId || "misc";
     const path = `${folder}/${Date.now()}.${ext}`;
-    console.log("Upload path:", path, "file:", file?.name, "type:", file?.type);
     const { error } = await client.storage
       .from("match-photos")
       .upload(path, file, {
@@ -180,21 +179,26 @@ export const api = {
 
     if (error) {
       if (error.message?.includes("bucket")) {
-        throw new Error("Error de almacenamiento: el bucket 'match-photos' no existe. Pedile al admin que corra la migración de storage.");
+        throw new Error("Error de almacenamiento: el bucket 'match-photos' no existe.");
       }
-      raise(error);
+      throw new Error(`Error subiendo foto: ${error.message}`);
     }
 
-    const { data } = client.storage.from("match-photos").getPublicUrl(path);
+    const { data: urlData } = client.storage.from("match-photos").getPublicUrl(path);
+    const url = urlData?.publicUrl;
+    if (!url) throw new Error("No se pudo obtener la URL de la foto.");
 
-    return readOne(
-      client
-        .from("matches")
-        .update({ court_photo_url: data.publicUrl })
-        .eq("id", matchId)
-        .select("*")
-        .single(),
-    );
+    const { data, error: updateError } = await client
+      .from("matches")
+      .update({ court_photo_url: url })
+      .eq("id", matchId)
+      .select("*")
+      .single();
+
+    if (updateError) {
+      throw new Error(`Error guardando foto en partido: ${updateError.message}`);
+    }
+    return data;
   },
 
   async listMyGroups(profileId) {
