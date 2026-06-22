@@ -437,12 +437,11 @@ export default function App() {
     await supabase.auth.signOut(); setSession(null); resetState();
   }
 
-  async function createMatch(payload, courtPhotoFile) {
+  async function createMatch(payload) {
     setNotice(""); setError("");
     if (!activeGroupId) { setError("Primero creá o seleccioná un grupo."); return null; }
     try {
       let created = await api.createMatch({ ...payload, group_id: activeGroupId });
-      if (courtPhotoFile) created = await api.uploadMatchPhoto(created.id, courtPhotoFile);
       setMatches((c) => [...c, created]);
       setSelectedMatchId(created.id);
       // Auto-create match fee if court_cost > 0
@@ -456,15 +455,6 @@ export default function App() {
       setNotice("Partido creado.");
       return created;
     } catch (err) { setError(err.message); return null; }
-  }
-
-  async function uploadMatchPhoto(matchId, file) {
-    setNotice(""); setError("");
-    try {
-      const updated = await api.uploadMatchPhoto(matchId, file);
-      setMatches((c) => c.map((m) => (m.id === updated.id ? updated : m)));
-      setNotice("Foto de cancha guardada.");
-    } catch (err) { setError(err.message); }
   }
 
   async function editMatch(matchId, payload) {
@@ -851,7 +841,6 @@ export default function App() {
             onDeleteMatch={deleteMatch}
             onGenerateTeams={() => generateTeams(selectedMatch)}
             onMarkNoShow={markNoShow}
-            onUploadMatchPhoto={(file) => uploadMatchPhoto(selectedMatch.id, file)}
             profile={currentPlayer} profileById={profileById}
             teams={teamsByMatch[selectedMatch.id] || []} />
         )}
@@ -895,7 +884,7 @@ export default function App() {
           <AdminPanel matches={sortedMatches} venues={venues}
             onCreateMatch={createMatch} onDeleteMatch={deleteMatch}
             onEditMatch={editMatch} onGenerateTeams={generateTeams}
-            onUploadMatchPhoto={uploadMatchPhoto} teamsByMatch={teamsByMatch} />
+            teamsByMatch={teamsByMatch} />
         )}
         {page === "players" && isAdmin && (
           <PlayersAdmin activeGroupId={activeGroupId} attendances={attendances} fines={fines} matches={matches}

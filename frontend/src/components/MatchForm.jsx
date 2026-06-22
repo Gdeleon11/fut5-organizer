@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MATCH_STATUSES, emptyMatchForm } from "../constants.js";
 import { formatMoney, statusLabel } from "../utils.js";
 
@@ -19,17 +19,7 @@ export default function MatchForm({ initial, venues, onSave, onCancel }) {
         }
       : { ...emptyMatchForm, venue_id: "", court_cost: 0 },
   );
-  const [courtPhotoFile, setCourtPhotoFile] = useState(null);
-  const [courtPhotoPreview, setCourtPhotoPreview] = useState(
-    initial?.court_photo_url || "",
-  );
   const [formError, setFormError] = useState("");
-
-  useEffect(() => {
-    return () => {
-      if (courtPhotoPreview.startsWith("blob:")) URL.revokeObjectURL(courtPhotoPreview);
-    };
-  }, [courtPhotoPreview]);
 
   function updateForm(patch) {
     setForm((f) => ({ ...f, ...patch }));
@@ -59,20 +49,17 @@ export default function MatchForm({ initial, venues, onSave, onCancel }) {
     if (!form.title.trim()) { setFormError("El nombre del partido es obligatorio."); return; }
     if (!form.match_date) { setFormError("La fecha es obligatoria."); return; }
 
-    await onSave(
-      {
-        title: form.title.trim(),
-        match_date: form.match_date,
-        start_time: form.start_time,
-        venue: form.venue?.trim() || null,
-        venue_id: form.venue_id || null,
-        court_cost: Number(form.court_cost) || 0,
-        min_players: Number(form.min_players) || 10,
-        max_players: Number(form.max_players) || 18,
-        status: form.status,
-      },
-      courtPhotoFile,
-    );
+    await onSave({
+      title: form.title.trim(),
+      match_date: form.match_date,
+      start_time: form.start_time,
+      venue: form.venue?.trim() || null,
+      venue_id: form.venue_id || null,
+      court_cost: Number(form.court_cost) || 0,
+      min_players: Number(form.min_players) || 10,
+      max_players: Number(form.max_players) || 18,
+      status: form.status,
+    });
   }
 
   return (
@@ -117,15 +104,6 @@ export default function MatchForm({ initial, venues, onSave, onCancel }) {
         Costo de cancha (Q)
         <input min="0" step="1" type="number" value={form.court_cost}
           onChange={(e) => updateForm({ court_cost: e.target.value })} />
-      </label>
-      <label className="media-upload">
-        Foto de la cancha
-        {courtPhotoPreview ? (
-          <img alt="Vista previa" src={courtPhotoPreview} />
-        ) : (
-          <span className="media-placeholder">Subí una foto de la cancha</span>
-        )}
-        <input accept="image/*" type="file" onChange={updateCourtPhoto} />
       </label>
       <label>
         Mínimo de jugadores

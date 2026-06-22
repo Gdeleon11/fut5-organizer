@@ -1,7 +1,6 @@
 import AttendanceAction from "../components/AttendanceAction.jsx";
 import CourtPhoto from "../components/CourtPhoto.jsx";
 import ExportCard from "../components/ExportCard.jsx";
-import MatchPhotoUpload from "../components/MatchPhotoUpload.jsx";
 import TeamCards from "../components/TeamCards.jsx";
 import { useState } from "react";
 import {
@@ -14,21 +13,6 @@ import {
   teamNotificationText,
   waitlistPosition,
 } from "../utils.js";
-
-function MatchPhotoSection({ match, onUploadMatchPhoto }) {
-  return (
-    <section className="court-upload-block">
-      <div>
-        <p className="eyebrow">Foto de la cancha</p>
-        <strong>{match.court_photo_url ? "Foto cargada" : "Sin foto todavía"}</strong>
-        <small>
-          Subí una imagen para que los jugadores ubiquen rápido el lugar.
-        </small>
-      </div>
-      <MatchPhotoUpload match={match} onUploadMatchPhoto={onUploadMatchPhoto} />
-    </section>
-  );
-}
 
 export default function MatchDetail({
   attendances,
@@ -43,7 +27,6 @@ export default function MatchDetail({
   onJoinWaitlist,
   onDeleteMatch,
   onGenerateTeams,
-  onUploadMatchPhoto,
   onMarkNoShow,
   profile,
   profileById,
@@ -65,12 +48,6 @@ export default function MatchDetail({
           {formatMatchDate(match)} · {match.venue || "Cancha pendiente"}
         </p>
         <CourtPhoto match={match} />
-        {isAdmin && (
-          <MatchPhotoSection
-            match={match}
-            onUploadMatchPhoto={onUploadMatchPhoto}
-          />
-        )}
         <AttendanceAction
           attendance={myAttendance}
           fineAmount={fineAmount}

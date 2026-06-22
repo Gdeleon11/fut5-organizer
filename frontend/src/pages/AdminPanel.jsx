@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import MatchForm from "../components/MatchForm.jsx";
 import ExportCard from "../components/ExportCard.jsx";
-import MatchPhotoUpload from "../components/MatchPhotoUpload.jsx";
 import { formatMatchDate, formatMoney, matchInvitationText, statusLabel } from "../utils.js";
 
 export default function AdminPanel({
@@ -11,7 +10,6 @@ export default function AdminPanel({
   onDeleteMatch,
   onEditMatch,
   onGenerateTeams,
-  onUploadMatchPhoto,
   teamsByMatch,
 }) {
   const [showCreate, setShowCreate] = useState(false);
@@ -27,9 +25,8 @@ export default function AdminPanel({
     }
   }
 
-  async function handleEdit(matchId, payload, photoFile) {
+  async function handleEdit(matchId, payload) {
     await onEditMatch(matchId, payload);
-    if (photoFile) await onUploadMatchPhoto(matchId, photoFile);
     setEditingId(null);
   }
 
@@ -110,16 +107,11 @@ export default function AdminPanel({
                   <MatchForm
                     initial={match}
                     venues={venues}
-                    onSave={(payload, photoFile) => handleEdit(match.id, payload, photoFile)}
+                    onSave={(payload) => handleEdit(match.id, payload)}
                     onCancel={() => setEditingId(null)}
                   />
                 ) : (
                   <>
-                    <MatchPhotoUpload
-                      match={match}
-                      onUploadMatchPhoto={onUploadMatchPhoto}
-                    />
-
                     {/* Actions */}
                     <div className="button-row">
                       <button type="button" onClick={() => onGenerateTeams(match)}>
