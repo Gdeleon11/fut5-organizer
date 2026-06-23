@@ -1,7 +1,8 @@
 function teamCountForPlayers(playerCount) {
   if (playerCount >= 10 && playerCount <= 14) return 2;
   if (playerCount >= 15 && playerCount <= 18) return 3;
-  throw new Error("Se necesitan entre 10 y 18 jugadores activos confirmados.");
+  if (playerCount >= 19 && playerCount <= 22) return 4;
+  throw new Error(`Se necesitan entre 10 y 22 jugadores. Hay ${playerCount}.`);
 }
 
 function targetSizes(playerCount, teamCount) {
