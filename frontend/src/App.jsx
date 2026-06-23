@@ -557,7 +557,9 @@ export default function App() {
   async function generateTeams(match, options = {}) {
     setNotice(""); setError("");
     try {
-      const result = await api.generateTeamsForMatch(match, profiles, attendances, ratings, options);
+      const freshProfiles = await api.listGroupProfiles(activeGroupId);
+      setProfiles(freshProfiles);
+      const result = await api.generateTeamsForMatch(match, freshProfiles, attendances, ratings, options);
       setTeamsByMatch((c) => ({ ...c, [match.id]: result.teams }));
       setNotice("Equipos generados.");
     } catch (err) { setError(err.message); }
