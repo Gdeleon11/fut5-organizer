@@ -554,10 +554,10 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
-  async function generateTeams(match) {
+  async function generateTeams(match, options = {}) {
     setNotice(""); setError("");
     try {
-      const result = await api.generateTeamsForMatch(match, profiles, attendances, ratings);
+      const result = await api.generateTeamsForMatch(match, profiles, attendances, ratings, options);
       setTeamsByMatch((c) => ({ ...c, [match.id]: result.teams }));
       setNotice("Equipos generados.");
     } catch (err) { setError(err.message); }
@@ -855,7 +855,7 @@ export default function App() {
             onConfirm={() => confirmMatch(selectedMatch)}
             onJoinWaitlist={() => joinWaitlist(selectedMatch)}
             onDeleteMatch={deleteMatch}
-            onGenerateTeams={() => generateTeams(selectedMatch)}
+            onGenerateTeams={(opts) => generateTeams(selectedMatch, opts || {})}
             onMarkNoShow={markNoShow}
             profile={currentPlayer} profileById={profileById}
             teams={teamsByMatch[selectedMatch.id] || []} />

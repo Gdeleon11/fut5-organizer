@@ -557,25 +557,20 @@ export const api = {
     return Object.fromEntries(pairs);
   },
 
-  async generateTeamsForMatch(match, profiles, attendances, ratings) {
+  async generateTeamsForMatch(match, profiles, attendances, ratings, options = {}) {
     const client = requireSupabase();
-    const confirmedIds = attendances
-      .filter(
-        (attendance) =>
-          attendance.match_id === match.id &&
-          ["confirmed", "checked_in"].includes(attendance.status),
-      )
-      .map((attendance) => attendance.profile_id);
+    const matchAttendances = attendances.filter(
+      (a) => a.match_id === match.id && ["confirmed", "checked_in"].includes(a.status),
+    );
+    const confirmedIds = matchAttendances.map((a) => a.profile_id);
     const ratingMap = latestRatingsByProfile(ratings);
-    const players = profiles
-      .filter(
-        (profile) =>
-          profile.membership_is_active && confirmedIds.includes(profile.id),
-      )
-      .map((profile) => {
-        const r = ratingMap.get(profile.id) || {};
+
+    let players = profiles
+      .filter((p) => p.membership_is_active && confirmedIds.includes(p.id))
+      .map((p) => {
+        const r = ratingMap.get(p.id) || {};
         return {
-          ...profile,
+          ...p,
           rating: r.rating || 2,
           attack_rating: r.attack_rating || r.rating || 2,
           defense_rating: r.defense_rating || r.rating || 2,
@@ -583,7 +578,31 @@ export const api = {
           goalkeeper_rating: r.goalkeeper_rating || r.rating || 2,
         };
       });
+
+    let penaltyTeam = null;
+
+    if (options.penaltyTeam && players.length >= 13 && players.length <= 14) {
+      const sortedByConfirmTime = [...matchAttendances]
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const lastThreeIds = sortedByConfirmTime.slice(0, 3).map((a) => a.profile_id);
+      penaltyTeam = players.filter((p) => lastThreeIds.includes(p.id));
+      players = players.filter((p) => !lastThreeIds.includes(p.id));
+    }
+
     const generated = generateBalancedTeams(players);
+
+    if (penaltyTeam && penaltyTeam.length > 0) {
+      generated.teams.push({
+        name: "Equipo de castigo",
+        team_order: generated.teams.length + 1,
+        target_size: penaltyTeam.length,
+        players: penaltyTeam,
+        total_rating: penaltyTeam.reduce((s, p) => s + p.rating, 0),
+        goalkeeper_count: penaltyTeam.filter((p) => p.preferred_position === "Goalkeeper").length,
+      });
+      generated.team_count += 1;
+      generated.confirmed_player_count += penaltyTeam.length;
+    }
 
     await client.from("teams").delete().eq("match_id", match.id);
 

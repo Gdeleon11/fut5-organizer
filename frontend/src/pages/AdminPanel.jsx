@@ -114,7 +114,7 @@ export default function AdminPanel({
                   <>
                     {/* Actions */}
                     <div className="button-row">
-                      <button type="button" onClick={() => onGenerateTeams(match)}>
+                      <button type="button" onClick={() => onGenerateTeams(match, {})}>
                         Generar equipos
                       </button>
                       <button

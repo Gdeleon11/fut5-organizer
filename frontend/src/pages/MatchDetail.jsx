@@ -34,6 +34,8 @@ export default function MatchDetail({
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
+  const canPenaltyTeam = confirmedCount >= 13 && confirmedCount <= 14;
+
   return (
     <div className="page-grid">
       <section className="panel">
@@ -61,9 +63,19 @@ export default function MatchDetail({
         />
         {isAdmin && (
           <div className="button-row">
-            <button type="button" onClick={onGenerateTeams}>
+            <button type="button" onClick={() => onGenerateTeams({})}>
               Generar equipos
             </button>
+            {canPenaltyTeam && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => onGenerateTeams({ penaltyTeam: true })}
+                title="Crea un equipo pequeño con los últimos 3 en confirmar"
+              >
+                Con equipo de castigo
+              </button>
+            )}
             {confirmingDelete ? (
               <>
                 <button
