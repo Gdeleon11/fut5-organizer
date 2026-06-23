@@ -1211,6 +1211,24 @@ small, .muted {
   margin-top: 0.3rem;
 }
 
+.team-assign-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.team-assign-player {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+}
+
+.team-assign-player span {
+  flex: 1;
+  font-size: 0.85rem;
+}
+
 .role-controls {
   display: grid;
   grid-template-columns: 1fr auto;

@@ -3,7 +3,7 @@ import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
 import { api } from "../api.js";
 import { generateFixtures, updateStandings } from "../tournamentEngine.js";
-import { displayName, formatMatchDate } from "../utils.js";
+import { displayName } from "../utils.js";
 
 const FORMATS = [
   { id: "cuadrangular", label: "Cuadrangular", desc: "4 equipos, todos contra todos + final" },
@@ -13,67 +13,56 @@ const FORMATS = [
 ];
 
 const DAYS = [
-  { id: "monday", label: "Lunes" },
-  { id: "tuesday", label: "Martes" },
-  { id: "wednesday", label: "Miércoles" },
-  { id: "thursday", label: "Jueves" },
-  { id: "friday", label: "Viernes" },
-  { id: "saturday", label: "Sábado" },
+  { id: "monday", label: "Lunes" }, { id: "tuesday", label: "Martes" },
+  { id: "wednesday", label: "Miércoles" }, { id: "thursday", label: "Jueves" },
+  { id: "friday", label: "Viernes" }, { id: "saturday", label: "Sábado" },
   { id: "sunday", label: "Domingo" },
 ];
 
 const TEAM_COLORS = ["#22c55e", "#3b82f6", "#ef4444", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
-function TournamentForm({ onSave, onCancel, profiles }) {
+function TournamentForm({ onSave, onCancel }) {
   const [form, setForm] = useState({
-    name: "",
-    format: "cuadrangular",
-    start_date: "",
-    match_time: "19:00",
-    match_day: "monday",
-    venue: "",
+    name: "", format: "league", start_date: "", match_time: "19:00",
+    match_day: "monday", venue: "", team_count: 4,
   });
   const [error, setError] = useState("");
-
-  function update(patch) { setForm((f) => ({ ...f, ...patch })); }
+  const update = (p) => setForm((f) => ({ ...f, ...p }));
 
   async function submit(e) {
-    e.preventDefault();
-    setError("");
+    e.preventDefault(); setError("");
     if (!form.name.trim()) { setError("Poné el nombre del torneo."); return; }
     if (!form.start_date) { setError("Elegí una fecha de inicio."); return; }
+    if (form.team_count < 2) { setError("Mínimo 2 equipos."); return; }
     await onSave(form);
   }
 
   return (
     <form className="form-grid" onSubmit={submit}>
       {error && <p className="form-message">{error}</p>}
-      <label>
-        Nombre del torneo
+      <label>Nombre del torneo
         <input placeholder="Ej. Liga Apertura 2026" value={form.name} onChange={(e) => update({ name: e.target.value })} />
       </label>
-      <label>
-        Formato
+      <label>Formato
         <select value={form.format} onChange={(e) => update({ format: e.target.value })}>
           {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label} — {f.desc}</option>)}
         </select>
       </label>
-      <label>
-        Fecha de inicio
+      <label>Cantidad de equipos
+        <input type="number" min="2" max="8" value={form.team_count} onChange={(e) => update({ team_count: Number(e.target.value) })} />
+      </label>
+      <label>Fecha de inicio
         <input type="date" value={form.start_date} onChange={(e) => update({ start_date: e.target.value })} />
       </label>
-      <label>
-        Día de juego
+      <label>Día de juego
         <select value={form.match_day} onChange={(e) => update({ match_day: e.target.value })}>
           {DAYS.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
         </select>
       </label>
-      <label>
-        Hora
+      <label>Hora
         <input type="time" value={form.match_time} onChange={(e) => update({ match_time: e.target.value })} />
       </label>
-      <label>
-        Cancha
+      <label>Cancha
         <input placeholder="Opcional" value={form.venue} onChange={(e) => update({ venue: e.target.value })} />
       </label>
       <button type="submit">Crear torneo</button>
@@ -82,97 +71,177 @@ function TournamentForm({ onSave, onCancel, profiles }) {
   );
 }
 
-function TeamAssignment({ tournament, profiles, ratingMap, teams, onGenerate }) {
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [teamCount, setTeamCount] = useState(4);
+function TeamSetup({ tournament, profiles, ratingMap, onSave }) {
+  const [teamNames, setTeamNames] = useState(
+    Array.from({ length: tournament.team_count || 4 }, (_, i) => `Equipo ${String.fromCharCode(65 + i)}`)
+  );
+  const [step, setStep] = useState("names"); // "names" | "assign"
+  const [assignments, setAssignments] = useState({}); // { teamIndex: [profileId, ...] }
   const [error, setError] = useState("");
 
   const activePlayers = profiles.filter((p) => p.membership_is_active);
+  const assignedIds = new Set(Object.values(assignments).flat());
+  const unassigned = activePlayers.filter((p) => !assignedIds.has(p.id));
 
-  function toggle(id) {
-    setSelectedIds((prev) => {
-      const n = new Set(prev);
-      if (n.has(id)) n.delete(id); else n.add(id);
-      return n;
+  function updateTeamName(idx, name) {
+    setTeamNames((prev) => { const n = [...prev]; n[idx] = name; return n; });
+  }
+
+  function addTeam() {
+    setTeamNames((prev) => [...prev, `Equipo ${String.fromCharCode(65 + prev.length)}`]);
+  }
+
+  function removeTeam(idx) {
+    if (teamNames.length <= 2) return;
+    setTeamNames((prev) => prev.filter((_, i) => i !== idx));
+    setAssignments((prev) => {
+      const next = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        const ki = Number(k);
+        if (ki < idx) next[ki] = v;
+        else if (ki > idx) next[ki - 1] = v;
+      });
+      return next;
     });
   }
 
-  function selectAll() { setSelectedIds(new Set(activePlayers.map((p) => p.id))); }
+  function assignPlayer(teamIdx, playerId) {
+    setAssignments((prev) => {
+      const next = { ...prev };
+      // Remove from other team first
+      Object.keys(next).forEach((k) => {
+        next[k] = next[k].filter((id) => id !== playerId);
+      });
+      next[teamIdx] = [...(next[teamIdx] || []), playerId];
+      return next;
+    });
+  }
 
-  const minTeams = tournament.format === "cuadrangular" ? 4 :
-    tournament.format === "playoffs_only" ? 2 : 2;
-  const maxTeams = tournament.format === "cuadrangular" ? 4 :
-    tournament.format === "playoffs_only" ? 8 : Math.min(activePlayers.length, 12);
-  const teamRange = Array.from({ length: maxTeams - minTeams + 1 }, (_, i) => minTeams + i);
+  function unassignPlayer(playerId) {
+    setAssignments((prev) => {
+      const next = {};
+      Object.entries(prev).forEach(([k, v]) => {
+        next[k] = v.filter((id) => id !== playerId);
+      });
+      return next;
+    });
+  }
 
-  return (
-    <section className="panel">
-      <div className="section-heading">
-        <div>
-          <h2>Seleccionar jugadores</h2>
-          <small>Elegí los participantes y la cantidad de equipos ({teamCount} equipos, {selectedIds.size} jugadores seleccionados).</small>
+  function autoBalance() {
+    const sorted = [...activePlayers].sort((a, b) => {
+      const ra = ratingMap.get(a.id)?.rating || 2;
+      const rb = ratingMap.get(b.id)?.rating || 2;
+      return rb - ra;
+    });
+    const newAssignments = {};
+    teamNames.forEach((_, i) => { newAssignments[i] = []; });
+    sorted.forEach((p, i) => {
+      const teamIdx = i % teamNames.length;
+      newAssignments[teamIdx].push(p.id);
+    });
+    setAssignments(newAssignments);
+  }
+
+  function getTeamRating(teamIdx) {
+    const members = assignments[teamIdx] || [];
+    return members.reduce((sum, pid) => {
+      const r = ratingMap.get(pid);
+      return sum + (r?.rating || 2);
+    }, 0);
+  }
+
+  async function finish() {
+    setError("");
+    const emptyTeams = teamNames.filter((_, i) => (assignments[i] || []).length < 5);
+    if (emptyTeams.length > 0) {
+      setError(`Cada equipo necesita al menos 5 jugadores. Faltan: ${emptyTeams.join(", ")}`);
+      return;
+    }
+    await onSave(teamNames, assignments);
+  }
+
+  if (step === "names") {
+    return (
+      <section className="panel">
+        <div className="section-heading">
+          <div>
+            <h2>Crear equipos</h2>
+            <small>Nombre cada equipo ({teamNames.length} equipos)</small>
+          </div>
+          <div className="button-row">
+            <button className="secondary-button" type="button" onClick={addTeam}>+ Equipo</button>
+            <button type="button" onClick={() => setStep("assign")}>Siguiente →</button>
+          </div>
         </div>
-        <div className="button-row">
-          <select value={teamCount} onChange={(e) => setTeamCount(Number(e.target.value))}>
-            {teamRange.map((n) => <option key={n} value={n}>{n} equipos</option>)}
-          </select>
-          <button className="secondary-button" type="button" onClick={selectAll}>Todos</button>
-          <button
-            type="button"
-            disabled={selectedIds.size < teamCount * 2}
-            onClick={() => { setError(""); onGenerate([...selectedIds], teamCount); }}
-          >
-            Generar equipos
-          </button>
-        </div>
-      </div>
-      {error && <p className="form-message">{error}</p>}
-      {selectedIds.size < teamCount * 2 && (
-        <p className="muted" style={{ fontSize: "0.85rem" }}>
-          Necesitás al menos {teamCount * 2} jugadores ({selectedIds.size} seleccionados).
-        </p>
-      )}
-      <div className="player-list sim-player-list">
-        {activePlayers.map((player) => (
-          <label
-            className={`player-row sim-player-row ${selectedIds.has(player.id) ? "is-selected" : ""}`}
-            key={player.id}
-          >
-            <div className="sim-player-info">
-              <input type="checkbox" checked={selectedIds.has(player.id)} onChange={() => toggle(player.id)} />
-              <Avatar profile={player} size="sm" />
-              <div>
-                <strong>{displayName(player)}</strong>
-                <small>{player.preferred_position || "Flexible"}</small>
-              </div>
+        {teamNames.map((name, i) => (
+          <div className="player-row" key={i} style={{ borderLeft: `4px solid ${TEAM_COLORS[i % TEAM_COLORS.length]}` }}>
+            <div style={{ flex: 1 }}>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => updateTeamName(i, e.target.value)}
+                style={{ width: "100%", background: "transparent", border: "none", color: "inherit", font: "inherit" }}
+              />
             </div>
-            <PlayerBadge rating={ratingMap.get(player.id)} />
-          </label>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function TeamEditor({ teams, onRemove, onAdd }) {
-  const [newName, setNewName] = useState("");
-  return (
-    <div>
-      {teams.map((team, i) => (
-        <div className="panel" key={i} style={{ borderLeft: `4px solid ${TEAM_COLORS[i % TEAM_COLORS.length]}` }}>
-          <div className="section-heading">
-            <strong>{team.name}</strong>
-            <span className="count-pill">{team.members.length} jugadores</span>
+            {teamNames.length > 2 && (
+              <button className="secondary-button" type="button" onClick={() => removeTeam(i)}>✕</button>
+            )}
           </div>
-          <div className="player-list">
-            {team.members.length === 0 && <div className="empty-state compact">Sin jugadores</div>}
-            {team.members.map((pid) => {
-              return <div className="player-row" key={pid}><small>{pid}</small></div>;
-            })}
+        ))}
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <section className="panel">
+        <div className="section-heading">
+          <div>
+            <h2>Asignar jugadores</h2>
+            <small>Seleccioná los jugadores para cada equipo (mínimo 5 por equipo)</small>
+          </div>
+          <div className="button-row">
+            <button className="secondary-button" type="button" onClick={() => setStep("names")}>← Nombres</button>
+            <button className="secondary-button" type="button" onClick={autoBalance}>Auto-balancear</button>
+            <button type="button" onClick={finish}>Crear equipos</button>
           </div>
         </div>
+        {error && <p className="form-message">{error}</p>}
+      </section>
+
+      {teamNames.map((name, i) => (
+        <section className="panel" key={i} style={{ borderLeft: `4px solid ${TEAM_COLORS[i % TEAM_COLORS.length]}` }}>
+          <div className="section-heading">
+            <strong>{name}</strong>
+            <span className="count-pill">
+              {(assignments[i] || []).length} jug · {getTeamRating(i)} estrellas
+            </span>
+          </div>
+          <div className="team-assign-grid">
+            {(assignments[i] || []).map((pid) => {
+              const player = profiles.find((p) => p.id === pid);
+              return (
+                <div className="team-assign-player" key={pid}>
+                  <Avatar profile={player} size="sm" />
+                  <span>{displayName(player)}</span>
+                  <button className="ghost-button" type="button" onClick={() => unassignPlayer(pid)}>✕</button>
+                </div>
+              );
+            })}
+            <select
+              value=""
+              onChange={(e) => { if (e.target.value) assignPlayer(i, e.target.value); }}
+              style={{ marginTop: "0.3rem" }}
+            >
+              <option value="">+ Agregar jugador</option>
+              {unassigned.map((p) => (
+                <option key={p.id} value={p.id}>{displayName(p)} ({ratingMap.get(p.id)?.rating || 2}⭐)</option>
+              ))}
+            </select>
+          </div>
+        </section>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -184,18 +253,13 @@ function FixturesView({ matches, teams, onRecordResult }) {
   const teamMap = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams]);
   const rounds = useMemo(() => {
     const map = new Map();
-    matches.forEach((m) => {
-      if (!map.has(m.round)) map.set(m.round, []);
-      map.get(m.round).push(m);
-    });
+    matches.forEach((m) => { if (!map.has(m.round)) map.set(m.round, []); map.get(m.round).push(m); });
     return [...map.entries()].sort((a, b) => a[0] - b[0]);
   }, [matches]);
 
   function saveResult(match) {
     onRecordResult(match.id, Number(homeScore), Number(awayScore));
-    setEditingId(null);
-    setHomeScore("");
-    setAwayScore("");
+    setEditingId(null); setHomeScore(""); setAwayScore("");
   }
 
   return (
@@ -206,9 +270,7 @@ function FixturesView({ matches, teams, onRecordResult }) {
       </div>
       {rounds.map(([round, roundMatches]) => (
         <div key={round} className="detail-section">
-          <div className="section-heading">
-            <h2>Jornada {round}</h2>
-          </div>
+          <div className="section-heading"><h2>Jornada {round}</h2></div>
           <div className="ledger-list">
             {roundMatches.map((m) => {
               const home = teamMap.get(m.home_team_id);
@@ -218,16 +280,11 @@ function FixturesView({ matches, teams, onRecordResult }) {
                 <article className="ledger-row" key={m.id}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <strong>{home?.name || " TBD "}</strong>
+                      <strong>{home?.name || "TBD"}</strong>
                       <span style={{ color: "var(--text-muted)" }}>vs</span>
-                      <strong>{away?.name || " TBD "}</strong>
+                      <strong>{away?.name || "TBD"}</strong>
                     </div>
-                    <small>
-                      {m.match_date ? new Date(m.match_date + "T12:00:00").toLocaleDateString("es-GT") : "Fecha pendiente"}
-                      {m.match_time ? ` · ${m.match_time}` : ""}
-                    </small>
-                    {m.is_final && <span className="status-pill" style={{ marginLeft: "0.5rem" }}>Final</span>}
-                    {m.is_playoff && m.playoff_label && <span className="status-pill" style={{ marginLeft: "0.5rem" }}>{m.playoff_label}</span>}
+                    <small>{m.match_date ? new Date(m.match_date + "T12:00:00").toLocaleDateString("es-GT") : "Fecha pendiente"}{m.match_time ? ` · ${m.match_time}` : ""}</small>
                   </div>
                   <div className="ledger-meta">
                     {m.status === "played" ? (
@@ -237,13 +294,11 @@ function FixturesView({ matches, teams, onRecordResult }) {
                         <input type="number" min="0" style={{ width: "50px" }} value={homeScore} onChange={(e) => setHomeScore(e.target.value)} placeholder="0" />
                         <span>-</span>
                         <input type="number" min="0" style={{ width: "50px" }} value={awayScore} onChange={(e) => setAwayScore(e.target.value)} placeholder="0" />
-                        <button type="button" onClick={() => saveResult(m)}>Guardar</button>
-                        <button className="secondary-button" type="button" onClick={() => setEditingId(null)}>Cancelar</button>
+                        <button type="button" onClick={() => saveResult(m)}>OK</button>
+                        <button className="secondary-button" type="button" onClick={() => setEditingId(null)}>✕</button>
                       </div>
                     ) : (
-                      <button className="secondary-button" type="button" onClick={() => { setEditingId(m.id); setHomeScore(""); setAwayScore(""); }}>
-                        Ingresar resultado
-                      </button>
+                      <button className="secondary-button" type="button" onClick={() => { setEditingId(m.id); setHomeScore(""); setAwayScore(""); }}>Resultado</button>
                     )}
                   </div>
                 </article>
@@ -259,19 +314,14 @@ function FixturesView({ matches, teams, onRecordResult }) {
 function StandingsTable({ standings }) {
   return (
     <section className="panel">
-      <div className="section-heading">
-        <h2>Tabla de posiciones</h2>
-      </div>
+      <div className="section-heading"><h2>Tabla de posiciones</h2></div>
       <div className="standings-table">
         <div className="standings-header">
           <span className="col-pos">#</span>
           <span className="col-team">Equipo</span>
-          <span className="col-stat">PJ</span>
-          <span className="col-stat">G</span>
-          <span className="col-stat">E</span>
-          <span className="col-stat">P</span>
-          <span className="col-stat">GF</span>
-          <span className="col-stat">GC</span>
+          <span className="col-stat">PJ</span><span className="col-stat">G</span>
+          <span className="col-stat">E</span><span className="col-stat">P</span>
+          <span className="col-stat">GF</span><span className="col-stat">GC</span>
           <span className="col-stat">Pts</span>
         </div>
         {standings.map((s, i) => (
@@ -281,12 +331,9 @@ function StandingsTable({ standings }) {
               <span className="team-dot" style={{ background: TEAM_COLORS[i % TEAM_COLORS.length] }} />
               {s.tournament_team?.name}
             </span>
-            <span className="col-stat">{s.played}</span>
-            <span className="col-stat">{s.won}</span>
-            <span className="col-stat">{s.drawn}</span>
-            <span className="col-stat">{s.lost}</span>
-            <span className="col-stat">{s.goals_for}</span>
-            <span className="col-stat">{s.goals_against}</span>
+            <span className="col-stat">{s.played}</span><span className="col-stat">{s.won}</span>
+            <span className="col-stat">{s.drawn}</span><span className="col-stat">{s.lost}</span>
+            <span className="col-stat">{s.goals_for}</span><span className="col-stat">{s.goals_against}</span>
             <span className="col-stat col-pts">{s.points}</span>
           </div>
         ))}
@@ -327,26 +374,21 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
   }, [selectedId]);
 
   async function createTournament(form) {
-    const col = await api.createTournament({ ...form, group_id: activeGroupId, status: "draft" });
+    const { team_count, ...rest } = form;
+    const col = await api.createTournament({ ...rest, group_id: activeGroupId, status: "draft" });
     setTournaments((c) => [col, ...c]);
     setSelectedId(col.id);
     setShowForm(false);
   }
 
-  async function generateTeams(playerIds, teamCount) {
+  async function saveTeams(teamNames, assignments) {
     setError("");
-    const playerProfiles = profiles.filter((p) => playerIds.includes(p.id));
-    const teamNames = ["Equipo A", "Equipo B", "Equipo C", "Equipo D", "Equipo E", "Equipo F", "Equipo G", "Equipo H"];
-    const teamPayloads = Array.from({ length: teamCount }, (_, i) => ({
-      tournament_id: selectedId,
-      name: teamNames[i] || `Equipo ${i + 1}`,
-      team_order: i + 1,
+    const teamPayloads = teamNames.map((name, i) => ({
+      tournament_id: selectedId, name, team_order: i + 1,
     }));
     const createdTeams = await api.createTournamentTeams(selectedId, teamPayloads);
     for (let i = 0; i < createdTeams.length; i++) {
-      const membersPerTeam = Math.ceil(playerIds.length / teamCount);
-      const start = i * membersPerTeam;
-      const members = playerIds.slice(start, start + membersPerTeam);
+      const members = assignments[i] || [];
       if (members.length > 0) await api.addTournamentTeamMembers(createdTeams[i].id, members);
     }
     const allTeams = await api.listTournamentTeams(selectedId);
@@ -389,11 +431,7 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
   }
 
   if (!isSuperAdmin) {
-    return (
-      <div className="page-grid">
-        <section className="panel"><div className="empty-state compact">Solo el Super Admin puede gestionar torneos.</div></section>
-      </div>
-    );
+    return <div className="page-grid"><section className="panel"><div className="empty-state compact">Solo el Super Admin puede gestionar torneos.</div></section></div>;
   }
 
   if (!selected) {
@@ -401,15 +439,10 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
       <div className="page-grid">
         <section className="panel">
           <div className="section-heading">
-            <div>
-              <p className="eyebrow">Torneos</p>
-              <h2>Mis torneos</h2>
-            </div>
-            <button className="secondary-button" type="button" onClick={() => setShowForm((v) => !v)}>
-              {showForm ? "Cancelar" : "+ Nuevo"}
-            </button>
+            <div><p className="eyebrow">Torneos</p><h2>Mis torneos</h2></div>
+            <button className="secondary-button" type="button" onClick={() => setShowForm((v) => !v)}>{showForm ? "Cancelar" : "+ Nuevo"}</button>
           </div>
-          {showForm && <TournamentForm onSave={createTournament} onCancel={() => setShowForm(false)} profiles={profiles} />}
+          {showForm && <TournamentForm onSave={createTournament} onCancel={() => setShowForm(false)} />}
           {tournaments.length === 0 && !showForm && <div className="empty-state compact">No hay torneos creados.</div>}
           {tournaments.map((t) => (
             <article className="ledger-row" key={t.id} style={{ cursor: "pointer" }} onClick={() => setSelectedId(t.id)}>
@@ -438,20 +471,18 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
             <p className="eyebrow">{FORMATS.find((f) => f.id === selected.format)?.label}</p>
             <h2>{selected.name}</h2>
           </div>
-          <button className="secondary-button" type="button" onClick={() => setSelectedId(null)}>
-            ← Volver
-          </button>
+          <button className="secondary-button" type="button" onClick={() => setSelectedId(null)}>← Volver</button>
         </div>
         {error && <p className="form-message">{error}</p>}
       </section>
 
-      {!hasTeams && <TeamAssignment tournament={selected} profiles={profiles} ratingMap={ratingMap} teams={teams} onGenerate={generateTeams} />}
+      {!hasTeams && <TeamSetup tournament={selected} profiles={profiles} ratingMap={ratingMap} onSave={saveTeams} />}
 
       {hasTeams && !hasMatches && (
         <section className="panel">
           <div className="section-heading">
             <div>
-              <h2>Equipos generados</h2>
+              <h2>Equipos listos</h2>
               <small>{teams.length} equipos · {teamMembers.length} jugadores</small>
             </div>
             <button type="button" onClick={generateCalendar}>Generar calendario</button>
@@ -459,7 +490,10 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
           <div className="team-grid">
             {teams.map((team, i) => (
               <article className="team-card" key={team.id} style={{ borderTop: `3px solid ${TEAM_COLORS[i % TEAM_COLORS.length]}` }}>
-                <div className="team-header"><strong>{team.name}</strong></div>
+                <div className="team-header">
+                  <strong>{team.name}</strong>
+                  <span>{teamMembers.filter((m) => m.tournament_team_id === team.id).reduce((s, m) => s + (ratingMap.get(m.profile_id)?.rating || 2), 0)} estrellas</span>
+                </div>
                 <ul>
                   {teamMembers.filter((m) => m.tournament_team_id === team.id).map((m) => (
                     <li key={m.id}>
