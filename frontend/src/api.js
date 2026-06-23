@@ -597,7 +597,7 @@ export const api = {
         team_order: generated.teams.length + 1,
         target_size: penaltyTeam.length,
         players: penaltyTeam,
-        total_rating: penaltyTeam.reduce((s, p) => s + p.rating, 0),
+        total_rating: Math.round(penaltyTeam.reduce((s, p) => s + p.rating, 0)),
         goalkeeper_count: penaltyTeam.filter((p) => p.preferred_position === "Goalkeeper").length,
       });
       generated.team_count += 1;
@@ -614,7 +614,7 @@ export const api = {
             match_id: match.id,
             name: team.name,
             team_order: index + 1,
-            total_rating: team.total_rating,
+            total_rating: Math.round(team.total_rating || 0),
           })),
         )
         .select("*"),

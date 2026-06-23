@@ -190,7 +190,7 @@ export function generateBalancedTeams(players) {
     fairness_score: fairnessScore(teams),
     teams: teams.map((team) => ({
       ...team,
-      total_rating: totalRating(team),
+      total_rating: Math.round(totalRating(team)),
       goalkeeper_count: goalkeeperCount(team),
     })),
   };
