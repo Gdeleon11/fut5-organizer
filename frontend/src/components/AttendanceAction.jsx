@@ -20,6 +20,12 @@ export default function AttendanceAction({
   const isNoShow = status === "no_show";
   const isCheckedIn = status === "checked_in";
 
+  const matchDateTime = match?.match_date && match?.start_time
+    ? new Date(`${match.match_date}T${match.start_time}`)
+    : null;
+  const hoursUntilMatch = matchDateTime ? (matchDateTime - new Date()) / (1000 * 60 * 60) : 99;
+  const isLateCancel = hoursUntilMatch < 4;
+
   const confirmDisabled = isConfirmed || !isActive || !isUpcoming || isWaitlisted;
   const waitlistDisabled = isConfirmed || isWaitlisted || !isActive || !isUpcoming;
   let confirmLabel = "Confirmar asistencia";
@@ -42,9 +48,7 @@ export default function AttendanceAction({
     message = `Estás en la lista de espera. Posición: #${waitlistPos || "?"}`;
   } else if (isCanceled) {
     confirmLabel = "Cancelaste";
-    message = fineAmount
-      ? `Cancelaste. Se generó una multa de Q${fineAmount}.`
-      : "Cancelaste tu asistencia.";
+    message = "Cancelaste tu asistencia.";
   } else if (isNoShow) {
     confirmLabel = "No llegaste";
     message = "El admin te marcó como ausente.";
@@ -87,7 +91,9 @@ export default function AttendanceAction({
             type="button"
             onClick={onCancel}
           >
-            Cancelar asistencia
+            {isLateCancel && fineAmount
+              ? `Cancelar (multa Q${fineAmount})`
+              : "Cancelar asistencia"}
           </button>
         )}
       </div>

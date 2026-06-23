@@ -403,18 +403,34 @@ export default function App() {
         setNotice("Ya existe una multa por cancelación tardía para este partido.");
         return;
       }
-      const { attendance: updated, fine } = await api.cancelAttendance(
-        attendance.id, activeGroupId, profile.id, match.id, lateCancelFineAmount
-      );
+
+      const matchDateTime = new Date(`${match.match_date}T${match.start_time || "00:00"}`);
+      const now = new Date();
+      const hoursUntilMatch = (matchDateTime - now) / (1000 * 60 * 60);
+      const isLateCancel = hoursUntilMatch < 4;
+
+      const updated = await api.updateAttendance(attendance.id, { status: "canceled", checked_in: false });
       setAttendances((c) => c.map((a) => (a.id === updated.id ? updated : a)));
-      setFines((c) => [fine, ...c]);
+
+      if (isLateCancel) {
+        const fine = await api.createFine({
+          group_id: activeGroupId, profile_id: profile.id,
+          match_id: match.id, reason: "late_cancel",
+          amount: lateCancelFineAmount, status: "open",
+        });
+        setFines((c) => [fine, ...c]);
+      }
 
       const promoted = await api.promoteFromWaitlist(match.id);
       if (promoted) {
         setAttendances((c) => [...c.filter((a) => a.id !== promoted.id), promoted]);
-        setNotice(`Asistencia cancelada. Multa de Q${lateCancelFineAmount}. Alguien de la lista de espera fue promovido.`);
+        setNotice(isLateCancel
+          ? `Cancelación tardía. Multa de Q${lateCancelFineAmount}. Alguien de la lista de espera fue promovido.`
+          : "Asistencia cancelada. Alguien de la lista de espera fue promovido.");
       } else {
-        setNotice(`Asistencia cancelada. Multa de Q${lateCancelFineAmount} generada.`);
+        setNotice(isLateCancel
+          ? `Cancelación tardía. Multa de Q${lateCancelFineAmount} generada.`
+          : "Asistencia cancelada.");
       }
     } catch (err) { setError(err.message); }
   }
