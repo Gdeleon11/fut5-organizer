@@ -492,17 +492,23 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
               <article className="team-card" key={team.id} style={{ borderTop: `3px solid ${TEAM_COLORS[i % TEAM_COLORS.length]}` }}>
                 <div className="team-header">
                   <strong>{team.name}</strong>
-                  <span>{teamMembers.filter((m) => m.tournament_team_id === team.id).reduce((s, m) => s + (ratingMap.get(m.profile_id)?.rating || 2), 0)} estrellas</span>
+                  <span>{teamMembers.filter((m) => m.tournament_team_id === team.id).reduce((s, m) => {
+                    const pid = m.profile_id || m.profiles?.id;
+                    return s + (ratingMap.get(pid)?.rating || 2);
+                  }, 0)} estrellas</span>
                 </div>
                 <ul>
-                  {teamMembers.filter((m) => m.tournament_team_id === team.id).map((m) => (
-                    <li key={m.id}>
-                      <span className="team-member">
-                        <Avatar profile={m.profiles} size="sm" />
-                        {displayName(m.profiles)}
-                      </span>
-                    </li>
-                  ))}
+                  {teamMembers.filter((m) => m.tournament_team_id === team.id).map((m) => {
+                    const player = m.profiles || profiles.find((p) => p.id === m.profile_id);
+                    return (
+                      <li key={m.id}>
+                        <span className="team-member">
+                          <Avatar profile={player} size="sm" />
+                          {displayName(player)}
+                        </span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </article>
             ))}

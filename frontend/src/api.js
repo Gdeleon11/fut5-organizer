@@ -1261,11 +1261,18 @@ export const api = {
     );
     if (teams.length === 0) return [];
     const teamIds = teams.map((t) => t.id);
-    return readMany(
+    const members = await readMany(
       client.from("tournament_team_members")
-        .select("*, profiles(*)")
+        .select("id, tournament_team_id, profile_id, created_at")
         .in("tournament_team_id", teamIds),
     );
+    const profileIds = [...new Set(members.map((m) => m.profile_id))];
+    if (profileIds.length === 0) return members.map((m) => ({ ...m, profiles: null }));
+    const profiles = await readMany(
+      client.from("profiles").select("id, full_name, nickname, avatar_url, preferred_position").in("id", profileIds),
+    );
+    const profileMap = new Map(profiles.map((p) => [p.id, p]));
+    return members.map((m) => ({ ...m, profiles: profileMap.get(m.profile_id) || null }));
   },
 
   async createTournamentMatches(matches) {
