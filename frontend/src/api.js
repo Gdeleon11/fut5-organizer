@@ -582,11 +582,11 @@ export const api = {
     let penaltyTeam = null;
 
     if (options.penaltyTeam && players.length >= 13 && players.length <= 14) {
-      const sortedByConfirmTime = [...matchAttendances]
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      const lastThreeIds = sortedByConfirmTime.slice(0, 3).map((a) => a.profile_id);
-      penaltyTeam = players.filter((p) => lastThreeIds.includes(p.id));
-      players = players.filter((p) => !lastThreeIds.includes(p.id));
+      const sortedByRating = [...players].sort((a, b) => b.rating - a.rating);
+      const topTen = sortedByRating.slice(0, 10);
+      const rest = sortedByRating.slice(10);
+      penaltyTeam = rest;
+      players = topTen;
     }
 
     const generated = generateBalancedTeams(players);
