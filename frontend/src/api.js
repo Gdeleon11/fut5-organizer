@@ -579,6 +579,8 @@ export const api = {
         };
       });
 
+    console.log(`Generando equipos: ${confirmedIds.length} confirmados, ${players.length} jugadores activos`);
+
     let penaltyTeam = null;
 
     if (options.penaltyTeam && players.length >= 13 && players.length <= 14) {
