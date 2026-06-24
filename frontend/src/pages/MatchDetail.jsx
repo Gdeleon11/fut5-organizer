@@ -35,6 +35,7 @@ export default function MatchDetail({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const canPenaltyTeam = confirmedCount >= 13 && confirmedCount <= 14;
+  const isPlayerConfirmed = myAttendance && ["confirmed", "checked_in"].includes(myAttendance.status);
 
   return (
     <div className="page-grid">
@@ -47,9 +48,12 @@ export default function MatchDetail({
           <span className="count-pill">{confirmedCount} confirmados</span>
         </div>
         <p className="muted">
-          {formatMatchDate(match)} · {match.venue || "Cancha pendiente"}
+          {formatMatchDate(match)}
+          {(isAdmin || isPlayerConfirmed) && match.venue
+            ? ` · ${match.venue}`
+            : " · Cancha oculta (confirmá para ver)"}
         </p>
-        <CourtPhoto match={match} />
+        {(isAdmin || isPlayerConfirmed) && <CourtPhoto match={match} />}
         <AttendanceAction
           attendance={myAttendance}
           fineAmount={fineAmount}

@@ -59,8 +59,20 @@ export default function MatchesPage({
 
         {nextMatch ? (
           <>
-            <CourtPhoto match={nextMatch} />
-            <p className="muted">{nextMatch.venue || "Cancha pendiente"}</p>
+            {(() => {
+              const nextAtt = myAttendance(nextMatch.id);
+              const isConfirmed = nextAtt && ["confirmed", "checked_in"].includes(nextAtt.status);
+              return (
+                <>
+                  {isConfirmed && <CourtPhoto match={nextMatch} />}
+                  <p className="muted">
+                    {isConfirmed
+                      ? (nextMatch.venue || "Cancha pendiente")
+                      : "Confirmá para ver la cancha"}
+                  </p>
+                </>
+              );
+            })()}
             <AttendanceAction
               attendance={myAttendance(nextMatch.id)}
               fineAmount={fineAmount}

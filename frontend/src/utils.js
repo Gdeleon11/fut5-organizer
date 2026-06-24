@@ -112,11 +112,10 @@ export function matchInvitationText(match, confirmedCount) {
     "",
     match.title || "Chamuscón",
     `Cuándo: ${formatMatchDate(match)}`,
-    `Dónde: ${match.venue || "Cancha pendiente"}`,
     `Confirmados: ${confirmedCount}`,
     `Link para confirmar: ${appShareUrl(match)}`,
     "",
-    "Abrí el link y confirmá si vas.",
+    "Confirmá para ver la cancha.",
   ].join("\n");
 }
 
