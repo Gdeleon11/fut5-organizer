@@ -1515,13 +1515,17 @@ export const api = {
     const origin = typeof window === "undefined"
       ? "https://fut5-organizer.vercel.app"
       : window.location.origin;
-    const token = btoa(matchId);
+    const token = matchId.replace(/-/g, "");
     return `${origin}/guest/${token}`;
   },
 
   async registerGuest(token, name) {
     const client = requireSupabase();
-    const matchId = atob(token);
+    const hex = token;
+    const matchId = [
+      hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16),
+      hex.slice(16, 20), hex.slice(20),
+    ].join("-");
 
     const { data: match, error: matchError } = await client
       .from("matches")

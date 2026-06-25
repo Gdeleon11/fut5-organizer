@@ -12,7 +12,11 @@ export default function GuestRegisterPage({ token }) {
   useEffect(() => {
     async function load() {
       try {
-        const matchId = atob(token);
+        const hex = token;
+        const matchId = [
+          hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16),
+          hex.slice(16, 20), hex.slice(20),
+        ].join("-");
         const { data, error } = await supabase
           .from("matches")
           .select("id, title, match_date, start_time, venue")
