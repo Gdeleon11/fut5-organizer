@@ -1,6 +1,7 @@
 import AttendanceAction from "../components/AttendanceAction.jsx";
 import CourtPhoto from "../components/CourtPhoto.jsx";
 import ExportCard from "../components/ExportCard.jsx";
+import StarRatingControl from "../components/StarRatingControl.jsx";
 import TeamCards from "../components/TeamCards.jsx";
 import { useState } from "react";
 import {
@@ -13,6 +14,83 @@ import {
   teamNotificationText,
   waitlistPosition,
 } from "../utils.js";
+
+function GuestPlayersSection({ match, guests, onAdd, onDelete }) {
+  const [showForm, setShowForm] = useState(false);
+  const [name, setName] = useState("");
+  const [rating, setRating] = useState(2);
+
+  function handleAdd() {
+    if (!name.trim()) return;
+    onAdd(name.trim(), rating);
+    setName("");
+    setRating(2);
+    setShowForm(false);
+  }
+
+  return (
+    <section className="panel">
+      <div className="section-heading">
+        <div>
+          <h2>Jugadores invitados</h2>
+          <small>Temporal solo para este partido</small>
+        </div>
+        <div className="button-row">
+          <span className="count-pill">{guests.length}</span>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+          >
+            {showForm ? "Cancelar" : "+ Invitar"}
+          </button>
+        </div>
+      </div>
+
+      {showForm && (
+        <div className="form-grid">
+          <label>
+            Nombre del jugador
+            <input
+              placeholder="Ej. Juan (amigo de Pedro)"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
+          <label>
+            Calificación
+            <StarRatingControl currentRating={rating} onSelect={setRating} />
+          </label>
+          <button type="button" onClick={handleAdd} disabled={!name.trim()}>
+            Agregar invitado
+          </button>
+        </div>
+      )}
+
+      {guests.length === 0 && !showForm ? (
+        <div className="empty-state compact">No hay jugadores invitados.</div>
+      ) : (
+        <div className="player-list">
+          {guests.map((guest) => (
+            <div className="player-row" key={guest.id}>
+              <div>
+                <strong>{guest.name}</strong>
+                <small>{guest.rating} estrella{guest.rating !== 1 ? "s" : ""}</small>
+              </div>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => onDelete(guest.id)}
+              >
+                Quitar
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
 
 export default function MatchDetail({
   attendances,
@@ -28,6 +106,9 @@ export default function MatchDetail({
   onDeleteMatch,
   onGenerateTeams,
   onMarkNoShow,
+  onAddGuest,
+  onDeleteGuest,
+  guests,
   profile,
   profileById,
   teams,
@@ -208,6 +289,15 @@ export default function MatchDetail({
             )}
           </div>
         </section>
+      )}
+
+      {isAdmin && (
+        <GuestPlayersSection
+          match={match}
+          guests={guests}
+          onAdd={onAddGuest}
+          onDelete={onDeleteGuest}
+        />
       )}
     </div>
   );

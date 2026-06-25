@@ -588,6 +588,24 @@ export const api = {
 
     console.log(`Generando equipos: ${confirmedIds.length} confirmados, ${players.length} jugadores activos`);
 
+    const guests = await readMany(
+      client.from("guest_players").select("*").eq("match_id", match.id),
+    );
+    const guestPlayers = guests.map((g) => ({
+      id: g.id,
+      full_name: g.name,
+      nickname: null,
+      preferred_position: "Flexible",
+      membership_is_active: true,
+      is_guest: true,
+      rating: g.rating || 2,
+      attack_rating: g.rating || 2,
+      defense_rating: g.rating || 2,
+      midfield_rating: g.rating || 2,
+      goalkeeper_rating: g.rating || 2,
+    }));
+    players = [...players, ...guestPlayers];
+
     let penaltyTeam = null;
 
     if (options.penaltyTeam && players.length >= 13 && players.length <= 14) {
@@ -1447,6 +1465,43 @@ export const api = {
         .select("id, voter_id, voted_id, vote")
         .eq("group_id", groupId),
     );
+  },
+
+  // ---------------------------------------------------------------------------
+  // Guest Players (temporary, match-only)
+  // ---------------------------------------------------------------------------
+
+  async listGuestPlayers(matchId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("guest_players").select("*").eq("match_id", matchId).order("created_at"),
+    );
+  },
+
+  async addGuestPlayer(matchId, groupId, name, rating, adminId) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("guest_players").insert({
+        match_id: matchId,
+        group_id: groupId,
+        name,
+        rating: Math.max(1, Math.min(4, rating)),
+        assigned_by: adminId,
+      }).select("*").single(),
+    );
+  },
+
+  async updateGuestPlayer(guestId, payload) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("guest_players").update(payload).eq("id", guestId).select("*").single(),
+    );
+  },
+
+  async deleteGuestPlayer(guestId) {
+    const client = requireSupabase();
+    const { error } = await client.from("guest_players").delete().eq("id", guestId);
+    raise(error);
   },
 
   latestRatingsByProfile,

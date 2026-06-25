@@ -57,6 +57,7 @@ export default function App() {
   const [teamsByMatch, setTeamsByMatch] = useState({});
   const [fines, setFines] = useState([]);
   const [votes, setVotes] = useState([]);
+  const [guests, setGuests] = useState({});
   const [settings, setSettings] = useState(null);
   const [venues, setVenues] = useState([]);
   const [matchFees, setMatchFees] = useState([]);
@@ -158,6 +159,13 @@ export default function App() {
   const profileById = useMemo(
     () => new Map(profiles.map((p) => [p.id, p])), [profiles]
   );
+  const matchGuests = guests[selectedMatch?.id] || [];
+
+  useEffect(() => {
+    if (selectedMatch?.id && !guests[selectedMatch.id]) {
+      loadGuests(selectedMatch.id);
+    }
+  }, [selectedMatch?.id]);
 
   // Auth
   useEffect(() => {
@@ -625,6 +633,29 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
+  async function loadGuests(matchId) {
+    const rows = await api.listGuestPlayers(matchId);
+    setGuests((c) => ({ ...c, [matchId]: rows }));
+  }
+
+  async function addGuestPlayer(matchId, name, rating) {
+    setNotice(""); setError("");
+    try {
+      const guest = await api.addGuestPlayer(matchId, activeGroupId, name, rating, profile.id);
+      setGuests((c) => ({ ...c, [matchId]: [...(c[matchId] || []), guest] }));
+      setNotice(`${name} agregado como invitado.`);
+    } catch (err) { setError(err.message); }
+  }
+
+  async function deleteGuestPlayer(matchId, guestId) {
+    setNotice(""); setError("");
+    try {
+      await api.deleteGuestPlayer(guestId);
+      setGuests((c) => ({ ...c, [matchId]: (c[matchId] || []).filter((g) => g.id !== guestId) }));
+      setNotice("Invitado eliminado.");
+    } catch (err) { setError(err.message); }
+  }
+
   async function updateAttendance(attendanceId, payload) {
     const updated = await api.updateAttendance(attendanceId, payload);
     setAttendances((c) => c.map((a) => (a.id === updated.id ? updated : a)));
@@ -921,6 +952,9 @@ export default function App() {
             onDeleteMatch={deleteMatch}
             onGenerateTeams={(opts) => generateTeams(selectedMatch, opts || {})}
             onMarkNoShow={markNoShow}
+            onAddGuest={(name, rating) => addGuestPlayer(selectedMatch.id, name, rating)}
+            onDeleteGuest={(id) => deleteGuestPlayer(selectedMatch.id, id)}
+            guests={matchGuests}
             profile={currentPlayer} profileById={profileById}
             teams={teamsByMatch[selectedMatch.id] || []} />
         )}
