@@ -78,9 +78,16 @@ export default function App() {
   const voteScoreMap = useMemo(() => {
     const map = new Map();
     votes.forEach((v) => {
-      map.set(v.voted_id, (map.get(v.voted_id) || 0) + v.vote);
+      if (!map.has(v.voted_id)) map.set(v.voted_id, { total: 0, count: 0 });
+      const entry = map.get(v.voted_id);
+      entry.total += v.vote;
+      entry.count += 1;
     });
-    return map;
+    const result = new Map();
+    map.forEach((val, key) => {
+      result.set(key, { average: val.total / val.count, count: val.count });
+    });
+    return result;
   }, [votes]);
 
   const userVoteMap = useMemo(() => {

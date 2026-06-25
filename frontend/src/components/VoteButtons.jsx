@@ -1,41 +1,42 @@
 import { useState } from "react";
 
-export default function VoteButtons({ score, userVote, onVote, disabled }) {
-  const [voting, setVoting] = useState(false);
+export default function VoteButtons({ average, totalVotes, userVote, onVote, disabled }) {
+  const [open, setOpen] = useState(false);
 
-  async function handleVote(value) {
-    if (voting || disabled) return;
-    setVoting(true);
-    try {
-      await onVote(value);
-    } finally {
-      setVoting(false);
-    }
+  function handleSelect(value) {
+    onVote(value);
+    setOpen(false);
   }
 
   return (
-    <div className="vote-buttons">
+    <div className="vote-system">
       <button
-        className={`vote-btn vote-up ${userVote === 1 ? "is-active" : ""}`}
+        className="vote-average-btn"
         type="button"
-        disabled={voting || disabled}
-        onClick={() => handleVote(1)}
-        title="Votar positivo"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        title={totalVotes > 0 ? `${totalVotes} voto(s)` : "Sin votos"}
       >
-        ▲
+        <span className="vote-avg-number">{average > 0 ? average.toFixed(1) : "—"}</span>
+        <small>{totalVotes > 0 ? `${totalVotes} voto${totalVotes > 1 ? "s" : ""}` : "Votar"}</small>
       </button>
-      <span className={`vote-score ${score > 0 ? "positive" : score < 0 ? "negative" : ""}`}>
-        {score > 0 ? `+${score}` : score}
-      </span>
-      <button
-        className={`vote-btn vote-down ${userVote === -1 ? "is-active" : ""}`}
-        type="button"
-        disabled={voting || disabled}
-        onClick={() => handleVote(-1)}
-        title="Votar negativo"
-      >
-        ▼
-      </button>
+      {userVote > 0 && (
+        <span className="vote-your-score">Tu voto: {userVote}</span>
+      )}
+      {open && (
+        <div className="vote-picker">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+            <button
+              key={n}
+              className={`vote-picker-btn ${userVote === n ? "is-active" : ""}`}
+              type="button"
+              onClick={() => handleSelect(n)}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

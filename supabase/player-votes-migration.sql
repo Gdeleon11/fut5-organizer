@@ -1,4 +1,4 @@
--- Player voting system
+-- Player voting system (1-10 rating)
 -- Run this in Supabase SQL Editor
 
 create table if not exists public.player_votes (
@@ -6,7 +6,7 @@ create table if not exists public.player_votes (
   group_id uuid not null references public.groups(id) on delete cascade,
   voter_id uuid not null references public.profiles(id) on delete cascade,
   voted_id uuid not null references public.profiles(id) on delete cascade,
-  vote integer not null check (vote in (-1, 1)),
+  vote integer not null check (vote between 1 and 10),
   created_at timestamptz not null default now(),
   unique(group_id, voter_id, voted_id)
 );

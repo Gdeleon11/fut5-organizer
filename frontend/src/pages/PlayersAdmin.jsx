@@ -148,7 +148,8 @@ export default function PlayersAdmin({
                   <PlayerBadge rating={ratingMap.get(player.id)} />
                   {player.id !== currentProfileId && (
                     <VoteButtons
-                      score={voteScoreMap.get(player.id) || 0}
+                      average={voteScoreMap.get(player.id)?.average || 0}
+                      totalVotes={voteScoreMap.get(player.id)?.count || 0}
                       userVote={userVoteMap.get(player.id) || 0}
                       onVote={(vote) => onVote(player.id, vote)}
                     />
