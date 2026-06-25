@@ -1266,9 +1266,9 @@ small, .muted {
 }
 
 .vote-picker {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 0.15rem;
-  flex-wrap: wrap;
   position: absolute;
   top: 100%;
   left: 0;
@@ -1277,8 +1277,7 @@ small, .muted {
   border-radius: 8px;
   padding: 0.3rem;
   z-index: 10;
-  width: max-content;
-  max-width: 180px;
+  width: 140px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
