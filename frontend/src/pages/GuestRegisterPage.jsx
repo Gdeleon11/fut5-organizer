@@ -17,17 +17,20 @@ export default function GuestRegisterPage({ token }) {
           hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16),
           hex.slice(16, 20), hex.slice(20),
         ].join("-");
+        console.log("Guest token:", token, "-> matchId:", matchId);
         const { data, error } = await supabase
           .from("matches")
           .select("id, title, match_date, start_time, venue")
           .eq("id", matchId)
           .maybeSingle();
+        console.log("Match query result:", { data, error });
         if (error || !data) {
-          setError("Link inválido o partido no encontrado.");
+          setError(`Link inválido o partido no encontrado. (${error?.message || "sin datos"})`);
         } else {
           setMatch(data);
         }
       } catch (err) {
+        console.error("Guest load error:", err);
         setError("Link inválido.");
       } finally {
         setLoading(false);
