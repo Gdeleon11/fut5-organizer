@@ -1504,5 +1504,38 @@ export const api = {
     raise(error);
   },
 
+  async getMatch(matchId) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("matches").select("id, title, match_date, start_time, venue").eq("id", matchId).single(),
+    );
+  },
+
+  generateGuestLink(matchId) {
+    const origin = typeof window === "undefined"
+      ? "https://fut5-organizer.vercel.app"
+      : window.location.origin;
+    const token = btoa(matchId);
+    return `${origin}/guest/${token}`;
+  },
+
+  async registerGuest(token, name) {
+    const client = requireSupabase();
+    const matchId = atob(token);
+    const match = await readOne(
+      client.from("matches").select("id, group_id, title, match_date, start_time").eq("id", matchId).single(),
+    );
+    if (!match) throw new Error("Partido no encontrado.");
+
+    return readOne(
+      client.from("guest_players").insert({
+        match_id: matchId,
+        group_id: match.group_id,
+        name,
+        rating: 2,
+      }).select("*").single(),
+    );
+  },
+
   latestRatingsByProfile,
 };

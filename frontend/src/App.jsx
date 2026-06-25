@@ -13,6 +13,7 @@ import MatchesPage from "./pages/MatchesPage.jsx";
 import PlayersAdmin from "./pages/PlayersAdmin.jsx";
 import ProfileForm from "./pages/ProfileForm.jsx";
 import ProofUploadPage from "./pages/ProofUploadPage.jsx";
+import GuestRegisterPage from "./pages/GuestRegisterPage.jsx";
 import SimPage from "./pages/SimPage.jsx";
 import SuperAdminPage from "./pages/SuperAdminPage.jsx";
 import TeamPage from "./pages/TeamPage.jsx";
@@ -854,6 +855,16 @@ export default function App() {
     ? window.location.pathname.match(/^\/proof\/(.+)$/)
     : null;
   const proofToken = proofTokenMatch?.[1];
+
+  const guestTokenMatch = typeof window !== "undefined"
+    ? window.location.pathname.match(/^\/guest\/(.+)$/)
+    : null;
+  const guestToken = guestTokenMatch?.[1];
+
+  // Render guest registration page (no auth required)
+  if (guestToken) {
+    return <GuestRegisterPage token={guestToken} />;
+  }
 
   // Render proof upload page (no auth required, but page handles login check)
   if (proofToken) {

@@ -15,10 +15,13 @@ import {
   waitlistPosition,
 } from "../utils.js";
 
+import { api } from "../api.js";
+
 function GuestPlayersSection({ match, guests, onAdd, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [rating, setRating] = useState(2);
+  const [copied, setCopied] = useState(false);
 
   function handleAdd() {
     if (!name.trim()) return;
@@ -26,6 +29,17 @@ function GuestPlayersSection({ match, guests, onAdd, onDelete }) {
     setName("");
     setRating(2);
     setShowForm(false);
+  }
+
+  async function copyGuestLink() {
+    const link = api.generateGuestLink(match.id);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      prompt("Copiá este link:", link);
+    }
   }
 
   return (
@@ -40,9 +54,16 @@ function GuestPlayersSection({ match, guests, onAdd, onDelete }) {
           <button
             className="secondary-button"
             type="button"
+            onClick={copyGuestLink}
+          >
+            {copied ? "Copiado ✓" : "Link de invitación"}
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
             onClick={() => setShowForm((v) => !v)}
           >
-            {showForm ? "Cancelar" : "+ Invitar"}
+            {showForm ? "Cancelar" : "+ Agregar"}
           </button>
         </div>
       </div>
