@@ -1,7 +1,10 @@
 -- Player voting system (1-10 rating)
 -- Run this in Supabase SQL Editor
 
-create table if not exists public.player_votes (
+-- Drop old table if exists and recreate
+DROP TABLE IF EXISTS public.player_votes CASCADE;
+
+create table public.player_votes (
   id uuid primary key default gen_random_uuid(),
   group_id uuid not null references public.groups(id) on delete cascade,
   voter_id uuid not null references public.profiles(id) on delete cascade,
@@ -18,6 +21,6 @@ create policy "player_votes_insert" on public.player_votes for insert with check
 create policy "player_votes_update" on public.player_votes for update using (true);
 create policy "player_votes_delete" on public.player_votes for delete using (true);
 
-create index if not exists idx_player_votes_group on public.player_votes(group_id);
-create index if not exists idx_player_votes_voted on public.player_votes(voted_id);
-create index if not exists idx_player_votes_voter on public.player_votes(voter_id);
+create index idx_player_votes_group on public.player_votes(group_id);
+create index idx_player_votes_voted on public.player_votes(voted_id);
+create index idx_player_votes_voter on public.player_votes(voter_id);

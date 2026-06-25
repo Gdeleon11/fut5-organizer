@@ -1208,6 +1208,9 @@ small, .muted {
 }
 
 .player-card-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-top: 0.3rem;
 }
 
@@ -1231,63 +1234,62 @@ small, .muted {
 
 .vote-system {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.3rem;
   position: relative;
 }
 
 .vote-average-btn {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
+  gap: 0.3rem;
   background: var(--surface-2);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.3rem 0.6rem;
+  padding: 0.2rem 0.5rem;
   cursor: pointer;
   transition: border-color 0.15s;
+  white-space: nowrap;
 }
 
 .vote-average-btn:hover { border-color: var(--accent); }
 
 .vote-avg-number {
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: var(--accent);
 }
 
 .vote-your-score {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--text-muted);
 }
 
 .vote-picker {
   display: flex;
-  gap: 0.2rem;
+  gap: 0.15rem;
   flex-wrap: wrap;
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.4rem;
+  padding: 0.3rem;
   z-index: 10;
   width: max-content;
+  max-width: 180px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .vote-picker-btn {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface-2);
   color: var(--text);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
