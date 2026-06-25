@@ -11,6 +11,12 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>Fut5 Organizer</title>
+    <script>
+      (function() {
+        var t = localStorage.getItem('fut5_theme') || 'field';
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
