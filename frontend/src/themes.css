@@ -1,0 +1,86 @@
+/* ============================================================
+   Theme: Claro (Light)
+   ============================================================ */
+[data-theme="light"] {
+  --accent:    #16a34a;
+  --accent-dim: #15803d;
+
+  --surface-0: #f8faf8;
+  --surface-1: #ffffff;
+  --surface-2: #f0f5f1;
+  --surface-3: #e2ede4;
+
+  --border:    #c8d8cb;
+  --border-light: #dbe8de;
+
+  --text-primary:   #1a2e1e;
+  --text-secondary: #4a6b50;
+  --text-muted:     #7a9a80;
+
+  --red:     #dc2626;
+  --red-bg:  #fef2f2;
+  --red-border: #fca5a5;
+
+  --yellow:    #ca8a04;
+  --yellow-bg: #fefce8;
+
+  color-scheme: light;
+}
+
+/* ============================================================
+   Theme: Noche (Night Blue)
+   ============================================================ */
+[data-theme="night"] {
+  --accent:    #60a5fa;
+  --accent-dim: #3b82f6;
+
+  --surface-0: #0f172a;
+  --surface-1: #1e293b;
+  --surface-2: #273548;
+  --surface-3: #334155;
+
+  --border:    #3b4c63;
+  --border-light: #475975;
+
+  --text-primary:   #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted:     #64748b;
+
+  --red:     #f87171;
+  --red-bg:  #1c1017;
+  --red-border: #7f1d1d;
+
+  --yellow:    #fbbf24;
+  --yellow-bg: #1c1a0e;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   Theme: Campo (Field Green - Default)
+   ============================================================ */
+[data-theme="field"], :root {
+  --accent:    #39e55a;
+  --accent-dim: #2ab844;
+
+  --surface-0: #0d1b10;
+  --surface-1: #111f15;
+  --surface-2: #172a1c;
+  --surface-3: #1e3625;
+
+  --border:    #243d2a;
+  --border-light: #2e5237;
+
+  --text-primary:   #e8f5ea;
+  --text-secondary: #8eb896;
+  --text-muted:     #5a7d60;
+
+  --red:     #ff5a5a;
+  --red-bg:  #2a0e0e;
+  --red-border: #5a1f1f;
+
+  --yellow:    #f5c842;
+  --yellow-bg: #2a2000;
+
+  color-scheme: dark;
+}

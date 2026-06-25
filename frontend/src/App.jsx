@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api.js";
 import Avatar from "./components/Avatar.jsx";
+import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
 import SectionHero from "./components/SectionHero.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import AuthScreen from "./pages/AuthScreen.jsx";
@@ -861,6 +862,7 @@ export default function App() {
               ))}
             </select>
           )}
+          <ThemeSwitcher />
           <button className="ghost-button" type="button" onClick={refresh}>Actualizar</button>
           <button className="secondary-button" type="button" onClick={signOut}>Salir</button>
         </div>
