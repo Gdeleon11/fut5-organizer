@@ -99,9 +99,17 @@ export default function App() {
     ), [matches]
   );
   const upcomingMatches = useMemo(
-    () => sortedMatches.filter((m) => m.status !== "closed"), [sortedMatches]
+    () => {
+      const today = new Date().toISOString().split("T")[0];
+      return sortedMatches.filter((m) => {
+        if (m.status === "closed" || m.status === "canceled") return false;
+        if (m.match_date && m.match_date < today) return false;
+        return true;
+      });
+    },
+    [sortedMatches],
   );
-  const nextMatch = upcomingMatches[0] || sortedMatches[0] || null;
+  const nextMatch = upcomingMatches[0] || null;
   const selectedMatch = matches.find((m) => m.id === selectedMatchId) || nextMatch;
   const profileById = useMemo(
     () => new Map(profiles.map((p) => [p.id, p])), [profiles]
