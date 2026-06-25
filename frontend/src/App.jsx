@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "./api.js";
 import Avatar from "./components/Avatar.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
@@ -64,6 +64,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const mobileNavRefs = useRef({});
 
   const activeMembership =
     memberships.find((m) => m.group_id === activeGroupId) || memberships[0] || null;
@@ -118,21 +119,21 @@ export default function App() {
   }
 
   const navItems = useMemo(() => [
-    { id: "matches", label: "Partidos" },
-    { id: "team", label: "Equipo" },
-    { id: "fines", label: "Multas" },
-    { id: "fees", label: "Cobros" },
-    { id: "profile", label: "Perfil" },
-    { id: "groups", label: "Grupos" },
+    { id: "matches", label: "Partidos", mobileLabel: "Partidos" },
+    { id: "team", label: "Equipo", mobileLabel: "Equipo" },
+    { id: "fines", label: "Multas", mobileLabel: "Multas" },
+    { id: "fees", label: "Cobros", mobileLabel: "Cobros" },
+    { id: "profile", label: "Perfil", mobileLabel: "Perfil" },
+    { id: "groups", label: "Grupos", mobileLabel: "Grupos" },
     ...(isAdmin ? [
-      { id: "admin", label: "Admin" },
-      { id: "players", label: "Jugadores" },
-      { id: "venues", label: "Canchas" },
-      { id: "sim", label: "Simular" },
+      { id: "admin", label: "Admin", mobileLabel: "Admin" },
+      { id: "players", label: "Jugadores", mobileLabel: "Jugad." },
+      { id: "venues", label: "Canchas", mobileLabel: "Canchas" },
+      { id: "sim", label: "Simular", mobileLabel: "Simular" },
     ] : []),
     ...(isSuperAdmin ? [
-      { id: "tournaments", label: "Torneos" },
-      { id: "superadmin", label: "Super Admin" },
+      { id: "tournaments", label: "Torneos", mobileLabel: "Torneos" },
+      { id: "superadmin", label: "Super Admin", mobileLabel: "Super" },
     ] : []),
   ], [isAdmin, isSuperAdmin]);
 
@@ -179,6 +180,12 @@ export default function App() {
   useEffect(() => {
     if (!navItems.some((i) => i.id === page) && page !== "match") setPage("matches");
   }, [navItems, page]);
+
+  useEffect(() => {
+    const node = mobileNavRefs.current[page];
+    if (!node || typeof window === "undefined" || window.innerWidth > 719) return;
+    node.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [page]);
 
   useEffect(() => {
     if (matches.length === 0 || typeof window === "undefined") return;
@@ -879,8 +886,9 @@ export default function App() {
       <nav className="bottom-nav" aria-label="Principal móvil">
         {navItems.map((item) => (
           <button className={classNames("bottom-nav-item", page === item.id && "is-active")}
-            key={item.id} type="button" onClick={() => setPage(item.id)}>
-            {item.label}
+            key={item.id} type="button" ref={(node) => { mobileNavRefs.current[item.id] = node; }}
+            onClick={() => setPage(item.id)} title={item.label}>
+            {item.mobileLabel || item.label}
           </button>
         ))}
       </nav>
@@ -950,7 +958,13 @@ export default function App() {
         )}
         {page === "groups" && (
           <GroupsPage activeGroupId={activeGroupId} memberships={memberships}
-            onCreateGroup={createGroup} onSwitchGroup={switchGroup} />
+            isAdmin={isAdmin} onCreateGroup={createGroup} onSwitchGroup={switchGroup}
+            onUpdateDescription={async (desc) => {
+              await api.updateGroupDescription(activeGroupId, desc);
+              const rows = await api.listMyGroups(profile.id);
+              setMemberships(rows);
+              setNotice("Descripción actualizada.");
+            }} />
         )}
         {page === "admin" && isAdmin && (
           <AdminPanel matches={sortedMatches} venues={venues}

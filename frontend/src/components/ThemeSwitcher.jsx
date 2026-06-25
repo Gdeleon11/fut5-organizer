@@ -32,7 +32,8 @@ export default function ThemeSwitcher() {
       onClick={cycle}
       title={`Tema: ${current.label}`}
     >
-      {current.emoji}
+      <span aria-hidden="true">{current.emoji}</span>
+      <span className="sr-only">Cambiar tema: {current.label}</span>
     </button>
   );
 }

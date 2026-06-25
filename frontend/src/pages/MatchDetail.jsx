@@ -33,6 +33,7 @@ export default function MatchDetail({
   teams,
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [teamInstructions, setTeamInstructions] = useState("");
 
   const canPenaltyTeam = confirmedCount >= 13 && confirmedCount <= 14;
   const isPlayerConfirmed = myAttendance && ["confirmed", "checked_in"].includes(myAttendance.status);
@@ -66,19 +67,31 @@ export default function MatchDetail({
           profile={profile}
         />
         {isAdmin && (
-          <div className="button-row">
-            <button type="button" onClick={() => onGenerateTeams({})}>
-              Generar equipos
-            </button>
-            {canPenaltyTeam && (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => onGenerateTeams({ penaltyTeam: true })}
-                title="Crea un equipo pequeño con los últimos 3 en confirmar"
-              >
-                Con equipo de castigo
+          <>
+            <div className="team-instructions-box">
+              <label>
+                <small>Instrucciones para generar equipos (opcional)</small>
+                <textarea
+                  rows={3}
+                  placeholder="Ej: Juan con Pedro juntos, Luis portero en equipo de Guillermo, Carlos y Diego separados..."
+                  value={teamInstructions}
+                  onChange={(e) => setTeamInstructions(e.target.value)}
+                />
+              </label>
+            </div>
+            <div className="button-row">
+              <button type="button" onClick={() => onGenerateTeams({ instructions: teamInstructions })}>
+                Generar equipos
               </button>
+              {canPenaltyTeam && (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => onGenerateTeams({ penaltyTeam: true, instructions: teamInstructions })}
+                  title="Crea un equipo pequeño con los últimos 3 en confirmar"
+                >
+                  Con equipo de castigo
+                </button>
             )}
             {confirmingDelete ? (
               <>
@@ -107,6 +120,7 @@ export default function MatchDetail({
               </button>
             )}
           </div>
+          </>
         )}
         {confirmingDelete && (
           <p className="confirm-delete-msg">

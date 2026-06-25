@@ -251,6 +251,13 @@ export const api = {
     return membership;
   },
 
+  async updateGroupDescription(groupId, description) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("groups").update({ description }).eq("id", groupId).select("*").single(),
+    );
+  },
+
   async joinGroup(groupId, profileId) {
     const client = requireSupabase();
     const payload = {

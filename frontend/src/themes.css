@@ -4,11 +4,16 @@
 [data-theme="light"] {
   --accent:    #16a34a;
   --accent-dim: #15803d;
+  --accent-rgb: 22, 163, 74;
 
   --surface-0: #f8faf8;
   --surface-1: #ffffff;
   --surface-2: #f0f5f1;
   --surface-3: #e2ede4;
+  --surface-glass: rgba(248, 250, 248, 0.94);
+  --surface-danger-hover: #fee2e2;
+  --share-bg: #e9f8ee;
+  --share-bg-hover: #d7f2df;
 
   --border:    #c8d8cb;
   --border-light: #dbe8de;
@@ -33,11 +38,16 @@
 [data-theme="night"] {
   --accent:    #60a5fa;
   --accent-dim: #3b82f6;
+  --accent-rgb: 96, 165, 250;
 
   --surface-0: #0f172a;
   --surface-1: #1e293b;
   --surface-2: #273548;
   --surface-3: #334155;
+  --surface-glass: rgba(15, 23, 42, 0.96);
+  --surface-danger-hover: #3b1118;
+  --share-bg: #172b45;
+  --share-bg-hover: #203a5d;
 
   --border:    #3b4c63;
   --border-light: #475975;
@@ -59,14 +69,19 @@
 /* ============================================================
    Theme: Campo (Field Green - Default)
    ============================================================ */
-[data-theme="field"], :root {
+[data-theme="field"] {
   --accent:    #39e55a;
   --accent-dim: #2ab844;
+  --accent-rgb: 57, 229, 90;
 
   --surface-0: #0d1b10;
   --surface-1: #111f15;
   --surface-2: #172a1c;
   --surface-3: #1e3625;
+  --surface-glass: rgba(13, 27, 16, 0.96);
+  --surface-danger-hover: #3a1010;
+  --share-bg: #0d2e14;
+  --share-bg-hover: #133d1d;
 
   --border:    #243d2a;
   --border-light: #2e5237;
