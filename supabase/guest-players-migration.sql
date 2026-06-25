@@ -1,10 +1,13 @@
 -- Guest players for matches (temporary, match-only)
 -- Run this in Supabase SQL Editor
 
-create table if not exists public.guest_players (
+-- Drop and recreate with nullable group_id
+DROP TABLE IF EXISTS public.guest_players CASCADE;
+
+create table public.guest_players (
   id uuid primary key default gen_random_uuid(),
   match_id uuid not null references public.matches(id) on delete cascade,
-  group_id uuid not null references public.groups(id) on delete cascade,
+  group_id uuid references public.groups(id) on delete cascade,
   name text not null,
   rating integer not null default 2 check (rating between 1 and 4),
   assigned_by uuid references public.profiles(id) on delete set null,

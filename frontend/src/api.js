@@ -1535,7 +1535,7 @@ export const api = {
       .from("guest_players")
       .insert({
         match_id: matchId,
-        group_id: match.group_id,
+        group_id: match.group_id || null,
         name,
         rating: 2,
       })
