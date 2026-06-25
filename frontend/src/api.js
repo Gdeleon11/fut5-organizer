@@ -1522,19 +1522,28 @@ export const api = {
   async registerGuest(token, name) {
     const client = requireSupabase();
     const matchId = atob(token);
-    const match = await readOne(
-      client.from("matches").select("id, group_id, title, match_date, start_time").eq("id", matchId).single(),
-    );
-    if (!match) throw new Error("Partido no encontrado.");
 
-    return readOne(
-      client.from("guest_players").insert({
+    const { data: match, error: matchError } = await client
+      .from("matches")
+      .select("id, group_id")
+      .eq("id", matchId)
+      .maybeSingle();
+
+    if (matchError || !match) throw new Error("Partido no encontrado.");
+
+    const { data, error } = await client
+      .from("guest_players")
+      .insert({
         match_id: matchId,
         group_id: match.group_id,
         name,
         rating: 2,
-      }).select("*").single(),
-    );
+      })
+      .select("*")
+      .single();
+
+    if (error) throw new Error("Error al registrarse: " + error.message);
+    return data;
   },
 
   latestRatingsByProfile,

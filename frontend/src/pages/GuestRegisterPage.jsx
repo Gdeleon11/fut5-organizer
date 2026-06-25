@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "../supabaseClient.js";
 import { api } from "../api.js";
 
 export default function GuestRegisterPage({ token }) {
@@ -12,17 +13,18 @@ export default function GuestRegisterPage({ token }) {
     async function load() {
       try {
         const matchId = atob(token);
-        const client = api.getClient?.() || null;
-        if (client) {
-          const { data } = await client.from("matches")
-            .select("id, title, match_date, start_time, venue")
-            .eq("id", matchId).single();
-          setMatch(data);
+        const { data, error } = await supabase
+          .from("matches")
+          .select("id, title, match_date, start_time, venue")
+          .eq("id", matchId)
+          .maybeSingle();
+        if (error || !data) {
+          setError("Link inválido o partido no encontrado.");
         } else {
-          setMatch({ id: matchId, title: "Partido" });
+          setMatch(data);
         }
       } catch (err) {
-        setError("Link inválido o partido no encontrado.");
+        setError("Link inválido.");
       } finally {
         setLoading(false);
       }
