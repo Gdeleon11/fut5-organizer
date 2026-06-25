@@ -55,6 +55,7 @@ export default function App() {
   const [attendances, setAttendances] = useState([]);
   const [teamsByMatch, setTeamsByMatch] = useState({});
   const [fines, setFines] = useState([]);
+  const [votes, setVotes] = useState([]);
   const [settings, setSettings] = useState(null);
   const [venues, setVenues] = useState([]);
   const [matchFees, setMatchFees] = useState([]);
@@ -73,6 +74,40 @@ export default function App() {
   const currentPlayer = profile ? { ...profile, is_active: isActiveMember } : profile;
   const ratingMap = useMemo(() => api.latestRatingsByProfile(ratings), [ratings]);
   const lateCancelFineAmount = settings?.late_cancel_fine_amount ?? 25;
+
+  const voteScoreMap = useMemo(() => {
+    const map = new Map();
+    votes.forEach((v) => {
+      map.set(v.voted_id, (map.get(v.voted_id) || 0) + v.vote);
+    });
+    return map;
+  }, [votes]);
+
+  const userVoteMap = useMemo(() => {
+    const map = new Map();
+    if (!profile) return map;
+    votes.filter((v) => v.voter_id === profile.id).forEach((v) => {
+      map.set(v.voted_id, v.vote);
+    });
+    return map;
+  }, [votes, profile]);
+
+  async function votePlayer(votedId, vote) {
+    if (!profile || votedId === profile.id) return;
+    try {
+      const existing = userVoteMap.get(votedId);
+      if (existing === vote) {
+        await api.removeVote(activeGroupId, profile.id, votedId);
+        setVotes((c) => c.filter((v) => !(v.voter_id === profile.id && v.voted_id === votedId)));
+      } else {
+        const row = await api.votePlayer(activeGroupId, profile.id, votedId, vote);
+        setVotes((c) => [
+          ...c.filter((v) => !(v.voter_id === profile.id && v.voted_id === votedId)),
+          row,
+        ]);
+      }
+    } catch (err) { setError(err.message); }
+  }
 
   const navItems = useMemo(() => [
     { id: "matches", label: "Partidos" },
@@ -245,11 +280,12 @@ export default function App() {
   async function loadData(currentProfile = profile, groupId = activeGroupId) {
     if (!currentProfile || !groupId) return;
     const [matchRows, attendanceRows, fineRows, ratingRows, settingRows,
-           profileRows, venueRows, collectionRows] = await Promise.all([
+           profileRows, venueRows, collectionRows, voteRows] = await Promise.all([
       api.listMatches(groupId), api.listAttendances(groupId),
       api.listFines(groupId), api.listRatings(groupId),
       api.listSettings(groupId), api.listGroupProfiles(groupId),
       api.listVenues(groupId), api.listCollections(groupId),
+      api.getPlayerVotes(groupId),
     ]);
     const teamsMap = await api.listAllTeams(matchRows);
     // Load match fees for all matches that have a court cost
@@ -259,6 +295,7 @@ export default function App() {
     );
     setMatches(matchRows); setAttendances(attendanceRows); setFines(fineRows);
     setRatings(ratingRows); setSettings(settingRows[0] || null);
+    setVotes(voteRows);
     setProfiles(profileRows); setTeamsByMatch(teamsMap);
     setVenues(venueRows); setCollections(collectionRows);
     setMatchFees(feePairs.filter(Boolean));
@@ -916,7 +953,9 @@ export default function App() {
           <PlayersAdmin activeGroupId={activeGroupId} attendances={attendances} fines={fines} matches={matches}
             onAssignRating={isSuperAdmin ? assignRating : undefined}
             onUpdateMember={updateGroupMember} onUpdateProfile={updateProfileAdmin}
-            profiles={profiles} ratingMap={ratingMap} isSuperAdmin={isSuperAdmin} />
+            profiles={profiles} ratingMap={ratingMap} isSuperAdmin={isSuperAdmin}
+            voteScoreMap={voteScoreMap} userVoteMap={userVoteMap} onVote={votePlayer}
+            currentProfileId={profile?.id} />
         )}
         {page === "venues" && isAdmin && (
           <VenuesPage groupId={activeGroupId} profileId={profile?.id} venues={venues}

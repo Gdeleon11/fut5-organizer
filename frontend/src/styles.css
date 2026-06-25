@@ -1229,6 +1229,37 @@ small, .muted {
   font-size: 0.85rem;
 }
 
+.vote-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.vote-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.4rem;
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+
+.vote-btn:hover { color: var(--accent); }
+.vote-btn:disabled { opacity: 0.4; cursor: default; }
+.vote-btn.vote-up.is-active { color: #22c55e; }
+.vote-btn.vote-down.is-active { color: #ef4444; }
+
+.vote-score {
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.vote-score.positive { color: #22c55e; }
+.vote-score.negative { color: #ef4444; }
+
 .role-controls {
   display: grid;
   grid-template-columns: 1fr auto;

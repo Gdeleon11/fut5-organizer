@@ -1409,5 +1409,38 @@ export const api = {
     return match;
   },
 
+  // ---------------------------------------------------------------------------
+  // Player Votes
+  // ---------------------------------------------------------------------------
+
+  async votePlayer(groupId, voterId, votedId, vote) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("player_votes").upsert(
+        { group_id: groupId, voter_id: voterId, voted_id: votedId, vote },
+        { onConflict: "group_id,voter_id,voted_id" },
+      ).select("*").single(),
+    );
+  },
+
+  async removeVote(groupId, voterId, votedId) {
+    const client = requireSupabase();
+    const { error } = await client.from("player_votes")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("voter_id", voterId)
+      .eq("voted_id", votedId);
+    raise(error);
+  },
+
+  async getPlayerVotes(groupId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("player_votes")
+        .select("id, voter_id, voted_id, vote")
+        .eq("group_id", groupId),
+    );
+  },
+
   latestRatingsByProfile,
 };

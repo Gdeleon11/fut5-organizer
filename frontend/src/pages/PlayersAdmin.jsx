@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
+import VoteButtons from "../components/VoteButtons.jsx";
 import StarRatingControl, {
   PositionRatingControl,
   PositionRatingDisplay,
@@ -31,6 +32,10 @@ export default function PlayersAdmin({
   onUpdateProfile,
   profiles,
   ratingMap,
+  voteScoreMap,
+  userVoteMap,
+  onVote,
+  currentProfileId,
 }) {
   const [filter, setFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
@@ -141,6 +146,13 @@ export default function PlayersAdmin({
                 </small>
                 <div className="player-card-badge">
                   <PlayerBadge rating={ratingMap.get(player.id)} />
+                  {player.id !== currentProfileId && (
+                    <VoteButtons
+                      score={voteScoreMap.get(player.id) || 0}
+                      userVote={userVoteMap.get(player.id) || 0}
+                      onVote={(vote) => onVote(player.id, vote)}
+                    />
+                  )}
                 </div>
                 <div className="button-row">
                   <button
