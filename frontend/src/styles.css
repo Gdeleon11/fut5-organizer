@@ -1277,13 +1277,13 @@ small, .muted {
   border-radius: 8px;
   padding: 0.3rem;
   z-index: 10;
-  width: 140px;
+  width: 160px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .vote-picker-btn {
-  width: 26px;
-  height: 26px;
+  width: 100%;
+  aspect-ratio: 1;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface-2);
@@ -1292,6 +1292,7 @@ small, .muted {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
+  padding: 0;
 }
 
 .vote-picker-btn:hover { border-color: var(--accent); color: var(--accent); }
