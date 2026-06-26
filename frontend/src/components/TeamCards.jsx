@@ -11,14 +11,23 @@ export default function TeamCards({ teams, isAdmin }) {
             {isAdmin && <span>{team.total_rating || 0} estrellas</span>}
           </div>
           <ul>
-            {(team.team_members || []).map((member) => (
-              <li key={member.id}>
-                <span className="team-member">
-                  <Avatar profile={member.profiles} size="sm" />
-                  {displayName(member.profiles)}
-                </span>
-              </li>
-            ))}
+            {(team.team_members || []).map((member) => {
+              const isGuest = !!member.guest_player_id;
+              const name = isGuest ? (member.guest_name || "Invitado") : displayName(member.profiles);
+              return (
+                <li key={member.id}>
+                  <span className="team-member">
+                    {isGuest ? (
+                      <span className="avatar avatar-sm guest-avatar">I</span>
+                    ) : (
+                      <Avatar profile={member.profiles} size="sm" />
+                    )}
+                    {name}
+                    {isGuest && <small className="guest-tag">invitado</small>}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         </article>
       ))}

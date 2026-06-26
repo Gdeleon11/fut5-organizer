@@ -974,6 +974,21 @@ small, .muted {
   border-color: var(--accent);
 }
 
+.guest-avatar {
+  background: var(--accent-dim);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+
+.guest-tag {
+  font-size: 0.6rem;
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: 0.3rem;
+}
+
 .group-card > div { display: grid; gap: 0.2rem; min-width: 0; }
 
 .ledger-row {

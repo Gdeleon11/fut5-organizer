@@ -545,7 +545,7 @@ export const api = {
   async listTeams(matchId) {
     const client = requireSupabase();
 
-    return readMany(
+    const teams = await readMany(
       client
         .from("teams")
         .select(
@@ -554,6 +554,27 @@ export const api = {
         .eq("match_id", matchId)
         .order("team_order", { ascending: true }),
     );
+
+    const guestIds = teams.flatMap((t) =>
+      (t.team_members || []).filter((m) => m.guest_player_id).map((m) => m.guest_player_id),
+    );
+
+    if (guestIds.length > 0) {
+      const guests = await readMany(
+        client.from("guest_players").select("id, name, rating").in("id", guestIds),
+      );
+      const guestMap = new Map(guests.map((g) => [g.id, g]));
+      teams.forEach((t) => {
+        (t.team_members || []).forEach((m) => {
+          if (m.guest_player_id) {
+            const g = guestMap.get(m.guest_player_id);
+            if (g) m.guest_name = g.name;
+          }
+        });
+      });
+    }
+
+    return teams;
   },
 
   async listAllTeams(matches = []) {
