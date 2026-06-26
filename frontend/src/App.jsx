@@ -20,7 +20,7 @@ import TeamPage from "./pages/TeamPage.jsx";
 import TournamentPage from "./pages/TournamentPage.jsx";
 import VenuesPage from "./pages/VenuesPage.jsx";
 import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
-import { classNames, displayName, profileComplete, roleLabel } from "./utils.js";
+import { classNames, displayName, formatMatchDate, profileComplete, roleLabel } from "./utils.js";
 
 function ConfigMissing() {
   return (
