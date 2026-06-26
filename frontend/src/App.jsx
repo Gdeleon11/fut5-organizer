@@ -635,8 +635,13 @@ export default function App() {
   }
 
   async function loadGuests(matchId) {
-    const rows = await api.listGuestPlayers(matchId);
-    setGuests((c) => ({ ...c, [matchId]: rows }));
+    try {
+      const rows = await api.listGuestPlayers(matchId);
+      setGuests((c) => ({ ...c, [matchId]: rows }));
+    } catch (err) {
+      console.error("Error loading guests:", err);
+      setGuests((c) => ({ ...c, [matchId]: [] }));
+    }
   }
 
   async function addGuestPlayer(matchId, name, rating) {
