@@ -304,13 +304,14 @@ export default function App() {
   async function loadData(currentProfile = profile, groupId = activeGroupId) {
     if (!currentProfile || !groupId) return;
     const [matchRows, attendanceRows, fineRows, ratingRows, settingRows,
-           profileRows, venueRows, collectionRows, voteRows] = await Promise.all([
+           profileRows, venueRows, collectionRows] = await Promise.all([
       api.listMatches(groupId), api.listAttendances(groupId),
       api.listFines(groupId), api.listRatings(groupId),
       api.listSettings(groupId), api.listGroupProfiles(groupId),
       api.listVenues(groupId), api.listCollections(groupId),
-      api.getPlayerVotes(groupId),
     ]);
+    let voteRows = [];
+    try { voteRows = await api.getPlayerVotes(groupId); } catch (e) { console.warn("Votes not available:", e.message); }
     const teamsMap = await api.listAllTeams(matchRows);
     // Load match fees for all matches that have a court cost
     const feePairs = await Promise.all(
