@@ -657,6 +657,13 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
+  async function updateGuestRating(matchId, guestId, rating) {
+    try {
+      const updated = await api.updateGuestPlayer(guestId, { rating });
+      setGuests((c) => ({ ...c, [matchId]: (c[matchId] || []).map((g) => g.id === guestId ? updated : g) }));
+    } catch (err) { setError(err.message); }
+  }
+
   async function updateAttendance(attendanceId, payload) {
     const updated = await api.updateAttendance(attendanceId, payload);
     setAttendances((c) => c.map((a) => (a.id === updated.id ? updated : a)));
@@ -953,7 +960,7 @@ export default function App() {
         )}
         {page === "match" && selectedMatch && (
           <MatchDetail attendances={matchAttendances(selectedMatch.id)}
-            confirmedCount={confirmedAttendances(selectedMatch.id).length}
+            confirmedCount={confirmedAttendances(selectedMatch.id).length + matchGuests.length}
             fineAmount={lateCancelFineAmount} fines={fines} isAdmin={isAdmin}
             match={selectedMatch} myAttendance={myAttendance(selectedMatch.id)}
             onCancel={() => cancelMatch(selectedMatch)}
@@ -965,6 +972,7 @@ export default function App() {
             onMarkNoShow={markNoShow}
             onAddGuest={(name, rating) => addGuestPlayer(selectedMatch.id, name, rating)}
             onDeleteGuest={(id) => deleteGuestPlayer(selectedMatch.id, id)}
+            onUpdateGuestRating={(id, rating) => updateGuestRating(selectedMatch.id, id, rating)}
             guests={matchGuests}
             profile={currentPlayer} profileById={profileById}
             teams={teamsByMatch[selectedMatch.id] || []} />

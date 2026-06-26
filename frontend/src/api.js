@@ -651,10 +651,12 @@ export const api = {
     const members = generated.teams.flatMap((team, index) => {
       const teamRow = teamRowsByOrder.get(index + 1);
 
-      return team.players.map((player) => ({
-        team_id: teamRow.id,
-        profile_id: player.id,
-      }));
+      return team.players.map((player) => {
+        if (player.is_guest) {
+          return { team_id: teamRow.id, profile_id: null, guest_player_id: player.id };
+        }
+        return { team_id: teamRow.id, profile_id: player.id };
+      });
     });
 
     if (members.length > 0) {

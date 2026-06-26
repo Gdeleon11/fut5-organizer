@@ -953,6 +953,27 @@ small, .muted {
   font-size: 0.85rem;
 }
 
+.guest-rating-row {
+  display: flex;
+  gap: 0.2rem;
+  margin-top: 0.2rem;
+}
+
+.guest-rating-btn {
+  min-height: auto;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
+  background: var(--surface-3);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+.guest-rating-btn.is-active {
+  background: var(--accent);
+  color: #000;
+  border-color: var(--accent);
+}
+
 .group-card > div { display: grid; gap: 0.2rem; min-width: 0; }
 
 .ledger-row {

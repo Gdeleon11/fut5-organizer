@@ -17,7 +17,7 @@ import {
 
 import { api } from "../api.js";
 
-function GuestPlayersSection({ match, guests, onAdd, onDelete }) {
+function GuestPlayersSection({ match, guests, onAdd, onDelete, onUpdateRating }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [rating, setRating] = useState(2);
@@ -96,7 +96,18 @@ function GuestPlayersSection({ match, guests, onAdd, onDelete }) {
             <div className="player-row" key={guest.id}>
               <div>
                 <strong>{guest.name}</strong>
-                <small>{guest.rating} estrella{guest.rating !== 1 ? "s" : ""}</small>
+                <div className="guest-rating-row">
+                  {[1, 2, 3, 4].map((n) => (
+                    <button
+                      key={n}
+                      className={`guest-rating-btn ${guest.rating === n ? "is-active" : ""}`}
+                      type="button"
+                      onClick={() => onUpdateRating(guest.id, n)}
+                    >
+                      {n}★
+                    </button>
+                  ))}
+                </div>
               </div>
               <button
                 className="secondary-button"
@@ -129,6 +140,7 @@ export default function MatchDetail({
   onMarkNoShow,
   onAddGuest,
   onDeleteGuest,
+  onUpdateGuestRating,
   guests,
   profile,
   profileById,
@@ -318,6 +330,7 @@ export default function MatchDetail({
           guests={guests}
           onAdd={onAddGuest}
           onDelete={onDeleteGuest}
+          onUpdateRating={onUpdateGuestRating}
         />
       )}
     </div>
