@@ -1137,6 +1137,72 @@ small, .muted {
   color: var(--text-muted);
 }
 
+.reservation-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.reservation-date-group {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.reservation-date-header {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent);
+  padding: 0.3rem 0;
+  border-bottom: 1px solid var(--border);
+  text-transform: capitalize;
+}
+
+.reservation-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.5rem;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+
+.reservation-list-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.reservation-list-venue {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.reservation-list-time {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.reservation-list-person {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.reservation-list-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.reservation-list-proof {
+  font-size: 0.9rem;
+}
+
 .group-card > div { display: grid; gap: 0.2rem; min-width: 0; }
 
 .ledger-row {

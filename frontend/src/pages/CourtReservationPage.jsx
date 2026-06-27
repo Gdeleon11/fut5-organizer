@@ -64,6 +64,91 @@ function ReservationRow({ index, venues, profiles, onChange, onRemove }) {
   );
 }
 
+function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, onConfirm, onDelete, onUploadProof, onCopyLink, copiedId }) {
+  const [uploading, setUploading] = useState(false);
+  const isAssigned = reservation.assigned_to === currentUserId;
+  const canConfirm = isAdmin || isAssigned;
+  const isPending = reservation.status === "pending";
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try { await onUploadProof(reservation.id, file); } finally { setUploading(false); }
+  }
+
+  const dateStr = reservation.reservation_date
+    ? new Date(reservation.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" })
+    : "";
+
+  return (
+    <article className={classNames("reservation-card", reservation.status === "confirmed" && "is-confirmed")}>
+      <div className="reservation-header">
+        <div>
+          <strong>{reservation.venue}</strong>
+          <small>{dateStr}{reservation.reservation_time ? ` · ${reservation.reservation_time}` : ""}</small>
+        </div>
+        <span className={classNames("status-pill", isPending ? "is-pending" : "is-paid")}>
+          {isPending ? "Pendiente" : "Confirmada"}
+        </span>
+      </div>
+
+      <div className="reservation-details">
+        <div className="reservation-assigned">
+          <small>Responsable:</small>
+          <div className="reservation-person">
+            <Avatar profile={reservation.assigned_profile} size="sm" />
+            <span>{displayName(reservation.assigned_profile)}</span>
+          </div>
+        </div>
+        {reservation.notes && <small className="reservation-notes">{reservation.notes}</small>}
+      </div>
+
+      {reservation.proof_url && (
+        <div className="reservation-proof">
+          <a href={reservation.proof_url} target="_blank" rel="noopener">
+            <img src={reservation.proof_url} alt="Comprobante" />
+          </a>
+        </div>
+      )}
+
+      <div className="button-row reservation-actions">
+        {isPending && (
+          <button className="secondary-button" type="button" onClick={() => onCopyLink(reservation.id)}>
+            {copiedId === reservation.id ? "Copiado ✓" : "Link para responsable"}
+          </button>
+        )}
+        {isPending && canConfirm && (
+          <>
+            {!reservation.proof_url && (
+              <label className="secondary-button" style={{ cursor: "pointer" }}>
+                {uploading ? "Subiendo..." : "Subir comprobante"}
+                <input type="file" accept="image/*" onChange={handleUpload} style={{ display: "none" }} />
+              </label>
+            )}
+            <button
+              type="button"
+              onClick={() => onConfirm(reservation)}
+              disabled={!reservation.proof_url}
+              title={!reservation.proof_url ? "Subí el comprobante primero" : ""}
+            >
+              Confirmar y crear partido
+            </button>
+          </>
+        )}
+        {isPending && isSuperAdmin && (
+          <button className="danger-button" type="button" onClick={() => { if (confirm("¿Eliminar?")) onDelete(reservation.id); }}>
+            Eliminar
+          </button>
+        )}
+        {!isPending && reservation.match_id && (
+          <small className="muted">Partido creado ✓</small>
+        )}
+      </div>
+    </article>
+  );
+}
+
 export default function CourtReservationPage({ activeGroupId, profiles, venues, isAdmin, isSuperAdmin, currentUserId, onCreateMatch }) {
   const [reservations, setReservations] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -74,6 +159,7 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [copiedId, setCopiedId] = useState(null);
+  const [view, setView] = useState("cards"); // "cards" | "list"
 
   useEffect(() => {
     if (!activeGroupId) return;
@@ -181,6 +267,15 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
   const pending = reservations.filter((r) => r.status === "pending");
   const confirmed = reservations.filter((r) => r.status === "confirmed");
 
+  // Group by date for list view
+  const groupedByDate = {};
+  reservations.forEach((r) => {
+    const key = r.reservation_date || "Sin fecha";
+    if (!groupedByDate[key]) groupedByDate[key] = [];
+    groupedByDate[key].push(r);
+  });
+  const sortedDates = Object.keys(groupedByDate).sort();
+
   return (
     <div className="page-grid">
       <section className="panel">
@@ -190,11 +285,31 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
             <h2>Reservas de cancha</h2>
             <small>Delegá la reserva a un jugador. Subí el comprobante y confirmá.</small>
           </div>
-          {isAdmin && (
-            <button className="secondary-button" type="button" onClick={() => setShowForm((v) => !v)}>
-              {showForm ? "Cancelar" : "+ Nueva reserva"}
-            </button>
-          )}
+          <div className="button-row">
+            {reservations.length > 0 && (
+              <>
+                <button
+                  className={view === "cards" ? "" : "secondary-button"}
+                  type="button"
+                  onClick={() => setView("cards")}
+                >
+                  Tarjetas
+                </button>
+                <button
+                  className={view === "list" ? "" : "secondary-button"}
+                  type="button"
+                  onClick={() => setView("list")}
+                >
+                  Lista
+                </button>
+              </>
+            )}
+            {isAdmin && (
+              <button className="secondary-button" type="button" onClick={() => setShowForm((v) => !v)}>
+                {showForm ? "Cancelar" : "+ Nueva"}
+              </button>
+            )}
+          </div>
         </div>
         {error && <p className="form-message">{error}</p>}
         {notice && <p className="form-message success">{notice}</p>}
@@ -228,50 +343,101 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
         )}
       </section>
 
-      {pending.length > 0 && (
+      {/* List view - grouped by date */}
+      {view === "list" && reservations.length > 0 && (
         <section className="panel">
           <div className="section-heading">
-            <h2>Pendientes</h2>
-            <span className="count-pill">{pending.length}</span>
+            <h2>Todas las reservas</h2>
+            <span className="count-pill">{reservations.length}</span>
           </div>
-          {pending.map((r) => (
-            <ReservationCard
-              key={r.id}
-              reservation={r}
-              isAdmin={isAdmin}
-              isSuperAdmin={isSuperAdmin}
-              currentUserId={currentUserId}
-              onConfirm={handleConfirm}
-              onDelete={handleDelete}
-              onUploadProof={handleUploadProof}
-              onCopyLink={copyLink}
-              copiedId={copiedId}
-            />
-          ))}
+          <div className="reservation-list">
+            {sortedDates.map((date) => (
+              <div key={date} className="reservation-date-group">
+                <div className="reservation-date-header">
+                  <strong>
+                    {date !== "Sin fecha"
+                      ? new Date(date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long" })
+                      : "Sin fecha"}
+                  </strong>
+                </div>
+                {groupedByDate[date].map((r) => (
+                  <div key={r.id} className="reservation-list-row">
+                    <div className="reservation-list-info">
+                      <span className="reservation-list-venue">{r.venue}</span>
+                      <span className="reservation-list-time">{r.reservation_time || ""}</span>
+                      <span className="reservation-list-person">
+                        <Avatar profile={r.assigned_profile} size="sm" />
+                        {displayName(r.assigned_profile)}
+                      </span>
+                    </div>
+                    <div className="reservation-list-status">
+                      <span className={classNames("status-pill", r.status === "pending" ? "is-pending" : "is-paid")}>
+                        {r.status === "pending" ? "Pendiente" : "Confirmada"}
+                      </span>
+                      {r.proof_url && <span className="reservation-list-proof">📎</span>}
+                      {isAdmin && r.status === "pending" && (
+                        <button className="secondary-button" type="button" onClick={() => copyLink(r.id)}>
+                          {copiedId === r.id ? "✓" : "Link"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
-      {confirmed.length > 0 && (
-        <section className="panel">
-          <div className="section-heading">
-            <h2>Confirmadas</h2>
-            <span className="count-pill">{confirmed.length}</span>
-          </div>
-          {confirmed.map((r) => (
-            <ReservationCard
-              key={r.id}
-              reservation={r}
-              isAdmin={isAdmin}
-              isSuperAdmin={isSuperAdmin}
-              currentUserId={currentUserId}
-              onConfirm={handleConfirm}
-              onDelete={handleDelete}
-              onUploadProof={handleUploadProof}
-              onCopyLink={copyLink}
-              copiedId={copiedId}
-            />
-          ))}
-        </section>
+      {/* Card view */}
+      {view === "cards" && (
+        <>
+          {pending.length > 0 && (
+            <section className="panel">
+              <div className="section-heading">
+                <h2>Pendientes</h2>
+                <span className="count-pill">{pending.length}</span>
+              </div>
+              {pending.map((r) => (
+                <ReservationCard
+                  key={r.id}
+                  reservation={r}
+                  isAdmin={isAdmin}
+                  isSuperAdmin={isSuperAdmin}
+                  currentUserId={currentUserId}
+                  onConfirm={handleConfirm}
+                  onDelete={handleDelete}
+                  onUploadProof={handleUploadProof}
+                  onCopyLink={copyLink}
+                  copiedId={copiedId}
+                />
+              ))}
+            </section>
+          )}
+
+          {confirmed.length > 0 && (
+            <section className="panel">
+              <div className="section-heading">
+                <h2>Confirmadas</h2>
+                <span className="count-pill">{confirmed.length}</span>
+              </div>
+              {confirmed.map((r) => (
+                <ReservationCard
+                  key={r.id}
+                  reservation={r}
+                  isAdmin={isAdmin}
+                  isSuperAdmin={isSuperAdmin}
+                  currentUserId={currentUserId}
+                  onConfirm={handleConfirm}
+                  onDelete={handleDelete}
+                  onUploadProof={handleUploadProof}
+                  onCopyLink={copyLink}
+                  copiedId={copiedId}
+                />
+              ))}
+            </section>
+          )}
+        </>
       )}
 
       {reservations.length === 0 && !loading && !showForm && (
@@ -280,89 +446,5 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
         </section>
       )}
     </div>
-  );
-}
-
-function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, onConfirm, onDelete, onUploadProof, onCopyLink, copiedId }) {
-  const [uploading, setUploading] = useState(false);
-  const isAssigned = reservation.assigned_to === currentUserId;
-  const canConfirm = isAdmin || isAssigned;
-  const isPending = reservation.status === "pending";
-
-  async function handleUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try { await onUploadProof(reservation.id, file); } finally { setUploading(false); }
-  }
-
-  return (
-    <article className={classNames("reservation-card", reservation.status === "confirmed" && "is-confirmed")}>
-      <div className="reservation-header">
-        <div>
-          <strong>{reservation.venue}</strong>
-          <small>
-            {new Date(reservation.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long" })}
-            {reservation.reservation_time ? ` · ${reservation.reservation_time}` : ""}
-          </small>
-        </div>
-        <span className={classNames("status-pill", isPending ? "is-pending" : "is-paid")}>
-          {isPending ? "Pendiente" : "Confirmada"}
-        </span>
-      </div>
-
-      <div className="reservation-details">
-        <div className="reservation-assigned">
-          <small>Responsable:</small>
-          <div className="reservation-person">
-            <Avatar profile={reservation.assigned_profile} size="sm" />
-            <span>{displayName(reservation.assigned_profile)}</span>
-          </div>
-        </div>
-        {reservation.notes && <small className="reservation-notes">{reservation.notes}</small>}
-      </div>
-
-      {reservation.proof_url && (
-        <div className="reservation-proof">
-          <a href={reservation.proof_url} target="_blank" rel="noopener">
-            <img src={reservation.proof_url} alt="Comprobante" />
-          </a>
-        </div>
-      )}
-
-      <div className="button-row reservation-actions">
-        {isPending && (
-          <button className="secondary-button" type="button" onClick={() => onCopyLink(reservation.id)}>
-            {copiedId === reservation.id ? "Copiado ✓" : "Link para responsable"}
-          </button>
-        )}
-        {isPending && canConfirm && (
-          <>
-            {!reservation.proof_url && (
-              <label className="secondary-button" style={{ cursor: "pointer" }}>
-                {uploading ? "Subiendo..." : "Subir comprobante"}
-                <input type="file" accept="image/*" onChange={handleUpload} style={{ display: "none" }} />
-              </label>
-            )}
-            <button
-              type="button"
-              onClick={() => onConfirm(reservation)}
-              disabled={!reservation.proof_url}
-              title={!reservation.proof_url ? "Subí el comprobante primero" : ""}
-            >
-              Confirmar y crear partido
-            </button>
-          </>
-        )}
-        {isPending && isSuperAdmin && (
-          <button className="danger-button" type="button" onClick={() => { if (confirm("¿Eliminar?")) onDelete(reservation.id); }}>
-            Eliminar
-          </button>
-        )}
-        {!isPending && reservation.match_id && (
-          <small className="muted">Partido creado ✓</small>
-        )}
-      </div>
-    </article>
   );
 }
