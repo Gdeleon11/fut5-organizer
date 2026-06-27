@@ -2,6 +2,7 @@ import AttendanceAction from "../components/AttendanceAction.jsx";
 import CourtPhoto from "../components/CourtPhoto.jsx";
 import ExportCard from "../components/ExportCard.jsx";
 import MatchForm from "../components/MatchForm.jsx";
+import WeatherWidget from "../components/WeatherWidget.jsx";
 import { useState } from "react";
 import {
   formatMatchDate,
@@ -65,6 +66,9 @@ export default function MatchesPage({
               return (
                 <>
                   {isConfirmed && <CourtPhoto match={nextMatch} />}
+                  {isConfirmed && nextMatch.venue && nextMatch.match_date && (
+                    <WeatherWidget venue={nextMatch.venue} date={nextMatch.match_date} />
+                  )}
                   <p className="muted">
                     {isConfirmed
                       ? (nextMatch.venue || "Cancha pendiente")

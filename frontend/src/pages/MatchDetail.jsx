@@ -3,6 +3,7 @@ import CourtPhoto from "../components/CourtPhoto.jsx";
 import ExportCard from "../components/ExportCard.jsx";
 import StarRatingControl from "../components/StarRatingControl.jsx";
 import TeamCards from "../components/TeamCards.jsx";
+import WeatherWidget from "../components/WeatherWidget.jsx";
 import { useState } from "react";
 import {
   attendanceLabel,
@@ -169,6 +170,9 @@ export default function MatchDetail({
             : " · Cancha oculta (confirmá para ver)"}
         </p>
         {(isAdmin || isPlayerConfirmed) && <CourtPhoto match={match} />}
+        {(isAdmin || isPlayerConfirmed) && match.venue && match.match_date && (
+          <WeatherWidget venue={match.venue} date={match.match_date} />
+        )}
         <AttendanceAction
           attendance={myAttendance}
           fineAmount={fineAmount}
