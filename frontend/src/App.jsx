@@ -15,6 +15,7 @@ import ProfileForm from "./pages/ProfileForm.jsx";
 import ProofUploadPage from "./pages/ProofUploadPage.jsx";
 import GuestRegisterPage from "./pages/GuestRegisterPage.jsx";
 import CourtReservationPage from "./pages/CourtReservationPage.jsx";
+import ReservePage from "./pages/ReservePage.jsx";
 import SimPage from "./pages/SimPage.jsx";
 import SuperAdminPage from "./pages/SuperAdminPage.jsx";
 import TeamPage from "./pages/TeamPage.jsx";
@@ -880,6 +881,16 @@ export default function App() {
   // Render guest registration page (no auth required)
   if (guestToken) {
     return <GuestRegisterPage token={guestToken} />;
+  }
+
+  const reserveTokenMatch = typeof window !== "undefined"
+    ? window.location.pathname.match(/^\/reserve\/(.+)$/)
+    : null;
+  const reserveToken = reserveTokenMatch?.[1];
+
+  // Render reserve page (no auth required)
+  if (reserveToken) {
+    return <ReservePage token={reserveToken} />;
   }
 
   // Render proof upload page (no auth required, but page handles login check)
