@@ -1579,12 +1579,29 @@ export const api = {
 
   async listReservations(groupId) {
     const client = requireSupabase();
-    return readMany(
+    const reservations = await readMany(
       client.from("court_reservations")
-        .select("*, assigned_profile:profiles!assigned_to(id, full_name, nickname, avatar_url), assigned_by_profile:profiles!assigned_by(id, full_name, nickname)")
+        .select("*")
         .eq("group_id", groupId)
         .order("reservation_date"),
     );
+
+    const profileIds = [...new Set(
+      reservations.flatMap((r) => [r.assigned_to, r.assigned_by]).filter(Boolean),
+    )];
+
+    if (profileIds.length > 0) {
+      const profiles = await readMany(
+        client.from("profiles").select("id, full_name, nickname, avatar_url").in("id", profileIds),
+      );
+      const profileMap = new Map(profiles.map((p) => [p.id, p]));
+      reservations.forEach((r) => {
+        r.assigned_profile = profileMap.get(r.assigned_to) || null;
+        r.assigned_by_profile = profileMap.get(r.assigned_by) || null;
+      });
+    }
+
+    return reservations;
   },
 
   async createReservation(payload) {
