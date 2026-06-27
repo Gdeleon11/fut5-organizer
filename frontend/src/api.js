@@ -1573,5 +1573,77 @@ export const api = {
     return data;
   },
 
+  // ---------------------------------------------------------------------------
+  // Court Reservations
+  // ---------------------------------------------------------------------------
+
+  async listReservations(groupId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("court_reservations")
+        .select("*, assigned_profile:profiles!assigned_to(id, full_name, nickname, avatar_url), assigned_by_profile:profiles!assigned_by(id, full_name, nickname)")
+        .eq("group_id", groupId)
+        .order("reservation_date"),
+    );
+  },
+
+  async createReservation(payload) {
+    const client = requireSupabase();
+    return readOne(client.from("court_reservations").insert(payload).select("*").single());
+  },
+
+  async updateReservation(reservationId, payload) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("court_reservations").update(payload).eq("id", reservationId).select("*").single(),
+    );
+  },
+
+  async deleteReservation(reservationId) {
+    const client = requireSupabase();
+    const { error } = await client.from("court_reservations").delete().eq("id", reservationId);
+    raise(error);
+  },
+
+  async uploadReservationProof(reservationId, file) {
+    const client = requireSupabase();
+    const ext = fileExtension(file) || "jpg";
+    const path = `${reservationId}/${Date.now()}.${ext}`;
+    const { error } = await client.storage
+      .from("reservation-proofs")
+      .upload(path, file, { cacheControl: "3600", contentType: safeContentType(file), upsert: true });
+
+    if (error) {
+      if (error.message?.includes("bucket")) {
+        throw new Error("El bucket 'reservation-proofs' no existe. Crealo en Supabase Storage o corré la migración de storage.");
+      }
+      throw new Error(`Error subiendo comprobante: ${error.message}`);
+    }
+
+    const { data: urlData } = client.storage.from("reservation-proofs").getPublicUrl(path);
+    return urlData?.publicUrl;
+  },
+
+  async confirmReservation(reservationId, groupId, venue, date, time, title) {
+    const client = requireSupabase();
+
+    const match = await readOne(
+      client.from("matches").insert({
+        group_id: groupId,
+        title: title || `Partido en ${venue}`,
+        match_date: date,
+        start_time: time || "19:00",
+        venue,
+        status: "upcoming",
+      }).select("*").single(),
+    );
+
+    await client.from("court_reservations")
+      .update({ status: "confirmed", match_id: match.id })
+      .eq("id", reservationId);
+
+    return match;
+  },
+
   latestRatingsByProfile,
 };

@@ -14,6 +14,7 @@ import PlayersAdmin from "./pages/PlayersAdmin.jsx";
 import ProfileForm from "./pages/ProfileForm.jsx";
 import ProofUploadPage from "./pages/ProofUploadPage.jsx";
 import GuestRegisterPage from "./pages/GuestRegisterPage.jsx";
+import CourtReservationPage from "./pages/CourtReservationPage.jsx";
 import SimPage from "./pages/SimPage.jsx";
 import SuperAdminPage from "./pages/SuperAdminPage.jsx";
 import TeamPage from "./pages/TeamPage.jsx";
@@ -131,6 +132,7 @@ export default function App() {
       { id: "admin", label: "Admin", mobileLabel: "Admin" },
       { id: "players", label: "Jugadores", mobileLabel: "Jugad." },
       { id: "venues", label: "Canchas", mobileLabel: "Canchas" },
+      { id: "reservations", label: "Reservas", mobileLabel: "Reservas" },
       { id: "sim", label: "Simular", mobileLabel: "Simular" },
     ] : []),
     ...(isSuperAdmin ? [
@@ -1043,6 +1045,11 @@ export default function App() {
         {page === "venues" && isAdmin && (
           <VenuesPage groupId={activeGroupId} profileId={profile?.id} venues={venues}
             onCreateVenue={createVenue} onUpdateVenue={updateVenue} />
+        )}
+        {page === "reservations" && isAdmin && (
+          <CourtReservationPage activeGroupId={activeGroupId} profiles={profiles}
+            venues={venues} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin}
+            currentUserId={profile?.id} onCreateMatch={(m) => { setMatches((c) => [...c, m]); }} />
         )}
         {page === "sim" && isAdmin && (
           <SimPage profiles={profiles} ratingMap={ratingMap} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
