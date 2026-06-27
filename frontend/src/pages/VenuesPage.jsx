@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import MapPicker from "../components/MapPicker.jsx";
 import { formatMoney } from "../utils.js";
 
 function VenueForm({ initial, onSave, onCancel }) {
@@ -7,6 +8,8 @@ function VenueForm({ initial, onSave, onCancel }) {
     address: initial?.address || "",
     default_cost: initial?.default_cost ?? 0,
     notes: initial?.notes || "",
+    lat: initial?.lat || null,
+    lng: initial?.lng || null,
   });
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(initial?.photo_url || "");
@@ -31,6 +34,10 @@ function VenueForm({ initial, onSave, onCancel }) {
     });
   }
 
+  function handleMapChange(lat, lng) {
+    update({ lat, lng });
+  }
+
   async function submit(e) {
     e.preventDefault();
     setError("");
@@ -44,6 +51,8 @@ function VenueForm({ initial, onSave, onCancel }) {
         address: form.address.trim() || null,
         default_cost: Number(form.default_cost) || 0,
         notes: form.notes.trim() || null,
+        lat: form.lat,
+        lng: form.lng,
       },
       photoFile,
     );
@@ -74,6 +83,10 @@ function VenueForm({ initial, onSave, onCancel }) {
           onChange={(e) => update({ default_cost: e.target.value })}
         />
       </label>
+      <label>
+        Ubicación en el mapa
+        <MapPicker lat={form.lat} lng={form.lng} onChange={handleMapChange} />
+      </label>
       <label className="media-upload">
         Foto de la cancha
         {photoPreview ? (
@@ -99,6 +112,25 @@ function VenueForm({ initial, onSave, onCancel }) {
       )}
     </form>
   );
+}
+
+function VenueMiniMap({ lat, lng }) {
+  const mapRef = { current: null };
+  const [mapInstance, setMapInstance] = useState(null);
+
+  useEffect(() => {
+    if (!mapRef.current || mapInstance) return;
+    const L = require("leaflet");
+    const map = L.map(mapRef.current).setView([lat, lng], 15);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OSM',
+    }).addTo(map);
+    L.marker([lat, lng]).addTo(map);
+    setMapInstance(map);
+    return () => map.remove();
+  }, [lat, lng]);
+
+  return <div ref={mapRef} className="venue-map-small" />;
 }
 
 export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, onUpdateVenue }) {
@@ -144,6 +176,9 @@ export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, 
                 <strong>{venue.name}</strong>
                 {venue.address && <small>{venue.address}</small>}
                 {venue.notes && <small className="muted">{venue.notes}</small>}
+                {venue.lat && venue.lng && (
+                  <small className="muted">📍 {venue.lat.toFixed(4)}, {venue.lng.toFixed(4)}</small>
+                )}
               </div>
               <div className="ledger-meta">
                 <span className="count-pill">

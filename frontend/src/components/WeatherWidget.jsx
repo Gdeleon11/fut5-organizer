@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import { getWeatherForecast } from "../weather.js";
 
-export default function WeatherWidget({ venue, date }) {
+export default function WeatherWidget({ venue, date, lat, lng }) {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!venue || !date) return;
+    if (!date) return;
     setLoading(true);
-    getWeatherForecast(venue, date)
+    getWeatherForecast(venue, date, lat, lng)
       .then(setWeather)
       .finally(() => setLoading(false));
-  }, [venue, date]);
+  }, [venue, date, lat, lng]);
 
   if (!venue || !date) return null;
   if (loading) return <div className="weather-widget"><small>Cargando pronóstico...</small></div>;

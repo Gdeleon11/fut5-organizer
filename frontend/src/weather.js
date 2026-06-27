@@ -74,11 +74,16 @@ function findCoordinates(venue) {
   return { lat: 14.6349, lon: -90.5069 };
 }
 
-export async function getWeatherForecast(venue, date) {
-  if (!venue || !date) return null;
+export async function getWeatherForecast(venue, date, lat, lng) {
+  if (!date) return null;
 
   try {
-    const coords = findCoordinates(venue);
+    let coords;
+    if (lat && lng) {
+      coords = { lat, lng };
+    } else {
+      coords = findCoordinates(venue);
+    }
     if (!coords) return null;
 
     const url = `${WEATHER_API}?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=America/Guatemala&start_date=${date}&end_date=${date}`;

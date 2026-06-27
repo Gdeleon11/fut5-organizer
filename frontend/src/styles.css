@@ -1256,6 +1256,32 @@ small, .muted {
   white-space: nowrap;
 }
 
+.map-picker {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.map-picker .leaflet-container {
+  border-radius: 8px;
+  z-index: 1;
+}
+
+.map-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.venue-map-small {
+  border-radius: 8px;
+  overflow: hidden;
+  height: 150px;
+}
+
+.venue-map-small .leaflet-container {
+  height: 100%;
+  border-radius: 8px;
+}
+
 .group-card > div { display: grid; gap: 0.2rem; min-width: 0; }
 
 .ledger-row {
