@@ -161,13 +161,28 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
   const [copiedId, setCopiedId] = useState(null);
   const [view, setView] = useState("cards"); // "cards" | "list"
 
-  useEffect(() => {
+  async function loadReservations() {
     if (!activeGroupId) return;
+    try {
+      const rows = await api.listReservations(activeGroupId);
+      setReservations(rows);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  useEffect(() => {
     setLoading(true);
-    api.listReservations(activeGroupId)
-      .then(setReservations)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    loadReservations().finally(() => setLoading(false));
+  }, [activeGroupId]);
+
+  // Auto-refresh when tab becomes visible again
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible") loadReservations();
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [activeGroupId]);
 
   function handleRowChange(index, data) {
@@ -303,6 +318,7 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
             <small>Delegá la reserva a un jugador. Subí el comprobante y confirmá.</small>
           </div>
           <div className="button-row">
+            <button className="ghost-button" type="button" onClick={loadReservations}>Actualizar</button>
             {reservations.length > 0 && (
               <>
                 <button
