@@ -153,11 +153,12 @@ export const api = {
     }
 
     const { data } = client.storage.from("avatars").getPublicUrl(path);
+    const avatarUrl = (data?.publicUrl || "").replace(/%0A/g, "").trim();
 
     return readOne(
       client
         .from("profiles")
-        .update({ avatar_url: data.publicUrl })
+        .update({ avatar_url: avatarUrl })
         .eq("id", profileId)
         .select("*")
         .single(),
@@ -185,7 +186,7 @@ export const api = {
     }
 
     const { data: urlData } = client.storage.from("match-photos").getPublicUrl(path);
-    const url = urlData?.publicUrl;
+    const url = (urlData?.publicUrl || "").replace(/%0A/g, "").trim();
     if (!url) throw new Error("No se pudo obtener la URL de la foto.");
 
     const { data, error: updateError } = await client
@@ -792,9 +793,10 @@ export const api = {
     }
 
     const { data } = client.storage.from("venue-photos").getPublicUrl(path);
+    const venueUrl = (data?.publicUrl || "").replace(/%0A/g, "").trim();
 
     return readOne(
-      client.from("venues").update({ photo_url: data.publicUrl }).eq("id", venueId).select("*").single(),
+      client.from("venues").update({ photo_url: venueUrl }).eq("id", venueId).select("*").single(),
     );
   },
 
@@ -1212,7 +1214,7 @@ export const api = {
       .from("payment-proofs")
       .getPublicUrl(path);
 
-    const proofUrl = urlData.publicUrl;
+    const proofUrl = (urlData?.publicUrl || "").replace(/%0A/g, "").trim();
 
     // Update payment record directly
     const table = paymentType === "match_fee" ? "match_fee_payments" : "collection_payments";
@@ -1638,7 +1640,7 @@ export const api = {
     }
 
     const { data: urlData } = client.storage.from("reservation-proofs").getPublicUrl(path);
-    return urlData?.publicUrl;
+    return (urlData?.publicUrl || "").replace(/%0A/g, "").trim();
   },
 
   async confirmReservation(reservationId, groupId, venue, date, time, title) {
