@@ -59,34 +59,50 @@ function VenueForm({ initial, onSave, onCancel }) {
   }
 
   return (
-    <form className="form-grid" onSubmit={submit}>
+    <form className="venue-form" onSubmit={submit}>
       {error && <p className="form-message">{error}</p>}
-      <label>
-        Nombre de la cancha
-        <input value={form.name} onChange={(e) => update({ name: e.target.value })} />
-      </label>
-      <label>
-        Dirección
-        <input
-          placeholder="Opcional"
-          value={form.address}
-          onChange={(e) => update({ address: e.target.value })}
-        />
-      </label>
-      <label>
-        Costo típico (Q)
-        <input
-          min="0"
-          step="1"
-          type="number"
-          value={form.default_cost}
-          onChange={(e) => update({ default_cost: e.target.value })}
-        />
-      </label>
+
+      <div className="venue-form-row">
+        <label>
+          Nombre de la cancha
+          <input value={form.name} onChange={(e) => update({ name: e.target.value })} />
+        </label>
+        <label>
+          Dirección
+          <input
+            placeholder="Opcional"
+            value={form.address}
+            onChange={(e) => update({ address: e.target.value })}
+          />
+        </label>
+      </div>
+
+      <div className="venue-form-row">
+        <label>
+          Costo típico (Q)
+          <input
+            min="0"
+            step="1"
+            type="number"
+            value={form.default_cost}
+            onChange={(e) => update({ default_cost: e.target.value })}
+          />
+        </label>
+        <label>
+          Notas
+          <input
+            placeholder="Ej. Cancha techada"
+            value={form.notes}
+            onChange={(e) => update({ notes: e.target.value })}
+          />
+        </label>
+      </div>
+
       <label>
         Ubicación en el mapa
-        <MapPicker lat={form.lat} lng={form.lng} onChange={handleMapChange} />
+        <MapPicker lat={form.lat} lng={form.lng} onChange={handleMapChange} height="220px" />
       </label>
+
       <label className="media-upload">
         Foto de la cancha
         {photoPreview ? (
@@ -96,41 +112,17 @@ function VenueForm({ initial, onSave, onCancel }) {
         )}
         <input accept="image/*" type="file" onChange={handlePhoto} />
       </label>
-      <label>
-        Notas
-        <input
-          placeholder="Ej. Cancha techada, estacionamiento disponible"
-          value={form.notes}
-          onChange={(e) => update({ notes: e.target.value })}
-        />
-      </label>
-      <button type="submit">{initial ? "Guardar cambios" : "Agregar cancha"}</button>
-      {onCancel && (
-        <button className="secondary-button" type="button" onClick={onCancel}>
-          Cancelar
-        </button>
-      )}
+
+      <div className="button-row">
+        <button type="submit">{initial ? "Guardar cambios" : "Agregar cancha"}</button>
+        {onCancel && (
+          <button className="secondary-button" type="button" onClick={onCancel}>
+            Cancelar
+          </button>
+        )}
+      </div>
     </form>
   );
-}
-
-function VenueMiniMap({ lat, lng }) {
-  const mapRef = { current: null };
-  const [mapInstance, setMapInstance] = useState(null);
-
-  useEffect(() => {
-    if (!mapRef.current || mapInstance) return;
-    const L = require("leaflet");
-    const map = L.map(mapRef.current).setView([lat, lng], 15);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; OSM',
-    }).addTo(map);
-    L.marker([lat, lng]).addTo(map);
-    setMapInstance(map);
-    return () => map.remove();
-  }, [lat, lng]);
-
-  return <div ref={mapRef} className="venue-map-small" />;
 }
 
 export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, onUpdateVenue }) {
