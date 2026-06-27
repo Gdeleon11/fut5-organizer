@@ -200,26 +200,32 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
       setSaving(false);
       return;
     }
-    try {
-      const created = [];
-      for (const entry of entries) {
+    const created = [];
+    const errors = [];
+    for (let i = 0; i < entries.length; i++) {
+      try {
         const res = await api.createReservation({
-          ...entry,
+          ...entries[i],
           group_id: activeGroupId,
           assigned_by: currentUserId,
         });
         created.push(res);
+      } catch (err) {
+        errors.push(`Reserva ${i + 1}: ${err.message}`);
       }
+    }
+    if (created.length > 0) {
       setReservations((c) => [...c, ...created]);
       setShowForm(false);
       setRows([0]);
       setFormData({});
-      setNotice(`${created.length} reserva(s) creada(s).`);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
     }
+    if (errors.length > 0) {
+      setError(errors.join(" | "));
+    } else {
+      setNotice(`${created.length} reserva(s) creada(s).`);
+    }
+    setSaving(false);
   }
 
   async function handleUploadProof(reservationId, file) {
