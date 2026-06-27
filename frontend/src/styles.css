@@ -654,6 +654,14 @@ small, .muted {
   gap: 0.75rem;
 }
 
+.form-grid {
+  max-width: 100%;
+}
+
+.form-grid > label {
+  min-width: 0;
+}
+
 /* ============================================================
    Stars
    ============================================================ */
@@ -1259,11 +1267,17 @@ small, .muted {
 .map-picker {
   display: grid;
   gap: 0.3rem;
+  max-width: 100%;
+}
+
+.map-picker > div {
+  max-width: 100%;
 }
 
 .map-picker .leaflet-container {
   border-radius: 8px;
   z-index: 1;
+  max-width: 100%;
 }
 
 .map-hint {
@@ -2199,6 +2213,7 @@ small, .muted {
 
   .form-grid { grid-template-columns: repeat(2, 1fr); }
   .form-grid button { align-self: end; }
+  .form-grid > label { min-width: 0; }
 
   .quick-confirm { grid-template-columns: repeat(4, 1fr); }
   .player-filter-grid { grid-template-columns: repeat(5, 1fr); }
