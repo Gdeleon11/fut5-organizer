@@ -66,8 +66,8 @@ export default function MatchesPage({
               return (
                 <>
                   {isConfirmed && <CourtPhoto match={nextMatch} />}
-                  {isConfirmed && nextMatch.venue && nextMatch.match_date && (
-                    <WeatherWidget venue={nextMatch.venue} date={nextMatch.match_date} />
+                  {nextMatch.match_date && (
+                    <WeatherWidget venue={nextMatch.venue || "Guatemala"} date={nextMatch.match_date} />
                   )}
                   <p className="muted">
                     {isConfirmed

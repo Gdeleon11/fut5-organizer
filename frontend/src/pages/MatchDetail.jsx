@@ -170,8 +170,8 @@ export default function MatchDetail({
             : " · Cancha oculta (confirmá para ver)"}
         </p>
         {(isAdmin || isPlayerConfirmed) && <CourtPhoto match={match} />}
-        {(isAdmin || isPlayerConfirmed) && match.venue && match.match_date && (
-          <WeatherWidget venue={match.venue} date={match.match_date} />
+        {match.match_date && (
+          <WeatherWidget venue={match.venue || "Guatemala"} date={match.match_date} />
         )}
         <AttendanceAction
           attendance={myAttendance}
