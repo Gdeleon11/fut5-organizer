@@ -18,11 +18,16 @@ create table if not exists public.court_reservations (
 
 alter table public.court_reservations enable row level security;
 
+drop policy if exists "court_reservations_select" on public.court_reservations;
+drop policy if exists "court_reservations_insert" on public.court_reservations;
+drop policy if exists "court_reservations_update" on public.court_reservations;
+drop policy if exists "court_reservations_delete" on public.court_reservations;
+
 create policy "court_reservations_select" on public.court_reservations for select using (true);
 create policy "court_reservations_insert" on public.court_reservations for insert with check (true);
 create policy "court_reservations_update" on public.court_reservations for update using (true);
 create policy "court_reservations_delete" on public.court_reservations for delete using (true);
 
-create index idx_court_reservations_group on public.court_reservations(group_id);
-create index idx_court_reservations_date on public.court_reservations(reservation_date);
-create index idx_court_reservations_assigned on public.court_reservations(assigned_to);
+create index if not exists idx_court_reservations_group on public.court_reservations(group_id);
+create index if not exists idx_court_reservations_date on public.court_reservations(reservation_date);
+create index if not exists idx_court_reservations_assigned on public.court_reservations(assigned_to);
