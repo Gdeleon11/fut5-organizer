@@ -194,24 +194,33 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
 
   async function handleCreate() {
     setError(""); setNotice(""); setSaving(true);
-    const entries = rows.map((_, i) => formData[i]).filter((d) => d?.venue && d?.reservation_date && d?.assigned_to);
-    if (entries.length === 0) {
+    const allRows = rows.map((_, i) => formData[i]);
+    const validEntries = allRows.filter((d) => d?.venue && d?.reservation_date && d?.assigned_to);
+    const invalidCount = allRows.length - validEntries.length;
+    
+    if (validEntries.length === 0) {
       setError("Completá al menos una reserva con cancha, fecha y responsable.");
       setSaving(false);
       return;
     }
+
     const created = [];
     const errors = [];
-    for (let i = 0; i < entries.length; i++) {
+    for (let i = 0; i < validEntries.length; i++) {
       try {
-        const res = await api.createReservation({
-          ...entries[i],
+        const payload = {
+          venue: validEntries[i].venue,
+          reservation_date: validEntries[i].reservation_date,
+          reservation_time: validEntries[i].reservation_time || "19:00",
+          assigned_to: validEntries[i].assigned_to,
+          notes: validEntries[i].notes || null,
           group_id: activeGroupId,
           assigned_by: currentUserId,
-        });
+        };
+        const res = await api.createReservation(payload);
         created.push(res);
       } catch (err) {
-        errors.push(`Reserva ${i + 1}: ${err.message}`);
+        errors.push(`Reserva ${i + 1} (${validEntries[i].venue}): ${err.message}`);
       }
     }
     if (created.length > 0) {
@@ -221,7 +230,9 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
       setFormData({});
     }
     if (errors.length > 0) {
-      setError(errors.join(" | "));
+      setError(`Errores: ${errors.join(" | ")}`);
+    } else if (invalidCount > 0) {
+      setNotice(`${created.length} reserva(s) creada(s). ${invalidCount} fila(s) incompleta(s) ignorada(s).`);
     } else {
       setNotice(`${created.length} reserva(s) creada(s).`);
     }
