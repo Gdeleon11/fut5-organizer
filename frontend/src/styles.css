@@ -683,6 +683,12 @@ small, .muted {
   min-width: 0;
 }
 
+@media (max-width: 600px) {
+  .venue-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .form-grid {
   max-width: 100%;
 }
@@ -1297,16 +1303,23 @@ small, .muted {
   display: grid;
   gap: 0.3rem;
   max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
-.map-picker > div {
+.map-picker > * {
   max-width: 100%;
+  min-width: 0;
 }
 
-.map-picker .leaflet-container {
+.map-picker .leaflet-container,
+.map-container {
   border-radius: 8px;
   z-index: 1;
   max-width: 100%;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .map-picker-controls {

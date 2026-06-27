@@ -86,7 +86,13 @@ export async function getWeatherForecast(venue, date, lat, lng) {
     }
     if (!coords) return null;
 
-    const url = `${WEATHER_API}?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=America/Guatemala&start_date=${date}&end_date=${date}`;
+    const today = new Date().toISOString().split("T")[0];
+    const isHistorical = date < today;
+    const baseUrl = isHistorical
+      ? "https://archive-api.open-meteo.com/v1/archive"
+      : "https://api.open-meteo.com/v1/forecast";
+
+    const url = `${baseUrl}?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=America/Guatemala&start_date=${date}&end_date=${date}`;
 
     const res = await fetch(url);
     if (!res.ok) return null;
@@ -103,8 +109,9 @@ export async function getWeatherForecast(venue, date, lat, lng) {
       description: weather.desc,
       temp_max: Math.round(data.daily.temperature_2m_max[0]),
       temp_min: Math.round(data.daily.temperature_2m_min[0]),
-      rain_chance: data.daily.precipitation_probability_max[0],
+      rain_chance: data.daily.precipitation_probability_max[0] || 0,
       wind_max: Math.round(data.daily.windspeed_10m_max[0]),
+      isHistorical,
     };
   } catch (err) {
     console.error("Weather API error:", err);

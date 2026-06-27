@@ -72,6 +72,7 @@ export default function MapPicker({ lat, lng, onChange, height = "220px" }) {
     if (!mapInstance.current || !lat || !lng) return;
     placeMarker(lat, lng, mapInstance.current);
     mapInstance.current.setView([lat, lng], SEARCH_ZOOM);
+    setTimeout(() => mapInstance.current?.invalidateSize(), 100);
   }, [lat, lng]);
 
   function handleMyLocation() {
@@ -151,7 +152,7 @@ export default function MapPicker({ lat, lng, onChange, height = "220px" }) {
         </button>
       </div>
       {searchError && <p className="map-error">{searchError}</p>}
-      <div ref={mapRef} style={{ height, width: "100%", borderRadius: "8px" }} />
+      <div className="map-container" ref={mapRef} style={{ height, width: "100%" }} />
       <small className="map-hint">
         {lat && lng
           ? `📍 ${lat.toFixed(5)}, ${lng.toFixed(5)} — arrastrá el pin o tocá en el mapa`
