@@ -171,7 +171,7 @@ export default function MatchDetail({
         </p>
         {(isAdmin || isPlayerConfirmed) && <CourtPhoto match={match} />}
         {match.match_date && (
-          <WeatherWidget venue={match.venue || "Guatemala"} date={match.match_date} />
+          <WeatherWidget venue={match.venue || "Guatemala"} date={match.match_date} time={match.start_time} />
         )}
         <AttendanceAction
           attendance={myAttendance}

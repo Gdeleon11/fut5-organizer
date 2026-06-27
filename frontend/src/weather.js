@@ -74,7 +74,7 @@ function findCoordinates(venue) {
   return { lat: 14.6349, lon: -90.5069 };
 }
 
-export async function getWeatherForecast(venue, date, lat, lng) {
+export async function getWeatherForecast(venue, date, lat, lng, time) {
   if (!date) return null;
 
   try {
@@ -92,12 +92,48 @@ export async function getWeatherForecast(venue, date, lat, lng) {
       ? "https://archive-api.open-meteo.com/v1/archive"
       : "https://api.open-meteo.com/v1/forecast";
 
-    const url = `${baseUrl}?latitude=${coords.lat}&longitude=${coords.lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max&timezone=America/Guatemala&start_date=${date}&end_date=${date}`;
+    let vars, url, useHourly = false;
+    if (time) {
+      useHourly = true;
+      vars = "hourly=weathercode,temperature_2m,precipitation_probability,windspeed_10m,apparent_temperature,relative_humidity_2m&daily=weathercode,temperature_2m_max,temperature_2m_min";
+    } else {
+      vars = "daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,windspeed_10m_max";
+    }
+
+    url = `${baseUrl}?latitude=${coords.lat}&longitude=${coords.lon}&${vars}&timezone=America/Guatemala&start_date=${date}&end_date=${date}`;
 
     const res = await fetch(url);
     if (!res.ok) return null;
 
     const data = await res.json();
+
+    if (useHourly && data.hourly && data.hourly.time) {
+      const targetHour = parseInt(time.split(":")[0], 10);
+      const idx = data.hourly.time.findIndex((t) => {
+        const dateHour = new Date(t);
+        return dateHour.getDate() === new Date(date + "T12:00:00").getDate()
+          && dateHour.getHours() === targetHour;
+      });
+
+      if (idx >= 0) {
+        const code = data.hourly.weathercode[idx];
+        const weather = WEATHER_CODES[code] || { icon: "🌡️", desc: "Desconocido" };
+        return {
+          date,
+          time,
+          icon: weather.icon,
+          description: weather.desc,
+          temperature: Math.round(data.hourly.temperature_2m[idx]),
+          feels_like: Math.round(data.hourly.apparent_temperature?.[idx] ?? data.hourly.temperature_2m[idx]),
+          rain_chance: data.hourly.precipitation_probability?.[idx] || 0,
+          wind_speed: Math.round(data.hourly.windspeed_10m[idx]),
+          humidity: data.hourly.relative_humidity_2m?.[idx] || null,
+          is_historical: isHistorical,
+          is_hourly: true,
+        };
+      }
+    }
+
     if (!data.daily || !data.daily.time || data.daily.time.length === 0) return null;
 
     const code = data.daily.weathercode[0];
@@ -105,13 +141,15 @@ export async function getWeatherForecast(venue, date, lat, lng) {
 
     return {
       date: data.daily.time[0],
+      time: null,
       icon: weather.icon,
       description: weather.desc,
       temp_max: Math.round(data.daily.temperature_2m_max[0]),
       temp_min: Math.round(data.daily.temperature_2m_min[0]),
       rain_chance: data.daily.precipitation_probability_max[0] || 0,
       wind_max: Math.round(data.daily.windspeed_10m_max[0]),
-      isHistorical,
+      is_historical: isHistorical,
+      is_hourly: false,
     };
   } catch (err) {
     console.error("Weather API error:", err);
