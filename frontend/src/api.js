@@ -1492,6 +1492,31 @@ export const api = {
     );
   },
 
+  async listPlayerSkills(groupId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("player_skills")
+        .select("*")
+        .eq("group_id", groupId),
+    );
+  },
+
+  async addPlayerSkill(groupId, playerId, skill, adminId) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("player_skills").upsert(
+        { group_id: groupId, player_id: playerId, skill, assigned_by: adminId },
+        { onConflict: "group_id,player_id,skill" },
+      ).select("*").single(),
+    );
+  },
+
+  async removePlayerSkill(skillId) {
+    const client = requireSupabase();
+    const { error } = await client.from("player_skills").delete().eq("id", skillId);
+    raise(error);
+  },
+
   // ---------------------------------------------------------------------------
   // Guest Players (temporary, match-only)
   // ---------------------------------------------------------------------------

@@ -1709,6 +1709,57 @@ small, .muted {
   margin-top: 0.3rem;
 }
 
+.player-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  margin-top: 0.3rem;
+}
+
+.player-skills-list {
+  display: flex;
+  gap: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.skill-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.skill-badge:hover {
+  background: var(--red-bg);
+  border-color: var(--red);
+  transform: scale(1.1);
+}
+
+.skill-select {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.3rem;
+  min-height: auto;
+  height: auto;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.skill-select:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .team-assign-grid {
   display: flex;
   flex-direction: column;

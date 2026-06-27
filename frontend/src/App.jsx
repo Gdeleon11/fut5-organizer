@@ -60,6 +60,7 @@ export default function App() {
   const [teamsByMatch, setTeamsByMatch] = useState({});
   const [fines, setFines] = useState([]);
   const [votes, setVotes] = useState([]);
+  const [skills, setSkills] = useState([]);
   const [guests, setGuests] = useState({});
   const [settings, setSettings] = useState(null);
   const [venues, setVenues] = useState([]);
@@ -326,6 +327,7 @@ export default function App() {
     setRatings(ratingRows); setSettings(settingRows[0] || null);
     setVotes(voteRows);
     setProfiles(profileRows); setTeamsByMatch(teamsMap);
+    loadSkills();
     setVenues(venueRows); setCollections(collectionRows);
     setMatchFees(feePairs.filter(Boolean));
 
@@ -671,6 +673,29 @@ export default function App() {
     try {
       const updated = await api.updateGuestPlayer(guestId, { rating });
       setGuests((c) => ({ ...c, [matchId]: (c[matchId] || []).map((g) => g.id === guestId ? updated : g) }));
+    } catch (err) { setError(err.message); }
+  }
+
+  async function loadSkills() {
+    if (!activeGroupId) return;
+    try {
+      const rows = await api.listPlayerSkills(activeGroupId);
+      setSkills(rows);
+    } catch (err) { console.warn("Skills not available:", err.message); }
+  }
+
+  async function addSkill(playerId, skill) {
+    if (!profile) return;
+    try {
+      const row = await api.addPlayerSkill(activeGroupId, playerId, skill, profile.id);
+      setSkills((c) => [...c.filter((s) => !(s.player_id === playerId && s.skill === skill)), row]);
+    } catch (err) { setError(err.message); }
+  }
+
+  async function removeSkill(skillId) {
+    try {
+      await api.removePlayerSkill(skillId);
+      setSkills((c) => c.filter((s) => s.id !== skillId));
     } catch (err) { setError(err.message); }
   }
 
@@ -1051,7 +1076,8 @@ export default function App() {
             onUpdateMember={updateGroupMember} onUpdateProfile={updateProfileAdmin}
             profiles={profiles} ratingMap={ratingMap} isSuperAdmin={isSuperAdmin}
             voteScoreMap={voteScoreMap} userVoteMap={userVoteMap} onVote={votePlayer}
-            currentProfileId={profile?.id} />
+            currentProfileId={profile?.id}
+            skills={skills} onAddSkill={addSkill} onRemoveSkill={removeSkill} />
         )}
         {page === "venues" && isAdmin && (
           <VenuesPage groupId={activeGroupId} profileId={profile?.id} venues={venues}

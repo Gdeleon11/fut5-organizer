@@ -7,7 +7,7 @@ import StarRatingControl, {
   PositionRatingDisplay,
 } from "../components/StarRatingControl.jsx";
 import Stars from "../components/Stars.jsx";
-import { FILTER_LABELS, POSITION_OPTIONS } from "../constants.js";
+import { FILTER_LABELS, POSITION_OPTIONS, SKILL_OPTIONS } from "../constants.js";
 import {
   appShareUrl,
   attendanceLabel,
@@ -36,6 +36,9 @@ export default function PlayersAdmin({
   userVoteMap,
   onVote,
   currentProfileId,
+  skills,
+  onAddSkill,
+  onRemoveSkill,
 }) {
   const [filter, setFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
@@ -155,6 +158,49 @@ export default function PlayersAdmin({
                     />
                   )}
                 </div>
+                {isSuperAdmin && (() => {
+                  const playerSkills = skills?.filter((s) => s.player_id === player.id) || [];
+                  const SKILL_MAP = Object.fromEntries(SKILL_OPTIONS.map((o) => [o.id, o]));
+                  return (
+                    <div className="player-skills">
+                      {playerSkills.length > 0 ? (
+                        <div className="player-skills-list">
+                          {playerSkills.map((s) => {
+                            const skill = SKILL_MAP[s.skill];
+                            if (!skill) return null;
+                            return (
+                              <span
+                                key={s.id}
+                                className="skill-badge"
+                                title={`${skill.label} - ${skill.desc}`}
+                                onClick={() => { if (confirm(`¿Quitar ${skill.label}?`)) onRemoveSkill(s.id); }}
+                              >
+                                {skill.emoji}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                      <select
+                        className="skill-select"
+                        value=""
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            onAddSkill(player.id, e.target.value);
+                            e.target.value = "";
+                          }
+                        }}
+                      >
+                        <option value="">+ Asignar skill</option>
+                        {SKILL_OPTIONS.map((opt) => (
+                          <option key={opt.id} value={opt.id}>
+                            {opt.emoji} {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })()}
                 <div className="button-row">
                   <button
                     className="secondary-button"

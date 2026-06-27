@@ -46,6 +46,19 @@ export const FILTER_LABELS = {
   unpaid: "Con deuda",
 };
 
+export const SKILL_OPTIONS = [
+  { id: "wizard", emoji: "🧙", label: "Mago", desc: "Muy bueno, crack" },
+  { id: "cannon", emoji: "💣", label: "Cañón", desc: "Tira fuerte" },
+  { id: "wings", emoji: "🪽", label: "Alas", desc: "Muy veloz" },
+  { id: "shield", emoji: "🛡️", label: "Escudo", desc: "Defensor sólido" },
+  { id: "strong_leg", emoji: "🦵", label: "Pierna fuerte", desc: "Buen remate" },
+  { id: "goalkeeper", emoji: "🧤", label: "Guantes", desc: "Portero" },
+  { id: "captain", emoji: "👑", label: "Capitán", desc: "Líder del equipo" },
+  { id: "veteran", emoji: "🎖️", label: "Veterano", desc: "Mucha experiencia" },
+  { id: "speedy", emoji: "⚡", label: "Relámpago", desc: "Velocidad pura" },
+  { id: "tactician", emoji: "🧠", label: "Estratega", desc: "Visión de juego" },
+];
+
 export const emptyMatchForm = {
   title: "Chamuscón",
   match_date: "",
