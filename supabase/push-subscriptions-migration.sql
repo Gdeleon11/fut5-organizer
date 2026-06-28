@@ -25,7 +25,7 @@ CREATE POLICY "Admins can view all subscriptions" ON push_subscriptions
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM group_members 
-      WHERE profile_id = auth.uid() AND is_admin = true
+      WHERE profile_id = auth.uid() AND role IN ('admin', 'super_admin')
     )
   );
 
