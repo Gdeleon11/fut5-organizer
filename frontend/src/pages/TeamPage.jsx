@@ -27,34 +27,66 @@ export default function TeamPage({ matches, profile, teamsByMatch, isAdmin }) {
         ) : (
           <div className="team-grid">
             {assigned.map(({ match, team }) => (
-              <article className="team-card" key={`${match.id}-${team.id}`}>
-                <div className="team-header">
-                  <div className="team-header-left">
-                    <span className="team-name-dot" style={{ background: team.color || "#22c55e" }} />
-                    <strong>{team.name}</strong>
+              <article
+                className="squad-card"
+                key={`${match.id}-${team.id}`}
+                style={{ borderTop: `4px solid ${team.color || "#22c55e"}` }}
+              >
+                <div className="squad-header">
+                  <div className="squad-header-left">
+                    <span 
+                      className="squad-color-dot" 
+                      style={{ 
+                        background: team.color || "#22c55e",
+                        boxShadow: `0 0 8px ${team.color || "#22c55e"}`
+                      }} 
+                    />
+                    <strong className="squad-title">{team.name}</strong>
                   </div>
-                  {isAdmin && <span className="team-rating-pill">{team.total_rating || 0} ★</span>}
+                  {isAdmin && (
+                    <span className="squad-rating-badge">
+                      {team.total_rating || 0} ★
+                    </span>
+                  )}
                 </div>
-                <small>{formatMatchDate(match)}</small>
-                <ul>
+                <small style={{ display: "block", color: "var(--text-muted)", fontSize: "0.78rem", marginTop: "-0.5rem", marginBottom: "0.5rem" }}>
+                  {formatMatchDate(match)}
+                </small>
+                
+                <div className="squad-list">
                   {(team.team_members || []).map((member) => {
                     const isGuest = !!member.guest_player_id;
                     const name = isGuest ? (member.guest_name || "Invitado") : displayName(member.profiles);
+                    const position = isGuest ? "Flexible" : (member.profiles?.preferred_position || "Flexible");
+                    
+                    const positionLabels = {
+                      Forward: "Delantero",
+                      Defender: "Defensa",
+                      Midfielder: "Medio",
+                      Goalkeeper: "Portero",
+                      Flexible: "Flexible"
+                    };
+                    
                     return (
-                      <li key={member.id}>
-                        <span className="team-member">
+                      <div className="squad-row" key={member.id}>
+                        <div className="squad-player-info">
                           {isGuest ? (
-                            <span className="avatar avatar-sm guest-avatar">I</span>
+                            <span className="squad-avatar guest">I</span>
                           ) : (
                             <Avatar profile={member.profiles} size="sm" />
                           )}
-                          {name}
-                        </span>
-                        {isGuest && <small className="guest-tag">invitado</small>}
-                      </li>
+                          <div className="squad-player-meta">
+                            <span className="squad-player-name">{name}</span>
+                            <span className="squad-player-position">{positionLabels[position] || position}</span>
+                          </div>
+                        </div>
+                        {isGuest && (
+                          <span className="squad-guest-tag">Invitado</span>
+                        )}
+                      </div>
                     );
                   })}
-                </ul>
+                </div>
               </article>
             ))}
           </div>
