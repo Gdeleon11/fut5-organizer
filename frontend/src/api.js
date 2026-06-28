@@ -628,6 +628,24 @@ export const api = {
     }));
     players = [...players, ...guestPlayers];
 
+    let playerSkills = [];
+    try {
+      playerSkills = await readMany(
+        client.from("player_skills").select("player_id, skill").eq("group_id", match.group_id || groupId).in("player_id", confirmedIds),
+      );
+    } catch (e) {
+      console.warn("Skills not available:", e.message);
+    }
+    const skillsByPlayer = new Map();
+    playerSkills.forEach((s) => {
+      if (!skillsByPlayer.has(s.player_id)) skillsByPlayer.set(s.player_id, []);
+      skillsByPlayer.get(s.player_id).push(s.skill);
+    });
+    players = players.map((p) => ({
+      ...p,
+      skills: p.is_guest ? [] : (skillsByPlayer.get(p.id) || []),
+    }));
+
     let penaltyTeam = null;
 
     if (options.penaltyTeam && players.length >= 13 && players.length <= 14) {

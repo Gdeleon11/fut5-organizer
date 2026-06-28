@@ -15,7 +15,19 @@ function targetSizes(playerCount, teamCount) {
 }
 
 function isGoalkeeper(player) {
-  return player.preferred_position === "Goalkeeper";
+  return (player.skills || []).includes("goalkeeper") || player.preferred_position === "Goalkeeper";
+}
+
+function getPlayerSkills(player) {
+  return player.skills || [];
+}
+
+function hasSkill(player, skill) {
+  return getPlayerSkills(player).includes(skill);
+}
+
+function countSkillInTeam(team, skill) {
+  return team.players.filter((p) => hasSkill(p, skill)).length;
 }
 
 function playerEffectiveRating(player) {
@@ -57,8 +69,23 @@ function goalkeeperCount(team) {
 
 function fairnessScore(teams) {
   const totals = teams.map(totalRating);
-
   return Math.max(...totals) - Math.min(...totals);
+}
+
+function skillsBalanceScore(teams) {
+  let totalImbalance = 0;
+  const allSkills = ["goalkeeper", "wizard", "cannon", "shield", "strong_leg", "captain", "veteran", "speedy", "tactician", "wings"];
+  for (const skill of allSkills) {
+    const counts = teams.map((t) => countSkillInTeam(t, skill));
+    if (counts.some((c) => c > 0)) {
+      totalImbalance += Math.max(...counts) - Math.min(...counts);
+    }
+  }
+  return totalImbalance;
+}
+
+function combinedScore(teams) {
+  return fairnessScore(teams) + skillsBalanceScore(teams) * 0.5;
 }
 
 function cloneTeams(teams) {
@@ -68,19 +95,34 @@ function cloneTeams(teams) {
   }));
 }
 
+function getPlayerPriority(player) {
+  const skills = getPlayerSkills(player);
+  let priority = 0;
+  if (skills.includes("goalkeeper")) priority += 100;
+  if (skills.includes("wizard")) priority += 50;
+  if (skills.includes("captain")) priority += 40;
+  if (skills.includes("shield")) priority += 30;
+  if (skills.includes("cannon")) priority += 30;
+  if (skills.includes("strong_leg")) priority += 20;
+  if (skills.includes("wings")) priority += 20;
+  if (skills.includes("speedy")) priority += 20;
+  if (skills.includes("tactician")) priority += 15;
+  if (skills.includes("veteran")) priority += 10;
+  return priority;
+}
+
 function sortPlayers(players) {
   return [...players].sort((first, second) => {
-    if (isGoalkeeper(first) !== isGoalkeeper(second)) {
-      return isGoalkeeper(first) ? -1 : 1;
+    const firstPriority = getPlayerPriority(first);
+    const secondPriority = getPlayerPriority(second);
+    if (firstPriority !== secondPriority) {
+      return secondPriority - firstPriority;
     }
-
     const firstRating = playerEffectiveRating(first);
     const secondRating = playerEffectiveRating(second);
-
     if (secondRating !== firstRating) {
       return secondRating - firstRating;
     }
-
     return (first.nickname || first.full_name || "").localeCompare(
       second.nickname || second.full_name || "",
     );
@@ -89,20 +131,19 @@ function sortPlayers(players) {
 
 function bestTeamForPlayer(teams, player) {
   const openTeams = teams.filter((team) => team.players.length < team.target_size);
+  const playerSkills = getPlayerSkills(player);
   const sorted = [...openTeams].sort((first, second) => {
-    if (isGoalkeeper(player)) {
-      const goalkeeperDelta = goalkeeperCount(first) - goalkeeperCount(second);
-
-      if (goalkeeperDelta !== 0) return goalkeeperDelta;
+    for (const skill of playerSkills) {
+      const firstCount = countSkillInTeam(first, skill);
+      const secondCount = countSkillInTeam(second, skill);
+      if (firstCount !== secondCount) {
+        return firstCount - secondCount;
+      }
     }
-
     const totalDelta = totalRating(first) - totalRating(second);
-
     if (totalDelta !== 0) return totalDelta;
-
     return first.players.length - second.players.length;
   });
-
   return sorted[0];
 }
 
@@ -124,12 +165,11 @@ function greedyAssign(players, teamCount) {
 
 function improveWithSwaps(teams) {
   let bestTeams = cloneTeams(teams);
-  let bestScore = fairnessScore(bestTeams);
+  let bestScore = combinedScore(bestTeams);
   let improved = true;
 
   while (improved) {
     improved = false;
-
     for (let firstIndex = 0; firstIndex < bestTeams.length; firstIndex += 1) {
       for (
         let secondIndex = firstIndex + 1;
@@ -138,7 +178,6 @@ function improveWithSwaps(teams) {
       ) {
         const firstTeam = bestTeams[firstIndex];
         const secondTeam = bestTeams[secondIndex];
-
         for (
           let firstPlayerIndex = 0;
           firstPlayerIndex < firstTeam.players.length;
@@ -152,12 +191,9 @@ function improveWithSwaps(teams) {
             const candidate = cloneTeams(bestTeams);
             const firstPlayer = candidate[firstIndex].players[firstPlayerIndex];
             const secondPlayer = candidate[secondIndex].players[secondPlayerIndex];
-
             candidate[firstIndex].players[firstPlayerIndex] = secondPlayer;
             candidate[secondIndex].players[secondPlayerIndex] = firstPlayer;
-
-            const candidateScore = fairnessScore(candidate);
-
+            const candidateScore = combinedScore(candidate);
             if (candidateScore < bestScore) {
               bestTeams = candidate;
               bestScore = candidateScore;
@@ -168,7 +204,6 @@ function improveWithSwaps(teams) {
       }
     }
   }
-
   return bestTeams;
 }
 
