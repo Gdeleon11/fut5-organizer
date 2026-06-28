@@ -1708,8 +1708,12 @@ small, .muted {
 }
 
 .sim-player-list {
-  max-height: 400px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.5rem;
+  max-height: 60vh;
   overflow-y: auto;
+  align-content: start;
 }
 
 .sim-player-row {
@@ -1729,7 +1733,31 @@ small, .muted {
 .sim-player-info {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.sim-player-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.sim-player-text strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sim-player-text small {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.1;
 }
 
 .ai-instructions-input {

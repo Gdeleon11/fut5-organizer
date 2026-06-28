@@ -3,7 +3,7 @@ import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
 import { generateBalancedTeams } from "../teamGeneration.js";
 import { distributeTeamsWithAI } from "../groq.js";
-import { displayName } from "../utils.js";
+import { displayName, positionLabel } from "../utils.js";
 
 export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, skills }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -78,16 +78,34 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
         return;
       }
       const selectedSkills = (skills || []).filter((s) => selectedIds.has(s.player_id));
-      const teamCount = Math.ceil(selected.length / 5);
       const aiTeams = await distributeTeamsWithAI({
         players: selected,
         skills: selectedSkills,
         instructions: aiInstructions,
-        teamCount,
+        teamCount: Math.max(2, Math.ceil(selected.length / 5)),
       });
       const playerMap = new Map(selected.map((p) => [p.id, p]));
+      const teamCount = Math.max(2, Math.ceil(selected.length / 5));
+      const targetPerTeam = Math.floor(selected.length / teamCount);
+
+      const assignedIds = new Set();
+      aiTeams.forEach((t) => (t.playerIds || []).forEach((id) => assignedIds.add(id)));
+      const unassignedPlayers = selected.filter((p) => !assignedIds.has(p.id));
+
       const teams = aiTeams.map((t, i) => {
-        const teamPlayers = (t.playerIds || []).map((id) => playerMap.get(id)).filter(Boolean);
+        let teamPlayers = (t.playerIds || []).map((id) => playerMap.get(id)).filter(Boolean);
+        if (i < teamCount && teamPlayers.length < targetPerTeam && unassignedPlayers.length > 0) {
+          const needed = targetPerTeam - teamPlayers.length;
+          for (let j = 0; j < needed && unassignedPlayers.length > 0; j++) {
+            teamPlayers.push(unassignedPlayers.shift());
+          }
+        }
+        if (i < teamCount && teamPlayers.length > targetPerTeam) {
+          teamPlayers = teamPlayers.slice(0, targetPerTeam);
+          for (let j = teamPlayers.length; j < targetPerTeam && unassignedPlayers.length > 0; j++) {
+            teamPlayers.push(unassignedPlayers.shift());
+          }
+        }
         if (teamPlayers.length === 0) return null;
         return {
           name: t.name || `Equipo ${String.fromCharCode(65 + i)}`,
@@ -98,7 +116,8 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
           goalkeeper_count: teamPlayers.filter((p) => p.preferred_position === "Goalkeeper").length,
         };
       }).filter(Boolean);
-      if (teams.length === 0 || teams.every((t) => t.players.length === 0)) {
+
+      if (teams.length === 0) {
         setError("La IA no pudo asignar jugadores. Intentá de nuevo o usá el algoritmo normal.");
         setAiLoading(false);
         return;
@@ -181,9 +200,9 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
                     onChange={() => toggle(player.id)}
                   />
                   <Avatar profile={player} size="sm" />
-                  <div>
+                  <div className="sim-player-text">
                     <strong>{displayName(player)}</strong>
-                    <small>{player.preferred_position || "Flexible"}</small>
+                    <small>{positionLabel(player.preferred_position || "Flexible")}</small>
                   </div>
                 </div>
                 <PlayerBadge rating={ratingMap.get(player.id)} />

@@ -22,7 +22,8 @@ export async function distributeTeamsWithAI({ players, skills, instructions, tea
 Reglas:
 - Los jugadores se identifican por "id" (UUID) y "name" (nombre).
 - Cada jugador tiene un rating (1-4) y puede tener skills como: wizard, cannon, wings, shield, strong_leg, goalkeeper, captain, veteran, speedy, tactician.
-- ${teamCount ? `Debes crear exactamente ${teamCount} equipos.` : "Debes crear entre 2 y 3 equipos según el número de jugadores."}
+- ${teamCount ? `Debes crear EXACTAMENTE ${teamCount} equipos.` : "Debes crear entre 2 y 3 equipos según el número de jugadores."}
+- DISTRIBUCIÓN EQUITATIVA OBLIGATORIA: la diferencia entre el equipo más grande y el más pequeño debe ser como máximo 1 jugador. Si hay 10 jugadores y 2 equipos, deben ser 5+5 (nunca 8+2 o 7+3).
 - Distribuye los ratings lo más parejo posible entre equipos.
 - Considera las skills: los porteros (goalkeeper) deben estar en equipos distintos. Las skills similares (wizard, captain) idealmente en equipos distintos.
 - Si hay instrucciones del usuario, respétalas (ej: "Juan con Pedro", "Luis portero", etc).
@@ -41,7 +42,7 @@ Responde SOLO con JSON válido en este formato exacto:
   ]
 }
 
-Cada player_id debe aparecer exactamente una vez. No agregues texto adicional.`;
+Cada player_id debe aparecer exactamente una vez. La suma de player_ids en todos los equipos debe ser igual al total de jugadores. No agregues texto adicional.`;
 
   const userPrompt = `${instructions ? `INSTRUCCIONES DEL USUARIO: ${instructions}\n\n` : ""}JUGADORES:\n${JSON.stringify(playerList, null, 2)}`;
 
