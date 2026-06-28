@@ -742,14 +742,22 @@ export default function App() {
     try {
       const row = await api.addPlayerSkill(activeGroupId, playerId, skill, profile.id);
       setSkills((c) => [...c.filter((s) => !(s.player_id === playerId && s.skill === skill)), row]);
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      console.error("Error adding skill:", err);
+      setError(err.message);
+      alert("Error al guardar habilidad: " + err.message);
+    }
   }
 
   async function removeSkill(skillId) {
     try {
       await api.removePlayerSkill(skillId);
       setSkills((c) => c.filter((s) => s.id !== skillId));
-    } catch (err) { setError(err.message); }
+    } catch (err) {
+      console.error("Error removing skill:", err);
+      setError(err.message);
+      alert("Error al quitar habilidad: " + err.message);
+    }
   }
 
   async function updateAttendance(attendanceId, payload) {

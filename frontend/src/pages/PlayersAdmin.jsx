@@ -46,6 +46,8 @@ export default function PlayersAdmin({
   const [filter, setFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [selectedSkillToAdd, setSelectedSkillToAdd] = useState("");
+  const [addingSkillMap, setAddingSkillMap] = useState({});
   const selected =
     profiles.find((item) => item.id === selectedId) || profiles[0];
 
@@ -206,11 +208,12 @@ export default function PlayersAdmin({
                       ) : (
                         <select
                           className="skill-select"
-                          value=""
+                          value={addingSkillMap[player.id] || ""}
                           onChange={(e) => {
-                            if (e.target.value) {
-                              onAddSkill(player.id, e.target.value);
-                              e.target.value = "";
+                            const val = e.target.value;
+                            if (val) {
+                              onAddSkill(player.id, val);
+                              setAddingSkillMap((prev) => ({ ...prev, [player.id]: "" }));
                             }
                           }}
                         >
@@ -391,11 +394,12 @@ export default function PlayersAdmin({
                         {!hasMaxSkills && (
                           <select
                             className="skill-select"
-                            value=""
+                            value={selectedSkillToAdd}
                             onChange={(e) => {
-                              if (e.target.value) {
-                                onAddSkill(selected.id, e.target.value);
-                                e.target.value = "";
+                              const val = e.target.value;
+                              if (val) {
+                                onAddSkill(selected.id, val);
+                                setSelectedSkillToAdd("");
                               }
                             }}
                             style={{ padding: "0.35rem 0.65rem", fontSize: "0.85rem" }}

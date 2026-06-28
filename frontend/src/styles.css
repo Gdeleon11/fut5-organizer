@@ -3563,18 +3563,17 @@ small, .muted {
 /* Watermark & Shine Sweep Effects */
 .fifa-watermark {
   position: absolute;
-  bottom: 0.5rem;
-  right: -0.5rem;
-  font-size: 9rem;
-  opacity: 0.08;
+  bottom: -1rem;
+  right: -1rem;
+  font-size: 11rem;
+  opacity: 0.16;
   z-index: 1;
   pointer-events: none;
   filter: grayscale(1) contrast(1.2);
 }
 
 .fifa-card-container.special .fifa-watermark {
-  opacity: 0.06;
-  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.5));
+  opacity: 0.14;
 }
 
 @keyframes shine {
