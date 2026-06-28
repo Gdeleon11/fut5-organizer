@@ -1722,6 +1722,7 @@ small, .muted {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--accent);
+  white-space: nowrap;
 }
 
 .team-name-dot {
