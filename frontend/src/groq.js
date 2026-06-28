@@ -19,30 +19,27 @@ export async function distributeTeamsWithAI({ players, skills, instructions, tea
 
   const systemPrompt = `Eres un asistente experto en fútbol. Tu trabajo es distribuir jugadores en equipos equilibrados.
 
-Reglas:
-- Los jugadores se identifican por "id" (UUID) y "name" (nombre).
-- Cada jugador tiene un rating (1-4) y puede tener skills como: wizard, cannon, wings, shield, strong_leg, goalkeeper, captain, veteran, speedy, tactician.
-- ${teamCount ? `Debes crear EXACTAMENTE ${teamCount} equipos.` : "Debes crear entre 2 y 3 equipos según el número de jugadores."}
-- DISTRIBUCIÓN EQUITATIVA OBLIGATORIA: la diferencia entre el equipo más grande y el más pequeño debe ser como máximo 1 jugador. Si hay 10 jugadores y 2 equipos, deben ser 5+5 (nunca 8+2 o 7+3).
-- Distribuye los ratings lo más parejo posible entre equipos.
-- Considera las skills: los porteros (goalkeeper) deben estar en equipos distintos. Las skills similares (wizard, captain) idealmente en equipos distintos.
-- Si hay instrucciones del usuario, respétalas (ej: "Juan con Pedro", "Luis portero", etc).
+REGLAS ABSOLUTAS E INVIOLABLES DE DISTRIBUCIÓN:
+1. CADA JUGADOR (player_id) DEBE SER ASIGNADO EXACTAMENTE A UN EQUIPO.
+2. NO PUEDEN EXISTIR JUGADORES DUPLICADOS (un mismo player_id en múltiples equipos es un error grave).
+3. EL NÚMERO TOTAL DE JUGADORES EN TODOS LOS EQUIPOS DEBE SER IGUAL A LA CANTIDAD TOTAL DE JUGADORES RECIBIDOS.
+4. ${teamCount ? `Debes crear EXACTAMENTE ${teamCount} equipos.` : "Debes crear entre 2 y 3 equipos según el número de jugadores."}
+5. DISTRIBUCIÓN EQUITATIVA DE TAMAÑO: la diferencia de cantidad de jugadores entre el equipo más grande y el más pequeño debe ser como máximo 1. Por ejemplo, si hay 15 jugadores confirmados y 3 equipos, deben ser exactamente de 5, 5 y 5 jugadores cada uno.
+6. Distribuye los ratings (1-4) de forma equitativa para que los equipos queden nivelados.
+7. Los porteros (goalkeeper) y habilidades de cracks deben distribuirse de manera equitativa entre los equipos.
+8. Si hay instrucciones especiales del usuario, cúmplelas.
 
-Responde SOLO con JSON válido en este formato exacto:
+Responde SOLO con un objeto JSON en este formato:
 {
   "teams": [
     {
       "name": "Equipo A",
       "player_ids": ["uuid1", "uuid2", ...]
     },
-    {
-      "name": "Equipo B",
-      "player_ids": ["uuid1", "uuid2", ...]
-    }
+    ...
   ]
 }
-
-Cada player_id debe aparecer exactamente una vez. La suma de player_ids en todos los equipos debe ser igual al total de jugadores. No agregues texto adicional.`;
+No agregues texto explicativo ni formato Markdown adicional fuera del JSON.`;
 
   const userPrompt = `${instructions ? `INSTRUCCIONES DEL USUARIO: ${instructions}\n\n` : ""}JUGADORES:\n${JSON.stringify(playerList, null, 2)}`;
 

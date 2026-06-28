@@ -196,9 +196,11 @@ export default function MatchDetail({
         teamCount,
       });
 
-      const assignedIds = new Set(aiTeams.flatMap((team) => team.playerIds || team.player_ids || []));
+      const flatAssignedIds = aiTeams.flatMap((team) => team.playerIds || team.player_ids || []);
+      const assignedIds = new Set(flatAssignedIds);
       const isValid = players.length >= 10
         && aiTeams.length === teamCount
+        && flatAssignedIds.length === players.length
         && assignedIds.size === players.length
         && players.every((player) => assignedIds.has(player.id));
       if (!isValid) {

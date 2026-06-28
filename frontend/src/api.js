@@ -704,8 +704,10 @@ export const api = {
           goalkeeper_count: teamPlayers.filter((p) => p.preferred_position === "Goalkeeper").length,
         };
       });
-      const assignedIds = new Set(aiTeams.flatMap((team) => team.players.map((player) => player.id)));
+      const flatIds = aiTeams.flatMap((team) => team.players.map((player) => player.id));
+      const assignedIds = new Set(flatIds);
       const isValidAi = aiTeams.length > 0
+        && flatIds.length === players.length
         && assignedIds.size === players.length
         && players.every((player) => assignedIds.has(player.id))
         && aiTeams.every((team) => team.players.length > 0);
