@@ -149,8 +149,8 @@ export default function MatchDetail({
   guests,
   profile,
   profiles = [],
-  profileById,
   skills,
+  ratingMap,
   teams,
   venues = [],
 }) {
@@ -373,6 +373,8 @@ export default function MatchDetail({
             <TeamCards
               teams={teams}
               isAdmin={isAdmin}
+              ratingMap={ratingMap}
+              skills={skills}
             />
             {isAdmin && (
               <div className="export-cards-grid">

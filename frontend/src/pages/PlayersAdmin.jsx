@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FifaCard from "../components/FifaCard.jsx";
 import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
 import VoteButtons from "../components/VoteButtons.jsx";
@@ -256,53 +257,65 @@ export default function PlayersAdmin({
           </div>
         ) : (
           <>
-            <div className="section-heading">
-              <div className="identity-block">
-                <Avatar profile={selected} size="lg" />
-                <div>
-                  <p className="eyebrow">Detalle del jugador</p>
-                  <h2>{displayName(selected)}</h2>
+            <div className="player-detail-split">
+              {/* Left Column: FIFA Card */}
+              <div style={{ display: "flex", justifyContent: "center" }}>
+                <FifaCard
+                  profile={selected}
+                  ratingObj={ratingMap.get(selected.id)}
+                  playerSkills={skills?.filter((s) => s.player_id === selected.id) || []}
+                  isGuest={false}
+                />
+              </div>
+
+              {/* Right Column: Player metadata */}
+              <div style={{ display: "grid", gap: "1rem" }}>
+                <div className="section-heading">
+                  <div>
+                    <p className="eyebrow">Detalle del jugador</p>
+                    <h2>{displayName(selected)}</h2>
+                  </div>
+                  <span
+                    className={classNames(
+                      "status-pill",
+                      selected.membership_is_active && "is-paid",
+                    )}
+                  >
+                    {selected.membership_is_active ? "activo" : "inactivo"}
+                  </span>
+                </div>
+
+                <div className="profile-summary" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                  <span>
+                    <strong>{selected.full_name}</strong>
+                    <small>Nombre completo</small>
+                  </span>
+                  <span>
+                    <strong>{selected.phone || "Sin teléfono"}</strong>
+                    <small>Teléfono</small>
+                  </span>
+                  <span>
+                    <strong>
+                      {ratingMap.has(selected.id) ? (
+                        <PositionRatingDisplay ratings={ratingMap.get(selected.id)} />
+                      ) : (
+                        "Sin estrellas"
+                      )}
+                    </strong>
+                    <small>Estrellas</small>
+                  </span>
+                  <span>
+                    <strong>
+                      <PlayerBadge rating={ratingMap.get(selected.id)} />
+                    </strong>
+                    <small>Nivel</small>
+                  </span>
+                  <span style={{ gridColumn: "span 2" }}>
+                    <strong>{playerTags(selected).length ? playerTags(selected).join(", ") : "Ninguno"}</strong>
+                    <small>Tags de subgrupo</small>
+                  </span>
                 </div>
               </div>
-              <span
-                className={classNames(
-                  "status-pill",
-                  selected.membership_is_active && "is-paid",
-                )}
-              >
-                {selected.membership_is_active ? "activo" : "inactivo"}
-              </span>
-            </div>
-
-            <div className="profile-summary">
-              <span>
-                <strong>{selected.full_name}</strong>
-                <small>Nombre completo</small>
-              </span>
-              <span>
-                <strong>{selected.phone || "Sin teléfono"}</strong>
-                <small>Teléfono</small>
-              </span>
-              <span>
-                <strong>
-                  {ratingMap.has(selected.id) ? (
-                    <PositionRatingDisplay ratings={ratingMap.get(selected.id)} />
-                  ) : (
-                    "Sin estrellas"
-                  )}
-                </strong>
-                <small>Estrellas</small>
-              </span>
-              <span>
-                <strong>
-                  <PlayerBadge rating={ratingMap.get(selected.id)} />
-                </strong>
-                <small>Nivel</small>
-              </span>
-              <span>
-                <strong>{playerTags(selected).length || "Todo"}</strong>
-                <small>Tags</small>
-              </span>
             </div>
 
             <div className="quick-actions">

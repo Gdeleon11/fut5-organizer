@@ -1082,12 +1082,12 @@ export default function App() {
             onUpdateGuestRating={(id, rating) => updateGuestRating(selectedMatch.id, id, rating)}
             guests={matchGuests}
             profile={currentPlayer} profiles={profiles} profileById={profileById}
-            skills={skills}
+            skills={skills} ratingMap={ratingMap}
             teams={teamsByMatch[selectedMatch.id] || []}
             venues={venues} />
         )}
         {page === "team" && (
-          <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} isAdmin={isAdmin} />
+          <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} isAdmin={isAdmin} ratingMap={ratingMap} skills={skills} />
         )}
         {page === "fines" && (
           <FinesPage fines={fines} isAdmin={isAdmin} matches={matches}
