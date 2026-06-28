@@ -122,9 +122,22 @@ export default function FifaCard({ profile, ratingObj, playerSkills = [], isGues
     .filter(Boolean)
     .slice(0, 3);
     
+  // Position watermarks
+  const watermarkMap = {
+    Forward: "🔥",
+    Defender: "🛡️",
+    Midfielder: "⚡",
+    Goalkeeper: "🧤",
+    Flexible: "⚽"
+  };
+  const watermark = isGuest ? "⚽" : (watermarkMap[profile?.preferred_position] || "⚽");
+    
   return (
     <div className={`fifa-card-container ${cardClass}`}>
       <div className="fifa-card-inner">
+        {/* Position Watermark Background */}
+        <div className="fifa-watermark">{watermark}</div>
+        
         {/* Top Header - Rating & Position */}
         <div className="fifa-card-badge">
           <span className="fifa-overall">{stats.overall}</span>

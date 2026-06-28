@@ -363,6 +363,60 @@ export default function PlayersAdmin({
                 <div className="detail-section">
                   <div className="section-heading">
                     <div>
+                      <h2>Habilidades Especiales</h2>
+                      <small>Máximo 3 habilidades por jugador.</small>
+                    </div>
+                  </div>
+                  {(() => {
+                    const playerSkills = skills?.filter((s) => s.player_id === selected.id) || [];
+                    const SKILL_MAP = Object.fromEntries(SKILL_OPTIONS.map((o) => [o.id, o]));
+                    const hasMaxSkills = playerSkills.length >= 3;
+                    return (
+                      <div className="player-skills" style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                        {playerSkills.map((s) => {
+                          const skill = SKILL_MAP[s.skill];
+                          if (!skill) return null;
+                          return (
+                            <span
+                              key={s.id}
+                              className="skill-badge"
+                              style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.25rem", padding: "0.35rem 0.65rem" }}
+                              title={`${skill.label} - ${skill.desc} (Click para quitar)`}
+                              onClick={() => { if (confirm(`¿Quitar ${skill.label}?`)) onRemoveSkill(s.id); }}
+                            >
+                              {skill.emoji} {skill.label}
+                            </span>
+                          );
+                        })}
+                        {!hasMaxSkills && (
+                          <select
+                            className="skill-select"
+                            value=""
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                onAddSkill(selected.id, e.target.value);
+                                e.target.value = "";
+                              }
+                            }}
+                            style={{ padding: "0.35rem 0.65rem", fontSize: "0.85rem" }}
+                          >
+                            <option value="">+ Agregar habilidad</option>
+                            {SKILL_OPTIONS.map((opt) => (
+                              <option key={opt.id} value={opt.id}>
+                                {opt.emoji} {opt.label}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+              {isSuperAdmin && (
+                <div className="detail-section">
+                  <div className="section-heading">
+                    <div>
                       <h2>Asignar estrellas</h2>
                       <small>Solo Super Admin puede modificar ratings.</small>
                     </div>
