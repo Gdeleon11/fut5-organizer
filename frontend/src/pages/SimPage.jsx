@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
 import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
+import TeamColorPicker from "../components/TeamColorPicker.jsx";
 import { generateBalancedTeams } from "../teamGeneration.js";
 import { distributeTeamsWithAI } from "../groq.js";
 import { displayName, positionLabel } from "../utils.js";
+
+const TEAM_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#f97316", "#a855f7", "#1f2937", "#ffffff"];
 
 export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, skills }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -60,6 +63,10 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
     }
     try {
       const generated = generateBalancedTeams(selected);
+      generated.teams = generated.teams.map((team, i) => ({
+        ...team,
+        color: TEAM_COLORS[i % TEAM_COLORS.length],
+      }));
       setResult(generated);
     } catch (err) {
       setError(err.message);
@@ -114,6 +121,7 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
           players: teamPlayers,
           total_rating: teamPlayers.reduce((s, p) => s + (p.rating || 2), 0),
           goalkeeper_count: teamPlayers.filter((p) => p.preferred_position === "Goalkeeper").length,
+          color: TEAM_COLORS[i % TEAM_COLORS.length],
         };
       }).filter(Boolean);
 
@@ -128,6 +136,15 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
     } finally {
       setAiLoading(false);
     }
+  }
+
+  function handleColorChange(teamIndex, color) {
+    setResult((prev) => {
+      if (!prev) return prev;
+      const teams = [...prev.teams];
+      teams[teamIndex] = { ...teams[teamIndex], color };
+      return { ...prev, teams };
+    });
   }
 
   if (!isSuperAdmin) {
@@ -221,13 +238,22 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
             </span>
           </div>
           <div className="team-grid">
-            {result.teams.map((team) => (
-              <article className="team-card" key={team.name}>
+            {result.teams.map((team, i) => (
+              <article
+                className="team-card"
+                key={team.name}
+                style={{ borderTop: `4px solid ${team.color || "#22c55e"}` }}
+              >
                 <div className="team-header">
                   <strong>{team.name}</strong>
                   <span>{team.total_rating} estrellas</span>
                 </div>
                 <small>{team.goalkeeper_count} portero(s)</small>
+                <TeamColorPicker
+                  currentColor={team.color}
+                  onColorChange={(color) => handleColorChange(i, color)}
+                  compact
+                />
                 <ul>
                   {team.players.map((player) => (
                     <li key={player.id}>

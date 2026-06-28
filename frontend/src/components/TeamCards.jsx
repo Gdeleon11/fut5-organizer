@@ -1,11 +1,15 @@
 import Avatar from "./Avatar.jsx";
 import { displayName } from "../utils.js";
 
-export default function TeamCards({ teams, isAdmin }) {
+export default function TeamCards({ teams, isAdmin, onColorChange }) {
   return (
     <div className="team-grid">
-      {teams.map((team) => (
-        <article className="team-card" key={team.id}>
+      {teams.map((team, i) => (
+        <article
+          className="team-card"
+          key={team.id || i}
+          style={{ borderTop: `4px solid ${team.color || "#22c55e"}` }}
+        >
           <div className="team-header">
             <strong>{team.name}</strong>
             {isAdmin && <span>{team.total_rating || 0} estrellas</span>}

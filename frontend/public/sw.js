@@ -55,3 +55,49 @@ self.addEventListener("fetch", (event) => {
       .catch(() => caches.match(request).then((cached) => cached || caches.match("/"))),
   );
 });
+
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let data;
+  try {
+    data = event.data.json();
+  } catch {
+    data = { title: "Fut5", body: event.data.text() };
+  }
+
+  const options = {
+    body: data.body || "Tenés un partido pronto",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    vibrate: [100, 50, 100],
+    data: data.url || "/",
+    actions: [
+      { action: "open", title: "Abrir" },
+      { action: "dismiss", title: "Cerrar" },
+    ],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Fut5 Organizer", options),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  if (event.action === "dismiss") return;
+
+  const url = event.notification.data || "/";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    }),
+  );
+});

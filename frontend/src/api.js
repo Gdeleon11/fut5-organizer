@@ -586,6 +586,11 @@ export const api = {
     return Object.fromEntries(pairs);
   },
 
+  async updateTeamColor(teamId, color) {
+    const client = requireSupabase();
+    return client.from("teams").update({ color }).eq("id", teamId);
+  },
+
   async generateTeamsForMatch(match, profiles, attendances, ratings, options = {}) {
     const client = requireSupabase();
     const matchAttendances = attendances.filter(
@@ -694,6 +699,8 @@ export const api = {
 
     await client.from("teams").delete().eq("match_id", match.id);
 
+    const TEAM_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#f97316", "#a855f7", "#1f2937", "#ffffff"];
+
     const teams = await readMany(
       client
         .from("teams")
@@ -703,6 +710,7 @@ export const api = {
             name: team.name,
             team_order: index + 1,
             total_rating: Math.round(team.total_rating || 0),
+            color: team.color || TEAM_COLORS[index % TEAM_COLORS.length],
           })),
         )
         .select("*"),
@@ -1729,4 +1737,29 @@ export const api = {
   },
 
   latestRatingsByProfile,
+
+  async savePushSubscription(subscription) {
+    const client = requireSupabase();
+    return client.from("push_subscriptions").upsert(subscription, {
+      onConflict: "profile_id,endpoint",
+    });
+  },
+
+  async removePushSubscription(profileId, endpoint) {
+    const client = requireSupabase();
+    return client
+      .from("push_subscriptions")
+      .delete()
+      .eq("profile_id", profileId)
+      .eq("endpoint", endpoint);
+  },
+
+  async listPushSubscriptions(profileIds = []) {
+    const client = requireSupabase();
+    let query = client.from("push_subscriptions").select("*");
+    if (profileIds.length > 0) {
+      query = query.in("profile_id", profileIds);
+    }
+    return readMany(query);
+  },
 };

@@ -3,9 +3,10 @@ import CourtPhoto from "../components/CourtPhoto.jsx";
 import ExportCard from "../components/ExportCard.jsx";
 import StarRatingControl from "../components/StarRatingControl.jsx";
 import TeamCards from "../components/TeamCards.jsx";
+import TeamColorPicker from "../components/TeamColorPicker.jsx";
 import WeatherWidget from "../components/WeatherWidget.jsx";
 import { distributeTeamsWithAI } from "../groq.js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   attendanceLabel,
   displayName,
@@ -153,6 +154,25 @@ export default function MatchDetail({
   const [teamInstructions, setTeamInstructions] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+  const [localTeams, setLocalTeams] = useState([]);
+
+  useEffect(() => {
+    if (teams && teams.length > 0) {
+      setLocalTeams(teams);
+    }
+  }, [teams]);
+
+  async function handleColorChange(teamId, color) {
+    setLocalTeams((prev) => {
+      const updated = prev.map((t) => (t.id === teamId ? { ...t, color } : t));
+      return updated;
+    });
+    try {
+      await api.updateTeamColor(teamId, color);
+    } catch (err) {
+      console.error("Error updating team color:", err);
+    }
+  }
 
   async function handleAIDistribute() {
     setAiError("");
@@ -309,16 +329,35 @@ export default function MatchDetail({
           </div>
         ) : (
           <>
-            <TeamCards teams={teams} isAdmin={isAdmin} />
+            <TeamCards
+              teams={localTeams.length > 0 ? localTeams : teams}
+              isAdmin={isAdmin}
+              onColorChange={handleColorChange}
+            />
+            {isAdmin && (
+              <div className="team-colors-section">
+                <small>Colores de equipo:</small>
+                {(localTeams.length > 0 ? localTeams : teams).map((team) => (
+                  <div key={team.id} className="team-color-row">
+                    <span>{team.name}</span>
+                    <TeamColorPicker
+                      currentColor={team.color}
+                      onColorChange={(color) => handleColorChange(team.id, color)}
+                      compact
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
             {isAdmin && (
               <>
                 <ExportCard
                   label="Equipos para WhatsApp"
-                  text={teamAnnouncementText(match, teams)}
+                  text={teamAnnouncementText(match, localTeams.length > 0 ? localTeams : teams)}
                 />
                 <ExportCard
                   label="Notificar equipos a jugadores"
-                  text={teamNotificationText(match, teams)}
+                  text={teamNotificationText(match, localTeams.length > 0 ? localTeams : teams)}
                 />
               </>
             )}
