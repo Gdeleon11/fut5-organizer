@@ -1,12 +1,13 @@
 import AttendanceAction from "../components/AttendanceAction.jsx";
 import CourtPhoto from "../components/CourtPhoto.jsx";
+import CopyReservationTextButton from "../components/CopyReservationTextButton.jsx";
 import ExportCard from "../components/ExportCard.jsx";
 import StarRatingControl from "../components/StarRatingControl.jsx";
 import TeamCards from "../components/TeamCards.jsx";
-import TeamColorPicker from "../components/TeamColorPicker.jsx";
 import WeatherWidget from "../components/WeatherWidget.jsx";
 import { distributeTeamsWithAI } from "../groq.js";
 import { useEffect, useState } from "react";
+import { formatTag } from "../tags.js";
 import {
   attendanceLabel,
   displayName,
@@ -19,6 +20,7 @@ import {
 } from "../utils.js";
 
 import { api } from "../api.js";
+import { generateBalancedTeams } from "../teamGeneration.js";
 
 function GuestPlayersSection({ match, guests, onAdd, onDelete, onUpdateRating }) {
   const [showForm, setShowForm] = useState(false);
@@ -146,33 +148,16 @@ export default function MatchDetail({
   onUpdateGuestRating,
   guests,
   profile,
+  profiles = [],
   profileById,
   skills,
   teams,
+  venues = [],
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [teamInstructions, setTeamInstructions] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
-  const [localTeams, setLocalTeams] = useState([]);
-
-  useEffect(() => {
-    if (teams && teams.length > 0) {
-      setLocalTeams(teams);
-    }
-  }, [teams]);
-
-  async function handleColorChange(teamId, color) {
-    setLocalTeams((prev) => {
-      const updated = prev.map((t) => (t.id === teamId ? { ...t, color } : t));
-      return updated;
-    });
-    try {
-      await api.updateTeamColor(teamId, color);
-    } catch (err) {
-      console.error("Error updating team color:", err);
-    }
-  }
 
   async function handleAIDistribute() {
     setAiError("");
@@ -182,11 +167,25 @@ export default function MatchDetail({
         (a) => a.status === "confirmed" || a.status === "checked_in"
       );
       const confirmedIds = confirmedAttendances.map((a) => a.profile_id);
-      const players = profileById
+      const registeredPlayers = profileById
         ? Array.from(profileById.values()).filter(
             (p) => p.membership_is_active && confirmedIds.includes(p.id),
           )
         : [];
+      const guestPlayers = (guests || []).map((g) => ({
+        id: g.id,
+        full_name: g.name,
+        nickname: null,
+        preferred_position: "Flexible",
+        membership_is_active: true,
+        is_guest: true,
+        rating: g.rating || 2,
+        attack_rating: g.rating || 2,
+        defense_rating: g.rating || 2,
+        midfield_rating: g.rating || 2,
+        goalkeeper_rating: g.rating || 2,
+      }));
+      const players = [...registeredPlayers, ...guestPlayers];
       const playerSkills = (skills || []).filter((s) => confirmedIds.includes(s.player_id));
       const teamCount = Math.ceil(players.length / 5);
 
@@ -196,6 +195,21 @@ export default function MatchDetail({
         instructions: teamInstructions,
         teamCount,
       });
+
+      const assignedIds = new Set(aiTeams.flatMap((team) => team.playerIds || team.player_ids || []));
+      const isValid = players.length >= 10
+        && aiTeams.length === teamCount
+        && assignedIds.size === players.length
+        && players.every((player) => assignedIds.has(player.id));
+      if (!isValid) {
+        const fallback = generateBalancedTeams(players);
+        onGenerateTeams({ aiTeams: { teams: fallback.teams.map((team) => ({
+          name: team.name,
+          playerIds: team.players.map((player) => player.id),
+        })), team_count: fallback.team_count }, aiFallback: true });
+        setAiError("La IA devolvió equipos incompletos; usé distribución automática con todos los confirmados.");
+        return;
+      }
 
       onGenerateTeams({ aiTeams: { teams: aiTeams, team_count: aiTeams.length } });
     } catch (err) {
@@ -207,6 +221,9 @@ export default function MatchDetail({
 
   const canPenaltyTeam = confirmedCount >= 13 && confirmedCount <= 14;
   const isPlayerConfirmed = myAttendance && ["confirmed", "checked_in"].includes(myAttendance.status);
+  const selectedVenue = venues.find((venue) => venue.id === match.venue_id)
+    || venues.find((venue) => venue.name === match.venue)
+    || null;
 
   return (
     <div className="page-grid">
@@ -224,9 +241,31 @@ export default function MatchDetail({
             ? ` · ${match.venue}`
             : " · Cancha oculta (confirmá para ver)"}
         </p>
+        {match.allowed_tags?.length > 0 && (
+          <div className="tag-list">
+            {match.allowed_tags.map((tag) => (
+              <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
+            ))}
+          </div>
+        )}
+        {match.requires_reservation && (
+          <div className="reservation-copy-inline">
+            <CopyReservationTextButton
+              match={match}
+              attendances={attendances}
+              profiles={profiles}
+            />
+          </div>
+        )}
         {(isAdmin || isPlayerConfirmed) && <CourtPhoto match={match} />}
         {match.match_date && (
-          <WeatherWidget venue={match.venue || "Guatemala"} date={match.match_date} time={match.start_time} />
+          <WeatherWidget
+            venue={selectedVenue?.name || match.venue || "Guatemala"}
+            date={match.match_date}
+            time={match.start_time}
+            lat={selectedVenue?.lat}
+            lng={selectedVenue?.lng}
+          />
         )}
         <AttendanceAction
           attendance={myAttendance}
@@ -330,34 +369,18 @@ export default function MatchDetail({
         ) : (
           <>
             <TeamCards
-              teams={localTeams.length > 0 ? localTeams : teams}
+              teams={teams}
               isAdmin={isAdmin}
-              onColorChange={handleColorChange}
             />
-            {isAdmin && (
-              <div className="team-colors-section">
-                <small>Colores de equipo:</small>
-                {(localTeams.length > 0 ? localTeams : teams).map((team) => (
-                  <div key={team.id} className="team-color-row">
-                    <span>{team.name}</span>
-                    <TeamColorPicker
-                      currentColor={team.color}
-                      onColorChange={(color) => handleColorChange(team.id, color)}
-                      compact
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
             {isAdmin && (
               <>
                 <ExportCard
                   label="Equipos para WhatsApp"
-                  text={teamAnnouncementText(match, localTeams.length > 0 ? localTeams : teams)}
+                  text={teamAnnouncementText(match, teams)}
                 />
                 <ExportCard
                   label="Notificar equipos a jugadores"
-                  text={teamNotificationText(match, localTeams.length > 0 ? localTeams : teams)}
+                  text={teamNotificationText(match, teams)}
                 />
               </>
             )}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import Avatar from "../components/Avatar.jsx";
+import CopyReservationTextButton from "../components/CopyReservationTextButton.jsx";
 import { api } from "../api.js";
+import { activeReservationStatus, reservationStatusLabel } from "../reservationAssistant.js";
 import { classNames, displayName } from "../utils.js";
 
 function ReservationRow({ index, venues, profiles, onChange, onRemove }) {
@@ -149,7 +151,70 @@ function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, on
   );
 }
 
-export default function CourtReservationPage({ activeGroupId, profiles, venues, isAdmin, isSuperAdmin, currentUserId, onCreateMatch }) {
+function AssistedReservationCard({ match, profiles, attendances, canEdit, onUpdateMatch, onNotice }) {
+  const status = activeReservationStatus(match);
+  const owner = profiles.find((profile) => profile.id === match.reservation_owner_user_id);
+
+  async function updateStatus(nextStatus) {
+    await onUpdateMatch(match.id, {
+      reservation_status: nextStatus,
+      requires_reservation: true,
+    });
+  }
+
+  return (
+    <article className={classNames("reservation-card assisted-reservation-card", status === "confirmed" && "is-confirmed")}>
+      <div className="reservation-header">
+        <div>
+          <strong>{match.title || "Chamuscón"}</strong>
+          <small>{match.venue || "Cancha pendiente"} · {match.preferred_time_range || match.start_time || "Horario pendiente"}</small>
+        </div>
+        <span className={classNames("status-pill", status === "pending" && "is-pending", status === "confirmed" && "is-paid")}>
+          {reservationStatusLabel(status)}
+        </span>
+      </div>
+      <div className="reservation-details">
+        <div className="reservation-assigned">
+          <small>Responsable:</small>
+          <div className="reservation-person">
+            <Avatar profile={owner} size="sm" />
+            <span>{owner ? displayName(owner) : "Sin responsable"}</span>
+          </div>
+        </div>
+        {match.reservation_notes && <small className="reservation-notes">{match.reservation_notes}</small>}
+      </div>
+      <div className="button-row reservation-actions">
+        <CopyReservationTextButton
+          match={match}
+          attendances={attendances}
+          profiles={profiles}
+          onCopied={onNotice}
+        />
+        {canEdit && (
+          <select value={status} onChange={(e) => updateStatus(e.target.value)}>
+            <option value="pending">Pendiente</option>
+            <option value="confirmed">Confirmada</option>
+            <option value="failed">Fallida</option>
+          </select>
+        )}
+      </div>
+    </article>
+  );
+}
+
+export default function CourtReservationPage({
+  activeGroupId,
+  profiles,
+  venues,
+  matches = [],
+  attendances = [],
+  isAdmin,
+  isSuperAdmin,
+  currentUserId,
+  onUpdateMatch,
+  onNotice,
+  onCreateMatch,
+}) {
   const [reservations, setReservations] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [rows, setRows] = useState([0]);
@@ -162,7 +227,7 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
   const [view, setView] = useState("cards"); // "cards" | "list"
 
   async function loadReservations() {
-    if (!activeGroupId) return;
+    if (!activeGroupId || !isAdmin) return;
     try {
       const rows = await api.listReservations(activeGroupId);
       setReservations(rows);
@@ -174,7 +239,7 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
   useEffect(() => {
     setLoading(true);
     loadReservations().finally(() => setLoading(false));
-  }, [activeGroupId]);
+  }, [activeGroupId, isAdmin]);
 
   // Auto-refresh when tab becomes visible again
   useEffect(() => {
@@ -298,6 +363,9 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
 
   const pending = reservations.filter((r) => r.status === "pending");
   const confirmed = reservations.filter((r) => r.status === "confirmed");
+  const assistedReservations = matches
+    .filter((match) => match.requires_reservation)
+    .filter((match) => isAdmin || match.reservation_owner_user_id === currentUserId);
 
   // Group by date for list view
   const groupedByDate = {};
@@ -309,12 +377,41 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
   const sortedDates = Object.keys(groupedByDate).sort();
 
   return (
-    <div className="page-grid">
+    <div className="page-grid reservations-page">
+      <section className="panel">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Asistente</p>
+            <h2>Reservas asistidas</h2>
+            <small>Copiá el texto para administración y actualizá el estado.</small>
+          </div>
+          <span className="count-pill">{assistedReservations.length}</span>
+        </div>
+        {assistedReservations.length === 0 ? (
+          <div className="empty-state compact">No hay reservas asistidas pendientes.</div>
+        ) : (
+          <div className="reservation-card-grid">
+            {assistedReservations.map((match) => (
+              <AssistedReservationCard
+                key={match.id}
+                match={match}
+                profiles={profiles}
+                attendances={attendances}
+                canEdit={isAdmin || match.reservation_owner_user_id === currentUserId}
+                onUpdateMatch={onUpdateMatch}
+                onNotice={onNotice}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {isAdmin && (
       <section className="panel">
         <div className="section-heading">
           <div>
             <p className="eyebrow">Reservas</p>
-            <h2>Reservas de cancha</h2>
+            <h2>Delegación de cancha</h2>
             <small>Delegá la reserva a un jugador. Subí el comprobante y confirmá.</small>
           </div>
           <div className="button-row">
@@ -375,9 +472,10 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
           </div>
         )}
       </section>
+      )}
 
       {/* List view - grouped by date */}
-      {view === "list" && reservations.length > 0 && (
+      {isAdmin && view === "list" && reservations.length > 0 && (
         <section className="panel">
           <div className="section-heading">
             <h2>Todas las reservas</h2>
@@ -423,15 +521,18 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
       )}
 
       {/* Card view */}
-      {view === "cards" && (
-        <>
-          {pending.length > 0 && (
-            <section className="panel">
-              <div className="section-heading">
-                <h2>Pendientes</h2>
-                <span className="count-pill">{pending.length}</span>
+      {isAdmin && view === "cards" && (
+        reservations.length > 0 && (
+          <section className="panel">
+            <div className="section-heading">
+              <div>
+                <h2>Seguimiento</h2>
+                <small>{pending.length} pendientes · {confirmed.length} confirmadas</small>
               </div>
-              {pending.map((r) => (
+              <span className="count-pill">{reservations.length}</span>
+            </div>
+            <div className="reservation-card-grid">
+              {[...pending, ...confirmed].map((r) => (
                 <ReservationCard
                   key={r.id}
                   reservation={r}
@@ -445,35 +546,12 @@ export default function CourtReservationPage({ activeGroupId, profiles, venues, 
                   copiedId={copiedId}
                 />
               ))}
-            </section>
-          )}
-
-          {confirmed.length > 0 && (
-            <section className="panel">
-              <div className="section-heading">
-                <h2>Confirmadas</h2>
-                <span className="count-pill">{confirmed.length}</span>
-              </div>
-              {confirmed.map((r) => (
-                <ReservationCard
-                  key={r.id}
-                  reservation={r}
-                  isAdmin={isAdmin}
-                  isSuperAdmin={isSuperAdmin}
-                  currentUserId={currentUserId}
-                  onConfirm={handleConfirm}
-                  onDelete={handleDelete}
-                  onUploadProof={handleUploadProof}
-                  onCopyLink={copyLink}
-                  copiedId={copiedId}
-                />
-              ))}
-            </section>
-          )}
-        </>
+            </div>
+          </section>
+        )
       )}
 
-      {reservations.length === 0 && !loading && !showForm && (
+      {isAdmin && reservations.length === 0 && !loading && !showForm && (
         <section className="panel">
           <div className="empty-state compact">No hay reservas. Creá una para delegar la cancha.</div>
         </section>

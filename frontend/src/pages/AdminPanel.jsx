@@ -1,16 +1,22 @@
 import { useState } from "react";
 import MatchForm from "../components/MatchForm.jsx";
 import ExportCard from "../components/ExportCard.jsx";
+import { formatTag } from "../tags.js";
 import { formatMatchDate, formatMoney, matchInvitationText, statusLabel } from "../utils.js";
 
 export default function AdminPanel({
   matches,
   venues,
+  profiles = [],
+  attendances = [],
   onCreateMatch,
   onDeleteMatch,
   onEditMatch,
   onGenerateTeams,
   teamsByMatch,
+  groupTags = [],
+  onCreateGroupTag,
+  onNotice,
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -54,6 +60,11 @@ export default function AdminPanel({
         {showCreate && (
           <MatchForm
             venues={venues}
+            profiles={profiles}
+            attendances={attendances}
+            groupTags={groupTags}
+            onCreateGroupTag={onCreateGroupTag}
+            onCopied={onNotice}
             onSave={handleCreate}
             onCancel={() => setShowCreate(false)}
           />
@@ -93,6 +104,13 @@ export default function AdminPanel({
                         ? ` · cancha ${formatMoney(match.court_cost)}`
                         : " · gratis"}
                     </small>
+                    {match.allowed_tags?.length > 0 && (
+                      <div className="tag-list compact">
+                        {match.allowed_tags.map((tag) => (
+                          <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="match-admin-pills">
                     <span className="status-pill">{statusLabel(match.status)}</span>
@@ -107,6 +125,11 @@ export default function AdminPanel({
                   <MatchForm
                     initial={match}
                     venues={venues}
+                    profiles={profiles}
+                    attendances={attendances}
+                    groupTags={groupTags}
+                    onCreateGroupTag={onCreateGroupTag}
+                    onCopied={onNotice}
                     onSave={(payload) => handleEdit(match.id, payload)}
                     onCancel={() => setEditingId(null)}
                   />

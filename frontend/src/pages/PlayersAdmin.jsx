@@ -8,6 +8,7 @@ import StarRatingControl, {
 } from "../components/StarRatingControl.jsx";
 import Stars from "../components/Stars.jsx";
 import { FILTER_LABELS, POSITION_OPTIONS, SKILL_OPTIONS } from "../constants.js";
+import { formatTag, parseTags } from "../tags.js";
 import {
   appShareUrl,
   attendanceLabel,
@@ -28,6 +29,7 @@ export default function PlayersAdmin({
   isSuperAdmin,
   matches,
   onAssignRating,
+  onCreateGroupTag,
   onUpdateMember,
   onUpdateProfile,
   profiles,
@@ -65,6 +67,15 @@ export default function PlayersAdmin({
     ? fines.filter((f) => f.profile_id === selected.id)
     : [];
   const matchById = new Map(matches.map((match) => [match.id, match]));
+  const [tagDrafts, setTagDrafts] = useState({});
+
+  function playerTags(player) {
+    return player?.group_tags || [];
+  }
+
+  function tagDraft(player) {
+    return tagDrafts[player.id] ?? playerTags(player).join(", ");
+  }
 
   return (
     <div className="players-admin-grid">
@@ -147,6 +158,13 @@ export default function PlayersAdmin({
                     "Sin estrellas"
                   )}
                 </small>
+                {playerTags(player).length > 0 && (
+                  <div className="tag-list">
+                    {playerTags(player).map((tag) => (
+                      <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
+                    ))}
+                  </div>
+                )}
                 <div className="player-card-badge">
                   <PlayerBadge rating={ratingMap.get(player.id)} />
                   {player.id !== currentProfileId && (
@@ -281,9 +299,53 @@ export default function PlayersAdmin({
                 </strong>
                 <small>Nivel</small>
               </span>
+              <span>
+                <strong>{playerTags(selected).length || "Todo"}</strong>
+                <small>Tags</small>
+              </span>
             </div>
 
             <div className="quick-actions">
+              {isSuperAdmin && (
+                <div className="detail-section">
+                  <div className="section-heading">
+                    <div>
+                      <h2>Tags de subgrupo</h2>
+                      <small>Ej. martes, veteranos, competitivos. Separá con comas.</small>
+                    </div>
+                  </div>
+                  <div className="tag-editor">
+                    <input
+                      value={tagDraft(selected)}
+                      placeholder="martes, veteranos"
+                      onChange={(e) => setTagDrafts((drafts) => ({
+                        ...drafts,
+                        [selected.id]: e.target.value,
+                      }))}
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const nextTags = parseTags(tagDraft(selected));
+                        if (onCreateGroupTag) {
+                          await Promise.all(nextTags.map((tag) => onCreateGroupTag(tag)));
+                        }
+                        await onUpdateProfile(selected.id, { group_tags: nextTags });
+                        setTagDrafts((drafts) => ({ ...drafts, [selected.id]: nextTags.join(", ") }));
+                      }}
+                    >
+                      Guardar tags
+                    </button>
+                  </div>
+                  {playerTags(selected).length > 0 && (
+                    <div className="tag-list">
+                      {playerTags(selected).map((tag) => (
+                        <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {isSuperAdmin && (
                 <div className="detail-section">
                   <div className="section-heading">

@@ -19,7 +19,8 @@ export default function WeatherWidget({ venue, date, time, lat, lng }) {
   if (!weather) return null;
 
   const rainChance = weather.rain_chance || 0;
-  const isRainy = rainChance >= 50;
+  const showRainChance = weather.is_precipitation || rainChance >= 60;
+  const isRainy = weather.is_precipitation || rainChance >= 70;
   const temp = weather.temperature ?? weather.temp_max;
   const feelsLike = weather.feels_like ?? temp;
   const isHot = temp >= 30;
@@ -37,9 +38,9 @@ export default function WeatherWidget({ venue, date, time, lat, lng }) {
         </small>
       </div>
       <div className="weather-details">
-        {rainChance > 0 && <span className="weather-detail">💧 {rainChance}%</span>}
+        {showRainChance && <span className="weather-detail">🌧️ {rainChance}%</span>}
         <span className="weather-detail">💨 {weather.wind_speed || weather.wind_max} km/h</span>
-        {weather.humidity != null && <span className="weather-detail">💧 {weather.humidity}%</span>}
+        {weather.humidity != null && <span className="weather-detail">Humedad {weather.humidity}%</span>}
         <button
           className="ghost-button"
           type="button"

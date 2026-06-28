@@ -25,6 +25,8 @@ const WEATHER_CODES = {
   99: { icon: "⛈️", desc: "Tormenta con granizo fuerte" },
 };
 
+const PRECIPITATION_CODES = new Set([51, 53, 55, 61, 63, 65, 80, 81, 82, 95, 96, 99]);
+
 const GUATEMALA_CITIES = {
   "guatemala": { lat: 14.6349, lon: -90.5069 },
   "ciudad de guatemala": { lat: 14.6349, lon: -90.5069 },
@@ -74,13 +76,28 @@ function findCoordinates(venue) {
   return { lat: 14.6349, lon: -90.5069 };
 }
 
+function normalizeCoords(lat, lng) {
+  const parsedLat = Number(lat);
+  const parsedLon = Number(lng);
+  if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLon)) return null;
+  return { lat: parsedLat, lon: parsedLon };
+}
+
+function findHourlyIndex(hourlyTimes, date, time) {
+  const targetHour = String(time || "").slice(0, 2).padStart(2, "0");
+  if (!targetHour || targetHour === "Na") return -1;
+  const targetPrefix = `${date}T${targetHour}:`;
+  return hourlyTimes.findIndex((value) => value.startsWith(targetPrefix));
+}
+
 export async function getWeatherForecast(venue, date, lat, lng, time) {
   if (!date) return null;
 
   try {
     let coords;
-    if (lat && lng) {
-      coords = { lat, lng };
+    const exactCoords = normalizeCoords(lat, lng);
+    if (exactCoords) {
+      coords = exactCoords;
     } else {
       coords = findCoordinates(venue);
     }
@@ -108,12 +125,7 @@ export async function getWeatherForecast(venue, date, lat, lng, time) {
     const data = await res.json();
 
     if (useHourly && data.hourly && data.hourly.time) {
-      const targetHour = parseInt(time.split(":")[0], 10);
-      const idx = data.hourly.time.findIndex((t) => {
-        const dateHour = new Date(t);
-        return dateHour.getDate() === new Date(date + "T12:00:00").getDate()
-          && dateHour.getHours() === targetHour;
-      });
+      const idx = findHourlyIndex(data.hourly.time, date, time);
 
       if (idx >= 0) {
         const code = data.hourly.weathercode[idx];
@@ -123,6 +135,8 @@ export async function getWeatherForecast(venue, date, lat, lng, time) {
           time,
           icon: weather.icon,
           description: weather.desc,
+          weather_code: code,
+          is_precipitation: PRECIPITATION_CODES.has(code),
           temperature: Math.round(data.hourly.temperature_2m[idx]),
           feels_like: Math.round(data.hourly.apparent_temperature?.[idx] ?? data.hourly.temperature_2m[idx]),
           rain_chance: data.hourly.precipitation_probability?.[idx] || 0,
@@ -144,6 +158,8 @@ export async function getWeatherForecast(venue, date, lat, lng, time) {
       time: null,
       icon: weather.icon,
       description: weather.desc,
+      weather_code: code,
+      is_precipitation: PRECIPITATION_CODES.has(code),
       temp_max: Math.round(data.daily.temperature_2m_max[0]),
       temp_min: Math.round(data.daily.temperature_2m_min[0]),
       rain_chance: data.daily.precipitation_probability_max[0] || 0,

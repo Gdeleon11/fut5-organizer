@@ -11,8 +11,9 @@ export default function TeamCards({ teams, isAdmin, onColorChange }) {
           style={{ borderTop: `4px solid ${team.color || "#22c55e"}` }}
         >
           <div className="team-header">
+            <span className="team-name-dot" style={{ background: team.color || "#22c55e" }} />
             <strong>{team.name}</strong>
-            {isAdmin && <span>{team.total_rating || 0} estrellas</span>}
+            {isAdmin && <span className="team-rating-pill">{team.total_rating || 0} estrellas</span>}
           </div>
           <ul>
             {(team.team_members || []).map((member) => {

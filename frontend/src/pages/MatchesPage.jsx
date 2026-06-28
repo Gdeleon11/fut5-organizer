@@ -4,6 +4,7 @@ import ExportCard from "../components/ExportCard.jsx";
 import MatchForm from "../components/MatchForm.jsx";
 import WeatherWidget from "../components/WeatherWidget.jsx";
 import { useState } from "react";
+import { formatTag } from "../tags.js";
 import {
   formatMatchDate,
   isConfirmedAttendance,
@@ -28,9 +29,18 @@ export default function MatchesPage({
   profile,
   fineAmount,
   venues,
+  profiles = [],
+  groupTags = [],
+  onCreateGroupTag,
+  onNotice,
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const venueById = new Map(venues.map((venue) => [venue.id, venue]));
+
+  function matchVenue(match) {
+    return venueById.get(match?.venue_id) || venues.find((venue) => venue.name === match?.venue) || null;
+  }
 
   async function handleCreate(payload, photoFile) {
     const created = await onCreateMatch(payload, photoFile);
@@ -63,11 +73,18 @@ export default function MatchesPage({
             {(() => {
               const nextAtt = myAttendance(nextMatch.id);
               const isConfirmed = nextAtt && ["confirmed", "checked_in"].includes(nextAtt.status);
+              const nextVenue = matchVenue(nextMatch);
               return (
                 <>
                   {isConfirmed && <CourtPhoto match={nextMatch} />}
                   {nextMatch.match_date && (
-                    <WeatherWidget venue={nextMatch.venue || "Guatemala"} date={nextMatch.match_date} time={nextMatch.start_time} />
+                    <WeatherWidget
+                      venue={nextVenue?.name || nextMatch.venue || "Guatemala"}
+                      date={nextMatch.match_date}
+                      time={nextMatch.start_time}
+                      lat={nextVenue?.lat}
+                      lng={nextVenue?.lng}
+                    />
                   )}
                   <p className="muted">
                     {isConfirmed
@@ -128,6 +145,11 @@ export default function MatchesPage({
         {showCreate && isAdmin && (
           <MatchForm
             venues={venues}
+            profiles={profiles}
+            attendances={attendances}
+            groupTags={groupTags}
+            onCreateGroupTag={onCreateGroupTag}
+            onCopied={onNotice}
             onSave={handleCreate}
             onCancel={() => setShowCreate(false)}
           />
@@ -147,6 +169,13 @@ export default function MatchesPage({
                   <span>
                     <strong>{match.title || "Chamuscón"}</strong>
                     <small>{formatMatchDate(match)}</small>
+                    {match.allowed_tags?.length > 0 && (
+                      <span className="tag-list compact">
+                        {match.allowed_tags.map((tag) => (
+                          <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
+                        ))}
+                      </span>
+                    )}
                   </span>
                   <span className="count-pill">
                     {

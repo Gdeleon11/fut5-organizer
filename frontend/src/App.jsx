@@ -23,6 +23,8 @@ import TeamPage from "./pages/TeamPage.jsx";
 import TournamentPage from "./pages/TournamentPage.jsx";
 import VenuesPage from "./pages/VenuesPage.jsx";
 import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
+import { activeReservationStatus, canUseReservationAssistant } from "./reservationAssistant.js";
+import { canAccessMatch, collectGroupTags } from "./tags.js";
 import { classNames, displayName, formatMatchDate, profileComplete, roleLabel } from "./utils.js";
 
 function ConfigMissing() {
@@ -62,6 +64,7 @@ export default function App() {
   const [fines, setFines] = useState([]);
   const [votes, setVotes] = useState([]);
   const [skills, setSkills] = useState([]);
+  const [groupTagRows, setGroupTagRows] = useState([]);
   const [guests, setGuests] = useState({});
   const [settings, setSettings] = useState(null);
   const [venues, setVenues] = useState([]);
@@ -79,7 +82,14 @@ export default function App() {
   const isSuperAdmin = myRole === "super_admin";
   const isAdmin = myRole === "admin" || isSuperAdmin;
   const isActiveMember = Boolean(activeMembership?.is_active);
-  const currentPlayer = profile ? { ...profile, is_active: isActiveMember } : profile;
+  const currentGroupProfile = profile
+    ? profiles.find((p) => p.id === profile.id) || profile
+    : profile;
+  const currentPlayer = currentGroupProfile ? { ...currentGroupProfile, is_active: isActiveMember } : currentGroupProfile;
+  const groupTags = useMemo(
+    () => collectGroupTags([...profiles, { group_tags: groupTagRows.map((tag) => tag.name) }]),
+    [profiles, groupTagRows],
+  );
   const ratingMap = useMemo(() => api.latestRatingsByProfile(ratings), [ratings]);
   const lateCancelFineAmount = settings?.late_cancel_fine_amount ?? 25;
 
@@ -131,11 +141,13 @@ export default function App() {
     { id: "fees", label: "Cobros", mobileLabel: "Cobros" },
     { id: "profile", label: "Perfil", mobileLabel: "Perfil" },
     { id: "groups", label: "Grupos", mobileLabel: "Grupos" },
+    ...(canUseReservationAssistant ? [
+      { id: "reservations", label: "Reservas", mobileLabel: "Reservas" },
+    ] : []),
     ...(isAdmin ? [
       { id: "admin", label: "Admin", mobileLabel: "Admin" },
       { id: "players", label: "Jugadores", mobileLabel: "Jugad." },
       { id: "venues", label: "Canchas", mobileLabel: "Canchas" },
-      { id: "reservations", label: "Reservas", mobileLabel: "Reservas" },
       { id: "sim", label: "Simular", mobileLabel: "Simular" },
     ] : []),
     ...(isSuperAdmin ? [
@@ -145,9 +157,11 @@ export default function App() {
   ], [isAdmin, isSuperAdmin]);
 
   const sortedMatches = useMemo(
-    () => [...matches].sort((a, b) =>
-      `${a.match_date} ${a.start_time}`.localeCompare(`${b.match_date} ${b.start_time}`)
-    ), [matches]
+    () => [...matches]
+      .filter((match) => canAccessMatch(match, currentPlayer, isAdmin))
+      .sort((a, b) =>
+        `${a.match_date} ${a.start_time}`.localeCompare(`${b.match_date} ${b.start_time}`)
+      ), [matches, currentPlayer, isAdmin]
   );
   const upcomingMatches = useMemo(
     () => {
@@ -162,11 +176,19 @@ export default function App() {
     [sortedMatches],
   );
   const nextMatch = upcomingMatches[0] || null;
-  const selectedMatch = matches.find((m) => m.id === selectedMatchId) || nextMatch;
+  const selectedMatch = sortedMatches.find((m) => m.id === selectedMatchId) || nextMatch;
   const profileById = useMemo(
     () => new Map(profiles.map((p) => [p.id, p])), [profiles]
   );
   const matchGuests = guests[selectedMatch?.id] || [];
+  const myPendingAssistedReservations = useMemo(
+    () => matches.filter((match) =>
+      match.reservation_owner_user_id === profile?.id
+      && activeReservationStatus(match) === "pending"
+      && canAccessMatch(match, currentPlayer, isAdmin)
+    ),
+    [matches, profile?.id, currentPlayer, isAdmin],
+  );
 
   useEffect(() => {
     if (selectedMatch?.id && !guests[selectedMatch.id]) {
@@ -242,7 +264,7 @@ export default function App() {
     setProfile(null); setMemberships([]); setActiveGroupId("");
     setProfiles([]); setRatings([]); setMatches([]); setAttendances([]);
     setTeamsByMatch({}); setFines([]); setSettings(null);
-    setVenues([]); setMatchFees([]); setCollections([]);
+    setVenues([]); setMatchFees([]); setCollections([]); setGroupTagRows([]);
     setPage("matches");
   }
 
@@ -310,11 +332,11 @@ export default function App() {
   async function loadData(currentProfile = profile, groupId = activeGroupId) {
     if (!currentProfile || !groupId) return;
     const [matchRows, attendanceRows, fineRows, ratingRows, settingRows,
-           profileRows, venueRows, collectionRows] = await Promise.all([
+           profileRows, venueRows, collectionRows, tagRows] = await Promise.all([
       api.listMatches(groupId), api.listAttendances(groupId),
       api.listFines(groupId), api.listRatings(groupId),
       api.listSettings(groupId), api.listGroupProfiles(groupId),
-      api.listVenues(groupId), api.listCollections(groupId),
+      api.listVenues(groupId), api.listCollections(groupId), api.listGroupTags(groupId),
     ]);
     let voteRows = [];
     try { voteRows = await api.getPlayerVotes(groupId); } catch (e) { console.warn("Votes not available:", e.message); }
@@ -328,6 +350,7 @@ export default function App() {
     setRatings(ratingRows); setSettings(settingRows[0] || null);
     setVotes(voteRows);
     setProfiles(profileRows); setTeamsByMatch(teamsMap);
+    setGroupTagRows(tagRows);
     loadSkills();
     setVenues(venueRows); setCollections(collectionRows);
     setMatchFees(feePairs.filter(Boolean));
@@ -396,6 +419,10 @@ export default function App() {
 
   async function confirmMatch(match) {
     setNotice(""); setError("");
+    if (!canAccessMatch(match, currentPlayer, isAdmin)) {
+      setError("Este partido es exclusivo para otros tags del grupo.");
+      return;
+    }
     if (!isActiveMember) {
       const isMember = memberships.some((m) => m.group_id === activeGroupId);
       if (!isMember && activeGroupId) {
@@ -446,6 +473,10 @@ export default function App() {
 
   async function joinWaitlist(match) {
     setNotice(""); setError("");
+    if (!canAccessMatch(match, currentPlayer, isAdmin)) {
+      setError("Este partido es exclusivo para otros tags del grupo.");
+      return;
+    }
     if (!isActiveMember) {
       const isMember = memberships.some((m) => m.group_id === activeGroupId);
       if (!isMember && activeGroupId) {
@@ -575,10 +606,24 @@ export default function App() {
     setNotice(""); setError("");
     try {
       const updated = await api.updateProfileAdmin(profileId, payload);
-      setProfiles((c) => c.map((p) => (p.id === updated.id ? updated : p)));
+      setProfiles((c) => c.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
       if (updated.id === profile.id) setProfile(updated);
       setNotice("Jugador actualizado.");
     } catch (err) { setError(err.message); }
+  }
+
+  async function createGroupTag(name) {
+    setNotice(""); setError("");
+    try {
+      const tag = await api.createGroupTag(activeGroupId, name, profile?.id);
+      setGroupTagRows((rows) => [...rows.filter((row) => row.id !== tag.id && row.name !== tag.name), tag]
+        .sort((a, b) => a.name.localeCompare(b.name)));
+      setNotice("Tag guardado.");
+      return tag.name;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
   }
 
   async function updateGroupMember(profileId, payload) {
@@ -643,7 +688,9 @@ export default function App() {
 
       const result = await api.generateTeamsForMatch(match, freshProfiles, attendances, ratings, options);
       setTeamsByMatch((c) => ({ ...c, [match.id]: result.teams }));
-      setNotice(options.aiTeams ? "Equipos distribuidos por IA." : "Equipos generados.");
+      setNotice(options.aiFallback
+        ? "La IA devolvió equipos incompletos; se generaron equipos automáticos con todos los confirmados."
+        : options.aiTeams ? "Equipos distribuidos por IA." : "Equipos generados.");
     } catch (err) { setError(err.message); }
   }
 
@@ -998,6 +1045,12 @@ export default function App() {
 
       {error && <div className="alert error">{error}</div>}
       {notice && <div className="alert success">{notice}</div>}
+      {myPendingAssistedReservations.length > 0 && page !== "reservations" && (
+        <div className="alert success reservation-alert">
+          <span>Tienes reservas pendientes para este período</span>
+          <button type="button" onClick={() => setPage("reservations")}>Ir a reservas</button>
+        </div>
+      )}
       {loading && <div className="empty-state compact">Cargando...</div>}
 
       <main>
@@ -1008,7 +1061,9 @@ export default function App() {
             onCancel={cancelMatch} onConfirm={confirmMatch} onJoinWaitlist={joinWaitlist}
             onCreateMatch={createMatch} onDeleteMatch={deleteMatch}
             onOpenMatch={openMatch} profile={currentPlayer} teamsByMatch={teamsByMatch}
-            venues={venues} />
+            venues={venues} profiles={profiles} groupTags={groupTags}
+            onCreateGroupTag={createGroupTag}
+            onNotice={setNotice} />
         )}
         {page === "match" && selectedMatch && (
           <MatchDetail attendances={matchAttendances(selectedMatch.id)}
@@ -1026,9 +1081,10 @@ export default function App() {
             onDeleteGuest={(id) => deleteGuestPlayer(selectedMatch.id, id)}
             onUpdateGuestRating={(id, rating) => updateGuestRating(selectedMatch.id, id, rating)}
             guests={matchGuests}
-            profile={currentPlayer} profileById={profileById}
+            profile={currentPlayer} profiles={profiles} profileById={profileById}
             skills={skills}
-            teams={teamsByMatch[selectedMatch.id] || []} />
+            teams={teamsByMatch[selectedMatch.id] || []}
+            venues={venues} />
         )}
         {page === "team" && (
           <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} isAdmin={isAdmin} />
@@ -1074,14 +1130,18 @@ export default function App() {
         )}
         {page === "admin" && isAdmin && (
           <AdminPanel matches={sortedMatches} venues={venues}
+            profiles={profiles} attendances={attendances}
             onCreateMatch={createMatch} onDeleteMatch={deleteMatch}
             onEditMatch={editMatch} onGenerateTeams={generateTeams}
-            teamsByMatch={teamsByMatch} />
+            teamsByMatch={teamsByMatch} groupTags={groupTags}
+            onCreateGroupTag={createGroupTag}
+            onNotice={setNotice} />
         )}
         {page === "players" && isAdmin && (
           <PlayersAdmin activeGroupId={activeGroupId} attendances={attendances} fines={fines} matches={matches}
             onAssignRating={isSuperAdmin ? assignRating : undefined}
             onUpdateMember={updateGroupMember} onUpdateProfile={updateProfileAdmin}
+            onCreateGroupTag={createGroupTag}
             profiles={profiles} ratingMap={ratingMap} isSuperAdmin={isSuperAdmin}
             voteScoreMap={voteScoreMap} userVoteMap={userVoteMap} onVote={votePlayer}
             currentProfileId={profile?.id}
@@ -1091,10 +1151,14 @@ export default function App() {
           <VenuesPage groupId={activeGroupId} profileId={profile?.id} venues={venues}
             onCreateVenue={createVenue} onUpdateVenue={updateVenue} />
         )}
-        {page === "reservations" && isAdmin && (
+        {page === "reservations" && canUseReservationAssistant && (
           <CourtReservationPage activeGroupId={activeGroupId} profiles={profiles}
-            venues={venues} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin}
-            currentUserId={profile?.id} onCreateMatch={(m) => { setMatches((c) => [...c, m]); }} />
+            venues={venues} matches={sortedMatches} attendances={attendances}
+            isAdmin={isAdmin} isSuperAdmin={isSuperAdmin}
+            currentUserId={profile?.id}
+            onUpdateMatch={editMatch}
+            onNotice={setNotice}
+            onCreateMatch={(m) => { setMatches((c) => [...c, m]); }} />
         )}
         {page === "sim" && isAdmin && (
           <SimPage profiles={profiles} ratingMap={ratingMap} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} skills={skills} />

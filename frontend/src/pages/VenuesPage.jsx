@@ -62,7 +62,7 @@ function VenueForm({ initial, onSave, onCancel }) {
     <form className="venue-form" onSubmit={submit}>
       {error && <p className="form-message">{error}</p>}
 
-      <div className="venue-form-row">
+      <div className="venue-form-grid">
         <label>
           Nombre de la cancha
           <input value={form.name} onChange={(e) => update({ name: e.target.value })} />
@@ -75,9 +75,6 @@ function VenueForm({ initial, onSave, onCancel }) {
             onChange={(e) => update({ address: e.target.value })}
           />
         </label>
-      </div>
-
-      <div className="venue-form-row">
         <label>
           Costo típico (Q)
           <input
@@ -88,7 +85,7 @@ function VenueForm({ initial, onSave, onCancel }) {
             onChange={(e) => update({ default_cost: e.target.value })}
           />
         </label>
-        <label>
+        <label className="venue-form-wide">
           Notas
           <input
             placeholder="Ej. Cancha techada"
@@ -98,15 +95,19 @@ function VenueForm({ initial, onSave, onCancel }) {
         </label>
       </div>
 
-      <label>
+      <label className="venue-form-wide">
         Ubicación en el mapa
         <MapPicker lat={form.lat} lng={form.lng} onChange={handleMapChange} height="220px" />
       </label>
 
-      <label className="media-upload">
+      <label className="media-upload venue-photo-upload">
         Foto de la cancha
         {photoPreview ? (
-          <img alt="Vista previa" src={photoPreview} />
+          <img
+            alt="Vista previa"
+            src={photoPreview}
+            onError={() => setPhotoPreview("")}
+          />
         ) : (
           <span className="media-placeholder">Subí una foto</span>
         )}
@@ -140,7 +141,7 @@ export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, 
   }
 
   return (
-    <div className="page-grid">
+    <div className="page-grid venues-page">
       <section className="panel">
         <div className="section-heading">
           <div>
@@ -161,7 +162,13 @@ export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, 
             <article className="ledger-row" key={venue.id}>
               {venue.photo_url && (
                 <div className="venue-thumb">
-                  <img alt={venue.name} src={venue.photo_url} />
+                  <img
+                    alt={venue.name}
+                    src={venue.photo_url}
+                    onError={(event) => {
+                      event.currentTarget.closest(".venue-thumb")?.remove();
+                    }}
+                  />
                 </div>
               )}
               <div>

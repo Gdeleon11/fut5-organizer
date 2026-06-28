@@ -215,7 +215,7 @@ export default function SuperAdminPage({
   onRemoveMember,
 }) {
   return (
-    <div className="page-grid">
+    <div className="page-grid super-admin-page">
       <section className="panel">
         <div className="section-heading">
           <div>
@@ -224,7 +224,7 @@ export default function SuperAdminPage({
           </div>
           <span className="count-pill">{profiles.length}</span>
         </div>
-        <div className="player-admin-list">
+        <div className="super-admin-list">
           {profiles.length === 0 ? (
             <div className="empty-state compact">No hay jugadores registrados.</div>
           ) : (

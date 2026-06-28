@@ -296,7 +296,7 @@ export const api = {
       client
         .from("group_members")
         .select(
-          "id, group_id, profile_id, role, is_active, created_at, profiles(id, full_name, nickname, phone, preferred_position, avatar_url, created_at, updated_at)",
+          "id, group_id, profile_id, role, is_active, created_at, profiles(id, full_name, nickname, phone, preferred_position, avatar_url, group_tags, created_at, updated_at)",
         )
         .eq("group_id", groupId)
         .order("created_at", { ascending: true }),
@@ -333,12 +333,40 @@ export const api = {
     if (payload.preferred_position) {
       allowedPayload.preferred_position = payload.preferred_position;
     }
+    if (Array.isArray(payload.group_tags)) {
+      allowedPayload.group_tags = payload.group_tags;
+    }
 
     return readOne(
       client
         .from("profiles")
         .update(allowedPayload)
         .eq("id", profileId)
+        .select("*")
+        .single(),
+    );
+  },
+
+  async listGroupTags(groupId) {
+    const client = requireSupabase();
+    return readMany(
+      client
+        .from("group_tags")
+        .select("*")
+        .eq("group_id", groupId)
+        .order("name", { ascending: true }),
+    );
+  },
+
+  async createGroupTag(groupId, name, profileId) {
+    const client = requireSupabase();
+    return readOne(
+      client
+        .from("group_tags")
+        .upsert(
+          { group_id: groupId, name, created_by: profileId },
+          { onConflict: "group_id,name" },
+        )
         .select("*")
         .single(),
     );
@@ -636,7 +664,7 @@ export const api = {
     let playerSkills = [];
     try {
       playerSkills = await readMany(
-        client.from("player_skills").select("player_id, skill").eq("group_id", match.group_id || groupId).in("player_id", confirmedIds),
+        client.from("player_skills").select("player_id, skill").eq("group_id", match.group_id).in("player_id", confirmedIds),
       );
     } catch (e) {
       console.warn("Skills not available:", e.message);
@@ -665,7 +693,8 @@ export const api = {
     if (options.aiAssignments && Array.isArray(options.aiAssignments)) {
       const playerMap = new Map(players.map((p) => [p.id, p]));
       const aiTeams = options.aiAssignments.map((team, index) => {
-        const teamPlayers = (team.player_ids || []).map((id) => playerMap.get(id)).filter(Boolean);
+        const ids = team.player_ids || team.playerIds || [];
+        const teamPlayers = ids.map((id) => playerMap.get(id)).filter(Boolean);
         return {
           name: team.name || `Equipo ${String.fromCharCode(65 + index)}`,
           team_order: index + 1,
@@ -675,11 +704,18 @@ export const api = {
           goalkeeper_count: teamPlayers.filter((p) => p.preferred_position === "Goalkeeper").length,
         };
       });
-      generated = {
-        team_count: aiTeams.length,
-        confirmed_player_count: players.length,
-        teams: aiTeams,
-      };
+      const assignedIds = new Set(aiTeams.flatMap((team) => team.players.map((player) => player.id)));
+      const isValidAi = aiTeams.length > 0
+        && assignedIds.size === players.length
+        && players.every((player) => assignedIds.has(player.id))
+        && aiTeams.every((team) => team.players.length > 0);
+      generated = isValidAi
+        ? {
+            team_count: aiTeams.length,
+            confirmed_player_count: players.length,
+            teams: aiTeams,
+          }
+        : generateBalancedTeams(players);
     } else {
       generated = generateBalancedTeams(players);
     }
