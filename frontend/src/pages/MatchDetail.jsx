@@ -375,7 +375,7 @@ export default function MatchDetail({
               isAdmin={isAdmin}
             />
             {isAdmin && (
-              <>
+              <div className="export-cards-grid">
                 <ExportCard
                   label="Equipos para WhatsApp"
                   text={teamAnnouncementText(match, teams)}
@@ -384,7 +384,7 @@ export default function MatchDetail({
                   label="Notificar equipos a jugadores"
                   text={teamNotificationText(match, teams)}
                 />
-              </>
+              </div>
             )}
           </>
         )}
