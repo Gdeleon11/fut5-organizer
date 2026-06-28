@@ -77,8 +77,11 @@ Cada player_id debe aparecer exactamente una vez. No agregues texto adicional.`;
     throw new Error("Formato de respuesta inválido");
   }
 
-  return result.teams.map((team) => ({
-    name: team.name,
-    playerIds: team.player_ids,
-  }));
+  return result.teams.map((team) => {
+    const ids = team.player_ids || team.playerIds || [];
+    return {
+      name: team.name,
+      playerIds: ids,
+    };
+  });
 }

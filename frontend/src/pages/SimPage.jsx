@@ -87,7 +87,8 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
       });
       const playerMap = new Map(selected.map((p) => [p.id, p]));
       const teams = aiTeams.map((t, i) => {
-        const teamPlayers = (t.player_ids || []).map((id) => playerMap.get(id)).filter(Boolean);
+        const teamPlayers = (t.playerIds || []).map((id) => playerMap.get(id)).filter(Boolean);
+        if (teamPlayers.length === 0) return null;
         return {
           name: t.name || `Equipo ${String.fromCharCode(65 + i)}`,
           team_order: i + 1,
@@ -96,7 +97,12 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
           total_rating: teamPlayers.reduce((s, p) => s + (p.rating || 2), 0),
           goalkeeper_count: teamPlayers.filter((p) => p.preferred_position === "Goalkeeper").length,
         };
-      });
+      }).filter(Boolean);
+      if (teams.length === 0 || teams.every((t) => t.players.length === 0)) {
+        setError("La IA no pudo asignar jugadores. Intentá de nuevo o usá el algoritmo normal.");
+        setAiLoading(false);
+        return;
+      }
       setResult({ team_count: teams.length, confirmed_player_count: selected.length, teams });
     } catch (err) {
       setError(err.message);
