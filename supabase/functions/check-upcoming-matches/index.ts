@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -34,12 +33,10 @@ serve(async (req) => {
     const results = [];
 
     for (const match of upcomingMatches || []) {
-      // Check if match is actually within the next hour
       const matchDateTime = new Date(`${match.match_date}T${match.start_time || "19:00"}:00`);
       const diffMinutes = (matchDateTime.getTime() - now.getTime()) / (1000 * 60);
 
       if (diffMinutes > 0 && diffMinutes <= 60) {
-        // Get confirmed players
         const { data: attendances } = await supabase
           .from("attendances")
           .select("profile_id")
@@ -47,10 +44,8 @@ serve(async (req) => {
           .in("status", ["confirmed", "checked_in"]);
 
         const playerIds = (attendances || []).map((a) => a.profile_id);
-
         if (playerIds.length === 0) continue;
 
-        // Send push notifications
         const { data: subscriptions } = await supabase
           .from("push_subscriptions")
           .select("*")
@@ -58,34 +53,33 @@ serve(async (req) => {
 
         for (const sub of subscriptions || []) {
           try {
-            const pushPayload = {
+            const pushPayload = JSON.stringify({
               title: match.title || "Chamuscón",
               body: `¡Empezá en ${Math.round(diffMinutes)} minutos! ${match.venue || ""}`,
-              url: `/match/${match.id}`,
-            };
+              url: `/`,
+            });
 
-            // Send push notification
-            const response = await fetch(sub.endpoint, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/octet-stream",
-                TTL: "300",
-              },
-              body: JSON.stringify(pushPayload),
+            // Store notification for later delivery
+            await supabase.from("notifications").insert({
+              profile_id: sub.profile_id,
+              title: match.title || "Chamuscón",
+              body: `¡Empezá en ${Math.round(diffMinutes)} minutos! ${match.venue || ""}`,
+              type: "match_reminder",
+              match_id: match.id,
             });
 
             results.push({
               match_id: match.id,
               player_id: sub.profile_id,
               type: "push",
-              sent: response.ok,
+              queued: true,
             });
           } catch (pushError) {
             results.push({
               match_id: match.id,
               player_id: sub.profile_id,
               type: "push",
-              sent: false,
+              queued: false,
               error: pushError.message,
             });
           }
