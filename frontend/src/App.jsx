@@ -635,9 +635,14 @@ export default function App() {
     try {
       const freshProfiles = await api.listGroupProfiles(activeGroupId);
       setProfiles(freshProfiles);
+
+      if (options.aiTeams) {
+        options.aiAssignments = options.aiTeams.teams;
+      }
+
       const result = await api.generateTeamsForMatch(match, freshProfiles, attendances, ratings, options);
       setTeamsByMatch((c) => ({ ...c, [match.id]: result.teams }));
-      setNotice("Equipos generados.");
+      setNotice(options.aiTeams ? "Equipos distribuidos por IA." : "Equipos generados.");
     } catch (err) { setError(err.message); }
   }
 
@@ -1020,6 +1025,7 @@ export default function App() {
             onUpdateGuestRating={(id, rating) => updateGuestRating(selectedMatch.id, id, rating)}
             guests={matchGuests}
             profile={currentPlayer} profileById={profileById}
+            skills={skills}
             teams={teamsByMatch[selectedMatch.id] || []} />
         )}
         {page === "team" && (

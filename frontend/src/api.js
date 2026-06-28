@@ -638,7 +638,28 @@ export const api = {
       players = topTen;
     }
 
-    const generated = generateBalancedTeams(players);
+    let generated;
+    if (options.aiAssignments && Array.isArray(options.aiAssignments)) {
+      const playerMap = new Map(players.map((p) => [p.id, p]));
+      const aiTeams = options.aiAssignments.map((team, index) => {
+        const teamPlayers = (team.player_ids || []).map((id) => playerMap.get(id)).filter(Boolean);
+        return {
+          name: team.name || `Equipo ${String.fromCharCode(65 + index)}`,
+          team_order: index + 1,
+          target_size: teamPlayers.length,
+          players: teamPlayers,
+          total_rating: teamPlayers.reduce((s, p) => s + (p.rating || 2), 0),
+          goalkeeper_count: teamPlayers.filter((p) => p.preferred_position === "Goalkeeper").length,
+        };
+      });
+      generated = {
+        team_count: aiTeams.length,
+        confirmed_player_count: players.length,
+        teams: aiTeams,
+      };
+    } else {
+      generated = generateBalancedTeams(players);
+    }
 
     if (penaltyTeam && penaltyTeam.length > 0) {
       generated.teams.push({

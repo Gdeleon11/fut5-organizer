@@ -1760,6 +1760,12 @@ small, .muted {
   color: var(--accent);
 }
 
+.skill-limit-msg {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .team-assign-grid {
   display: flex;
   flex-direction: column;

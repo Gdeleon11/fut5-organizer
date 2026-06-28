@@ -4,6 +4,7 @@ import ExportCard from "../components/ExportCard.jsx";
 import StarRatingControl from "../components/StarRatingControl.jsx";
 import TeamCards from "../components/TeamCards.jsx";
 import WeatherWidget from "../components/WeatherWidget.jsx";
+import { distributeTeamsWithAI } from "../groq.js";
 import { useState } from "react";
 import {
   attendanceLabel,
@@ -145,10 +146,44 @@ export default function MatchDetail({
   guests,
   profile,
   profileById,
+  skills,
   teams,
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [teamInstructions, setTeamInstructions] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+
+  async function handleAIDistribute() {
+    setAiError("");
+    setAiLoading(true);
+    try {
+      const confirmedAttendances = attendances.filter(
+        (a) => a.status === "confirmed" || a.status === "checked_in"
+      );
+      const confirmedIds = confirmedAttendances.map((a) => a.profile_id);
+      const players = profileById
+        ? Array.from(profileById.values()).filter(
+            (p) => p.membership_is_active && confirmedIds.includes(p.id),
+          )
+        : [];
+      const playerSkills = (skills || []).filter((s) => confirmedIds.includes(s.player_id));
+      const teamCount = Math.ceil(players.length / 5);
+
+      const aiTeams = await distributeTeamsWithAI({
+        players,
+        skills: playerSkills,
+        instructions: teamInstructions,
+        teamCount,
+      });
+
+      onGenerateTeams({ aiTeams: { teams: aiTeams, team_count: aiTeams.length } });
+    } catch (err) {
+      setAiError(err.message);
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   const canPenaltyTeam = confirmedCount >= 13 && confirmedCount <= 14;
   const isPlayerConfirmed = myAttendance && ["confirmed", "checked_in"].includes(myAttendance.status);
@@ -198,8 +233,17 @@ export default function MatchDetail({
               </label>
             </div>
             <div className="button-row">
-              <button type="button" onClick={() => onGenerateTeams({ instructions: teamInstructions })}>
+              <button type="button" onClick={() => onGenerateTeams({ instructions: teamInstructions })} disabled={aiLoading}>
                 Generar equipos
+              </button>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={handleAIDistribute}
+                disabled={aiLoading}
+                title="Usa Groq AI para distribuir equipos considerando skills e instrucciones"
+              >
+                {aiLoading ? "🤖 Pensando..." : "🤖 Distribuir con IA"}
               </button>
               {canPenaltyTeam && (
                 <button
@@ -210,7 +254,8 @@ export default function MatchDetail({
                 >
                   Con equipo de castigo
                 </button>
-            )}
+              )}
+            {aiError && <p className="form-message">{aiError}</p>}
             {confirmingDelete ? (
               <>
                 <button
@@ -237,6 +282,7 @@ export default function MatchDetail({
                 Eliminar partido
               </button>
             )}
+            {aiError && <p className="form-message">{aiError}</p>}
           </div>
           </>
         )}

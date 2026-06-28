@@ -161,6 +161,7 @@ export default function PlayersAdmin({
                 {isSuperAdmin && (() => {
                   const playerSkills = skills?.filter((s) => s.player_id === player.id) || [];
                   const SKILL_MAP = Object.fromEntries(SKILL_OPTIONS.map((o) => [o.id, o]));
+                  const hasMaxSkills = playerSkills.length >= 3;
                   return (
                     <div className="player-skills">
                       {playerSkills.length > 0 ? (
@@ -181,23 +182,27 @@ export default function PlayersAdmin({
                           })}
                         </div>
                       ) : null}
-                      <select
-                        className="skill-select"
-                        value=""
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            onAddSkill(player.id, e.target.value);
-                            e.target.value = "";
-                          }
-                        }}
-                      >
-                        <option value="">+ Asignar skill</option>
-                        {SKILL_OPTIONS.map((opt) => (
-                          <option key={opt.id} value={opt.id}>
-                            {opt.emoji} {opt.label}
-                          </option>
-                        ))}
-                      </select>
+                      {hasMaxSkills ? (
+                        <small className="skill-limit-msg">Máximo 3 skills</small>
+                      ) : (
+                        <select
+                          className="skill-select"
+                          value=""
+                          onChange={(e) => {
+                            if (e.target.value) {
+                              onAddSkill(player.id, e.target.value);
+                              e.target.value = "";
+                            }
+                          }}
+                        >
+                          <option value="">+ Asignar skill</option>
+                          {SKILL_OPTIONS.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.emoji} {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </div>
                   );
                 })()}
