@@ -5,8 +5,29 @@ import { SKILL_OPTIONS } from "../constants.js";
 
 // Helper to calculate FIFA FUT attributes based on player skills, rating and position
 export function calculateFifaStats(profile, ratingObj = null, playerSkills = [], isGuest = false, guestRating = 3) {
-  // If guest, use guestRating (1-5) as base. If registered, use ratingObj.rating or fallback to 3.
-  const overallRating = isGuest ? guestRating : (ratingObj?.rating || 3);
+  const pos = profile?.preferred_position || "Flexible";
+  
+  let overallRating = 3;
+  if (isGuest) {
+    overallRating = guestRating;
+  } else if (ratingObj) {
+    const att = ratingObj.attack_rating || 3;
+    const mid = ratingObj.midfield_rating || 3;
+    const def = ratingObj.defense_rating || 3;
+    const gk = ratingObj.goalkeeper_rating || 3;
+    
+    if (pos === "Goalkeeper") {
+      overallRating = gk;
+    } else if (pos === "Forward") {
+      overallRating = (att * 2 + mid) / 3;
+    } else if (pos === "Defender") {
+      overallRating = (def * 2 + mid) / 3;
+    } else if (pos === "Midfielder") {
+      overallRating = (mid * 2 + att + def) / 4;
+    } else {
+      overallRating = (att + mid + def) / 3;
+    }
+  }
   
   const rAtt = isGuest ? guestRating : (ratingObj?.attack_rating || overallRating);
   const rMid = isGuest ? guestRating : (ratingObj?.midfield_rating || overallRating);
@@ -24,7 +45,6 @@ export function calculateFifaStats(profile, ratingObj = null, playerSkills = [],
   let phy = Math.round(rDef * 12 + rMid * 8); // Physicality
   
   // Position adjustments
-  const pos = profile?.preferred_position || "Flexible";
   if (pos === "Forward") {
     pac += 8;
     sho += 10;
