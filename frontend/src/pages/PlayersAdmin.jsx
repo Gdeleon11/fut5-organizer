@@ -262,7 +262,7 @@ export default function PlayersAdmin({
           <>
             <div className="player-detail-split">
               {/* Left Column: FIFA Card */}
-              <div style={{ display: "flex", justifyContent: "center" }}>
+              <div className="fifa-card-sticky-wrap">
                 <FifaCard
                   profile={selected}
                   ratingObj={ratingMap.get(selected.id)}
@@ -271,8 +271,8 @@ export default function PlayersAdmin({
                 />
               </div>
 
-              {/* Right Column: Player metadata */}
-              <div style={{ display: "grid", gap: "1rem" }}>
+              {/* Right Column: Player metadata & edit controls */}
+              <div className="player-detail-controls">
                 <div className="section-heading">
                   <div>
                     <p className="eyebrow">Detalle del jugador</p>
@@ -318,8 +318,6 @@ export default function PlayersAdmin({
                     <small>Tags de subgrupo</small>
                   </span>
                 </div>
-              </div>
-            </div>
 
             <div className="quick-actions">
               {isSuperAdmin && (
@@ -536,7 +534,9 @@ export default function PlayersAdmin({
                 </div>
               )}
             </div>
-          </>
+            </div> {/* Closes player-detail-controls */}
+          </div> {/* Closes player-detail-split */}
+        </>
         )}
       </section>
     </div>
