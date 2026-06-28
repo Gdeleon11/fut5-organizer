@@ -181,19 +181,34 @@ export function waitlistPosition(matchId, profileId, attendances) {
 }
 
 export async function copyToClipboard(text) {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+  try {
+    if (navigator.clipboard?.writeText && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+  } catch (e) {
+    console.warn("Clipboard API failed, trying fallback", e);
   }
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.setAttribute("readonly", "");
   textarea.style.position = "fixed";
+  textarea.style.top = "0";
+  textarea.style.left = "0";
+  textarea.style.width = "1px";
+  textarea.style.height = "1px";
   textarea.style.opacity = "0";
+  textarea.style.padding = "0";
+  textarea.style.border = "none";
   document.body.appendChild(textarea);
+  textarea.focus();
   textarea.select();
-  document.execCommand("copy");
-  document.body.removeChild(textarea);
+  try {
+    const success = document.execCommand("copy");
+    if (!success) throw new Error("execCommand failed");
+  } finally {
+    document.body.removeChild(textarea);
+  }
 }
 
 export function teamNotificationText(match, teams) {

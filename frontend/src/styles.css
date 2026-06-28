@@ -646,12 +646,20 @@ small, .muted {
 .form-grid,
 .admin-list,
 .group-list,
-.player-admin-list,
 .list,
 .ledger-list,
 .player-list {
   display: grid;
   gap: 0.75rem;
+}
+
+.player-admin-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  max-height: 70vh;
+  overflow-y: auto;
+  align-content: start;
 }
 
 .venue-form {
@@ -1492,10 +1500,11 @@ small, .muted {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-2);
-  padding: 0.85rem 1rem;
+  padding: 0.6rem 0.7rem;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.4rem;
   transition: border-color 0.15s;
+  font-size: 0.85rem;
 }
 
 .player-admin-card.is-selected {
@@ -1515,6 +1524,18 @@ small, .muted {
   font-size: 0.95rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
+}
+
+@media (min-width: 900px) {
+  .player-admin-list {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+}
+
+@media (min-width: 1400px) {
+  .player-admin-list {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
 }
 
 .history-row {
@@ -1692,7 +1713,18 @@ small, .muted {
 .sim-player-info {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.3rem;
+}
+
+.ai-instructions-input {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  font-family: inherit;
 }
 
 .sim-player-info input[type="checkbox"] {

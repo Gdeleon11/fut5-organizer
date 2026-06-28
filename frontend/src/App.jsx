@@ -1095,7 +1095,7 @@ export default function App() {
             currentUserId={profile?.id} onCreateMatch={(m) => { setMatches((c) => [...c, m]); }} />
         )}
         {page === "sim" && isAdmin && (
-          <SimPage profiles={profiles} ratingMap={ratingMap} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
+          <SimPage profiles={profiles} ratingMap={ratingMap} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} skills={skills} />
         )}
         {page === "tournaments" && isSuperAdmin && (
           <TournamentPage activeGroupId={activeGroupId} profiles={profiles} ratingMap={ratingMap}
