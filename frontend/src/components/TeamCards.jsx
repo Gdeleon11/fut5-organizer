@@ -11,9 +11,11 @@ export default function TeamCards({ teams, isAdmin, onColorChange }) {
           style={{ borderTop: `4px solid ${team.color || "#22c55e"}` }}
         >
           <div className="team-header">
-            <span className="team-name-dot" style={{ background: team.color || "#22c55e" }} />
-            <strong>{team.name}</strong>
-            {isAdmin && <span className="team-rating-pill">{team.total_rating || 0} estrellas</span>}
+            <div className="team-header-left">
+              <span className="team-name-dot" style={{ background: team.color || "#22c55e" }} />
+              <strong>{team.name}</strong>
+            </div>
+            {isAdmin && <span className="team-rating-pill">{team.total_rating || 0} ★</span>}
           </div>
           <ul>
             {(team.team_members || []).map((member) => {
@@ -28,8 +30,8 @@ export default function TeamCards({ teams, isAdmin, onColorChange }) {
                       <Avatar profile={member.profiles} size="sm" />
                     )}
                     {name}
-                    {isGuest && <small className="guest-tag">invitado</small>}
                   </span>
+                  {isGuest && <small className="guest-tag">invitado</small>}
                 </li>
               );
             })}

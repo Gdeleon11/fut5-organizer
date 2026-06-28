@@ -1233,10 +1233,14 @@ small, .muted {
 .guest-tag {
   font-size: 0.6rem;
   color: var(--accent);
+  border: 1px solid rgba(var(--accent-rgb), 0.2);
+  background: rgba(var(--accent-rgb), 0.05);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  margin-left: 0.3rem;
+  padding: 0.12rem 0.35rem;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 .reservation-card {
@@ -1700,10 +1704,16 @@ small, .muted {
 }
 
 .team-header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+}
+
+.team-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .team-header strong {
@@ -1744,6 +1754,7 @@ small, .muted {
 .team-card li {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -2598,8 +2609,7 @@ small, .muted {
   .history-row,
   .ledger-meta,
   .proof-info-row,
-  .player-card-head,
-  .team-header {
+  .player-card-head {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -2614,8 +2624,7 @@ small, .muted {
   .history-row > *,
   .ledger-meta > *,
   .proof-info-row > *,
-  .player-card-head > *,
-  .team-header > * {
+  .player-card-head > * {
     width: 100%;
   }
 
@@ -2766,7 +2775,6 @@ small, .muted {
   }
 
   .profile-summary { grid-template-columns: repeat(3, 1fr); }
-  .team-grid { grid-template-columns: repeat(3, 1fr); }
 
   .admin-row {
     grid-template-columns: 1.4fr 1fr 88px auto auto 96px;
@@ -2784,6 +2792,8 @@ small, .muted {
 }
 
 @media (min-width: 920px) {
+  .team-grid { grid-template-columns: repeat(3, 1fr); }
+
   .players-admin-grid {
     grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
     align-items: start;

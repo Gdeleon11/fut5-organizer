@@ -29,8 +29,11 @@ export default function TeamPage({ matches, profile, teamsByMatch, isAdmin }) {
             {assigned.map(({ match, team }) => (
               <article className="team-card" key={`${match.id}-${team.id}`}>
                 <div className="team-header">
-                  <strong>{team.name}</strong>
-                  {isAdmin && <span>{team.total_rating || 0} estrellas</span>}
+                  <div className="team-header-left">
+                    <span className="team-name-dot" style={{ background: team.color || "#22c55e" }} />
+                    <strong>{team.name}</strong>
+                  </div>
+                  {isAdmin && <span className="team-rating-pill">{team.total_rating || 0} ★</span>}
                 </div>
                 <small>{formatMatchDate(match)}</small>
                 <ul>
@@ -46,8 +49,8 @@ export default function TeamPage({ matches, profile, teamsByMatch, isAdmin }) {
                             <Avatar profile={member.profiles} size="sm" />
                           )}
                           {name}
-                          {isGuest && <small className="guest-tag">invitado</small>}
                         </span>
+                        {isGuest && <small className="guest-tag">invitado</small>}
                       </li>
                     );
                   })}
