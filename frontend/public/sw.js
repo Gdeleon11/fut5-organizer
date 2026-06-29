@@ -1,4 +1,4 @@
-const CACHE_NAME = "fut5-organizer-v1";
+const CACHE_NAME = "fut5-organizer-v2";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",

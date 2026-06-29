@@ -3662,6 +3662,176 @@ small, .muted {
   transform: translateY(-1px);
 }
 
+/* Goalkeeper Specific Card Styling (degraded pitch-green with gloves texture) */
+.fifa-card-container.goalkeeper {
+  background: linear-gradient(135deg, #10b981 0%, #059669 50%, #064e3b 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+}
+
+.fifa-card-container.goalkeeper:hover {
+  box-shadow: 0 16px 36px rgba(16, 185, 129, 0.55);
+}
+
+.fifa-card-container.goalkeeper .fifa-card-inner {
+  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, rgba(6, 78, 59, 0.4) 100%), linear-gradient(180deg, #0f172a 0%, #020617 100%);
+  color: #f8fafc;
+}
+
+.fifa-card-container.goalkeeper .fifa-divider {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+.fifa-card-container.goalkeeper .fifa-overall {
+  color: #10b981;
+}
+
+.fifa-card-container.goalkeeper .fifa-pos {
+  color: #34d399;
+}
+
+.fifa-card-container.goalkeeper .fifa-watermark {
+  opacity: 0.18;
+  filter: grayscale(0.5) brightness(1.2);
+}
+
+/* Leaderboard Page Styles */
+.podium-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.podium-card {
+  background: var(--surface-3);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.podium-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.podium-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+}
+
+.podium-card.gold::before {
+  background: linear-gradient(90deg, #ffe066, #d4af37);
+}
+
+.podium-card.silver::before {
+  background: linear-gradient(90deg, #ffffff, #94a3b8);
+}
+
+.podium-card.special::before {
+  background: linear-gradient(90deg, #f472b6, #c084fc);
+}
+
+.podium-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.podium-card.gold .podium-badge {
+  color: #ffe066;
+  background: rgba(254, 224, 102, 0.1);
+}
+
+.podium-card.silver .podium-badge {
+  color: #cbd5e1;
+  background: rgba(203, 213, 225, 0.1);
+}
+
+.podium-card.special .podium-badge {
+  color: #c084fc;
+  background: rgba(192, 132, 252, 0.1);
+}
+
+.podium-card h3 {
+  font-size: 1.1rem;
+  margin: 0.25rem 0 0;
+}
+
+.podium-stat {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 0.85rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.leaderboard-table th {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.leaderboard-table th.active-sort {
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+}
+
+.leaderboard-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.leaderboard-row:hover {
+  background-color: var(--surface-3);
+}
+
+.pos-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 
 
 

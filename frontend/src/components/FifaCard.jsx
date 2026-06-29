@@ -185,7 +185,7 @@ export default function FifaCard({
     
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
-      <div className={`fifa-card-container ${cardClass}`}>
+      <div className={`fifa-card-container ${cardClass} ${position === "POR" ? "goalkeeper" : ""}`}>
         <div className="fifa-card-inner">
           {/* Position Watermark Background */}
           <div className="fifa-watermark">{watermark}</div>

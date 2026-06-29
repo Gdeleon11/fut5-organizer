@@ -23,6 +23,7 @@ import TeamPage from "./pages/TeamPage.jsx";
 import TournamentPage from "./pages/TournamentPage.jsx";
 import VenuesPage from "./pages/VenuesPage.jsx";
 import TreasuryPage from "./pages/TreasuryPage.jsx";
+import LeaderboardPage from "./pages/LeaderboardPage.jsx";
 import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
 import { activeReservationStatus, canUseReservationAssistant } from "./reservationAssistant.js";
 import { canAccessMatch, collectGroupTags } from "./tags.js";
@@ -142,6 +143,7 @@ export default function App() {
   const navItems = useMemo(() => [
     { id: "matches", label: "Partidos", mobileLabel: "Partidos" },
     { id: "team", label: "Equipo", mobileLabel: "Equipo" },
+    { id: "leaderboard", label: "Estadísticas", mobileLabel: "Estad." },
     { id: "fines", label: "Multas", mobileLabel: "Multas" },
     { id: "fees", label: "Cobros", mobileLabel: "Cobros" },
     { id: "treasury", label: "Finanzas", mobileLabel: "Finan." },
@@ -1161,6 +1163,15 @@ export default function App() {
         )}
         {page === "team" && (
           <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} isAdmin={isAdmin} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
+        )}
+        {page === "leaderboard" && (
+          <LeaderboardPage
+            profiles={profiles}
+            attendances={attendances}
+            matchStats={matchStats}
+            ratingMap={ratingMap}
+            skills={skills}
+          />
         )}
         {page === "fines" && (
           <FinesPage fines={fines} isAdmin={isAdmin} matches={matches}

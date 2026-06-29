@@ -6,7 +6,7 @@ import StarRatingControl from "../components/StarRatingControl.jsx";
 import TeamCards from "../components/TeamCards.jsx";
 import WeatherWidget from "../components/WeatherWidget.jsx";
 import { distributeTeamsWithAI } from "../groq.js";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatTag } from "../tags.js";
 import {
   attendanceLabel,
