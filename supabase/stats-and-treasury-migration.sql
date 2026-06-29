@@ -32,10 +32,10 @@ create policy "Permitir lectura de estadísticas a miembros"
   on public.match_player_stats for select
   using (
     exists (
-      select 1 from public.group_memberships
-      where group_memberships.group_id = match_player_stats.group_id
-      and group_memberships.profile_id = auth.uid()
-      and group_memberships.membership_is_active = true
+      select 1 from public.group_members
+      where group_members.group_id = match_player_stats.group_id
+      and group_members.profile_id = auth.uid()
+      and group_members.is_active = true
     )
   );
 
@@ -44,10 +44,10 @@ create policy "Permitir gestionar estadísticas a administradores"
   on public.match_player_stats for all
   using (
     exists (
-      select 1 from public.group_memberships
-      where group_memberships.group_id = match_player_stats.group_id
-      and group_memberships.profile_id = auth.uid()
-      and group_memberships.role = 'admin'
+      select 1 from public.group_members
+      where group_members.group_id = match_player_stats.group_id
+      and group_members.profile_id = auth.uid()
+      and group_members.role = 'admin'
     )
   );
 
@@ -72,10 +72,10 @@ create policy "Permitir lectura de egresos a miembros"
   on public.group_expenses for select
   using (
     exists (
-      select 1 from public.group_memberships
-      where group_memberships.group_id = group_expenses.group_id
-      and group_memberships.profile_id = auth.uid()
-      and group_memberships.membership_is_active = true
+      select 1 from public.group_members
+      where group_members.group_id = group_expenses.group_id
+      and group_members.profile_id = auth.uid()
+      and group_members.is_active = true
     )
   );
 
@@ -84,9 +84,9 @@ create policy "Permitir gestionar egresos a administradores"
   on public.group_expenses for all
   using (
     exists (
-      select 1 from public.group_memberships
-      where group_memberships.group_id = group_expenses.group_id
-      and group_memberships.profile_id = auth.uid()
-      and group_memberships.role = 'admin'
+      select 1 from public.group_members
+      where group_members.group_id = group_expenses.group_id
+      and group_members.profile_id = auth.uid()
+      and group_members.role = 'admin'
     )
   );
