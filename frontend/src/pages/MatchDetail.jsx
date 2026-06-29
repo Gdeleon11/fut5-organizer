@@ -149,6 +149,7 @@ export default function MatchDetail({
   guests,
   profile,
   profiles = [],
+  profileById,
   skills,
   ratingMap,
   teams,
