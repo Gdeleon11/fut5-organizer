@@ -4,6 +4,7 @@ import Avatar from "./components/Avatar.jsx";
 import PushNotifications from "./components/PushNotifications.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
 import SectionHero from "./components/SectionHero.jsx";
+import AdBanner from "./components/AdBanner.jsx";
 import AdminPanel from "./pages/AdminPanel.jsx";
 import AuthScreen from "./pages/AuthScreen.jsx";
 import FeesPage from "./pages/FeesPage.jsx";
@@ -1329,6 +1330,7 @@ export default function App() {
             onUpdateSettings={updateSettings} onRemoveMember={removeGroupMember} />
         )}
       </main>
+      <AdBanner sticky={true} />
     </div>
   );
 }

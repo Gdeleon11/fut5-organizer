@@ -4380,3 +4380,55 @@ small, .muted {
   height: 2px;
   background-color: var(--primary);
 }
+
+/* ============================================================
+   ADVERTISEMENTS
+   ============================================================ */
+.ad-container {
+  width: 100%;
+  min-height: 50px;
+  background: var(--surface-1);
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  margin-top: 1rem;
+}
+
+.ad-container .ad-placeholder-text {
+  position: absolute;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  z-index: 0;
+}
+
+.ad-container ins {
+  z-index: 1;
+}
+
+.ad-sticky-bottom {
+  position: sticky;
+  bottom: 0;
+  margin-top: 0;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  background: var(--surface-0);
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.3);
+  z-index: 100;
+}
+
+@media (min-width: 768px) {
+  .ad-sticky-bottom {
+    border-radius: 8px;
+    border: 1px dashed var(--border);
+    margin: 1rem auto;
+    max-width: 728px;
+  }
+}
