@@ -380,8 +380,7 @@ export default function PlayersAdmin({
                           return (
                             <span
                               key={s.id}
-                              className="skill-badge"
-                              style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "0.25rem", padding: "0.35rem 0.65rem" }}
+                              className="skill-badge-pill"
                               title={`${skill.label} - ${skill.desc} (Click para quitar)`}
                               onClick={() => { if (confirm(`¿Quitar ${skill.label}?`)) onRemoveSkill(s.id); }}
                             >

@@ -3638,5 +3638,30 @@ small, .muted {
   }
 }
 
+/* Special Skill Badges Pills (Responsive dynamic widths) */
+.skill-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--surface-3);
+  border: 1px solid var(--border-light);
+  border-radius: 20px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  user-select: none;
+  cursor: pointer;
+}
+
+.skill-badge-pill:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+  color: #ef4444;
+  transform: translateY(-1px);
+}
+
+
 
 
