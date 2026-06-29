@@ -3,13 +3,13 @@ import Avatar from "./Avatar.jsx";
 import FifaCard from "./FifaCard.jsx";
 import { displayName, formatMatchDate } from "../utils.js";
 
-export default function TeamCards({ teams, isAdmin, ratingMap, skills, matchStats = [] }) {
+export default function TeamCards({ teams = [], isAdmin, ratingMap, skills, matchStats = [] }) {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   return (
     <>
       <div className="team-grid">
-        {teams.map((team, i) => (
+        {(teams || []).map((team, i) => (
           <article
             className="squad-card"
             key={team.id || i}

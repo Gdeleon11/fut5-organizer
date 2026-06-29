@@ -123,17 +123,19 @@ export function teamAnnouncementText(match, teams) {
   const lines = [
     "EQUIPOS FUT5",
     "",
-    match.title || "Chamuscón",
+    match?.title || "Chamuscón",
     `Cuándo: ${formatMatchDate(match)}`,
-    `Dónde: ${match.venue || "Cancha pendiente"}`,
+    `Dónde: ${match?.venue || "Cancha pendiente"}`,
     "",
   ];
-  teams.forEach((team) => {
-    lines.push(`${team.name} - ${team.total_rating || 0} estrellas`);
-    (team.team_members || []).forEach((member) => {
-      lines.push(`- ${displayName(member.profiles)}`);
-    });
-    lines.push("");
+  (teams || []).forEach((team) => {
+    if (team) {
+      lines.push(`${team.name} - ${team.total_rating || 0} estrellas`);
+      (team.team_members || []).forEach((member) => {
+        lines.push(`- ${displayName(member?.profiles)}`);
+      });
+      lines.push("");
+    }
   });
   return lines.join("\n").trim();
 }
@@ -215,19 +217,21 @@ export function teamNotificationText(match, teams) {
   const lines = [
     "TUS EQUIPOS FUT5",
     "",
-    match.title || "Chamuscón",
+    match?.title || "Chamuscón",
     `Cuándo: ${formatMatchDate(match)}`,
-    `Dónde: ${match.venue || "Cancha pendiente"}`,
+    `Dónde: ${match?.venue || "Cancha pendiente"}`,
     "",
     "---",
     "",
   ];
-  teams.forEach((team) => {
-    lines.push(`${team.name}:`);
-    (team.team_members || []).forEach((member) => {
-      lines.push(`- ${displayName(member.profiles)}`);
-    });
-    lines.push("");
+  (teams || []).forEach((team) => {
+    if (team) {
+      lines.push(`${team.name}:`);
+      (team.team_members || []).forEach((member) => {
+        lines.push(`- ${displayName(member?.profiles)}`);
+      });
+      lines.push("");
+    }
   });
   return lines.join("\n").trim();
 }

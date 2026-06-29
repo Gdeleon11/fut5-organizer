@@ -182,9 +182,9 @@ export default function App() {
   const nextMatch = upcomingMatches[0] || null;
   const selectedMatch = sortedMatches.find((m) => m.id === selectedMatchId) || nextMatch;
   const profileById = useMemo(
-    () => new Map(profiles.map((p) => [p.id, p])), [profiles]
+    () => new Map((profiles || []).map((p) => p && [p.id, p]).filter(Boolean)), [profiles]
   );
-  const matchGuests = guests[selectedMatch?.id] || [];
+  const matchGuests = guests?.[selectedMatch?.id] || [];
   const myPendingAssistedReservations = useMemo(
     () => matches.filter((match) =>
       match.reservation_owner_user_id === profile?.id
@@ -195,10 +195,10 @@ export default function App() {
   );
 
   useEffect(() => {
-    if (selectedMatch?.id && !guests[selectedMatch.id]) {
+    if (selectedMatch?.id && !guests?.[selectedMatch.id]) {
       loadGuests(selectedMatch.id);
     }
-  }, [selectedMatch?.id]);
+  }, [selectedMatch?.id, guests]);
 
   // Auth
   useEffect(() => {
@@ -354,14 +354,14 @@ export default function App() {
       matchRows.filter((m) => Number(m.court_cost) > 0)
         .map(async (m) => api.getMatchFee(m.id))
     );
-    setMatches(matchRows); setAttendances(attendanceRows); setFines(fineRows);
-    setRatings(ratingRows); setSettings(settingRows[0] || null);
-    setVotes(voteRows);
-    setProfiles(profileRows); setTeamsByMatch(teamsMap);
-    setGroupTagRows(tagRows);
+    setMatches(matchRows || []); setAttendances(attendanceRows || []); setFines(fineRows || []);
+    setRatings(ratingRows || []); setSettings(settingRows?.[0] || null);
+    setVotes(voteRows || []);
+    setProfiles(profileRows || []); setTeamsByMatch(teamsMap || {});
+    setGroupTagRows(tagRows || []);
     loadSkills();
-    setVenues(venueRows); setCollections(collectionRows);
-    setMatchFees(feePairs.filter(Boolean));
+    setVenues(venueRows || []); setCollections(collectionRows || []);
+    setMatchFees((feePairs || []).filter(Boolean));
     setMatchStats(statsRows || []);
     setGroupExpenses(expensesRows || []);
 
@@ -374,17 +374,17 @@ export default function App() {
     });
     setGuests(groupedGuests);
 
-    const activeIds = profileRows
-      .filter((p) => p.membership_is_active)
+    const activeIds = (profileRows || [])
+      .filter((p) => p && p.membership_is_active)
       .map((p) => p.id);
     await api.syncCollectionPayments(groupId, activeIds);
     const updatedCollections = await api.listCollections(groupId);
     setCollections(updatedCollections);
 
-    const memberIds = new Set(profileRows.map((p) => p.id));
+    const memberIds = new Set((profileRows || []).map((p) => p && p.id).filter(Boolean));
     const orphanProfileIds = [...new Set(
-      attendanceRows
-        .filter((a) => !memberIds.has(a.profile_id))
+      (attendanceRows || [])
+        .filter((a) => a && !memberIds.has(a.profile_id))
         .map((a) => a.profile_id)
     )];
     if (orphanProfileIds.length > 0) {
@@ -392,7 +392,7 @@ export default function App() {
         try { await api.joinGroup(groupId, pid); } catch (e) { /* already joined */ }
       }
       const refreshed = await api.listGroupProfiles(groupId);
-      setProfiles(refreshed);
+      setProfiles(refreshed || []);
     }
 
     if (!matchRows.some((m) => m.id === selectedMatchId))
@@ -790,8 +790,11 @@ export default function App() {
     if (!activeGroupId) return;
     try {
       const rows = await api.listPlayerSkills(activeGroupId);
-      setSkills(rows);
-    } catch (err) { console.warn("Skills not available:", err.message); }
+      setSkills(rows || []);
+    } catch (err) {
+      console.warn("Skills not available:", err.message);
+      setSkills([]);
+    }
   }
 
   async function addSkill(playerId, skill) {

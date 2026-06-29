@@ -334,8 +334,8 @@ export default function MatchDetail({
 
   const canPenaltyTeam = confirmedCount >= 13 && confirmedCount <= 14;
   const isPlayerConfirmed = myAttendance && ["confirmed", "checked_in"].includes(myAttendance.status);
-  const selectedVenue = venues.find((venue) => venue.id === match.venue_id)
-    || venues.find((venue) => venue.name === match.venue)
+  const selectedVenue = (venues || []).find((venue) => venue && venue.id === match.venue_id)
+    || (venues || []).find((venue) => venue && venue.name === match.venue)
     || null;
 
   return (
@@ -354,9 +354,9 @@ export default function MatchDetail({
             ? ` · ${match.venue}`
             : " · Cancha oculta (confirmá para ver)"}
         </p>
-        {match.allowed_tags?.length > 0 && (
+        {match && (match.allowed_tags || []).length > 0 && (
           <div className="tag-list">
-            {match.allowed_tags.map((tag) => (
+            {(match.allowed_tags || []).map((tag) => (
               <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
             ))}
           </div>
@@ -473,9 +473,9 @@ export default function MatchDetail({
       <section className="panel">
         <div className="section-heading">
           <h2>Equipos</h2>
-          <span className="count-pill">{teams.length}</span>
+          <span className="count-pill">{(teams || []).length}</span>
         </div>
-        {teams.length === 0 ? (
+        {(teams || []).length === 0 ? (
           <div className="empty-state compact">
             Los equipos aparecerán cuando un admin los genere.
           </div>
@@ -515,7 +515,7 @@ export default function MatchDetail({
               <div className="empty-state compact">Aún no hay confirmaciones.</div>
             ) : (
               (attendances || []).map((attendance) => {
-                const player = profileById.get(attendance.profile_id);
+                const player = profileById?.get(attendance.profile_id);
                 return (
                   <div className="player-row" key={attendance.id}>
                     <div>
