@@ -22,7 +22,7 @@ import {
 import { api } from "../api.js";
 import { generateBalancedTeams } from "../teamGeneration.js";
 
-function GuestPlayersSection({ match, guests, onAdd, onDelete, onUpdateRating }) {
+function GuestPlayersSection({ match, guests = [], onAdd, onDelete, onUpdateRating }) {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [rating, setRating] = useState(2);
@@ -55,7 +55,7 @@ function GuestPlayersSection({ match, guests, onAdd, onDelete, onUpdateRating })
           <small>Temporal solo para este partido</small>
         </div>
         <div className="button-row">
-          <span className="count-pill">{guests.length}</span>
+          <span className="count-pill">{(guests || []).length}</span>
           <button
             className="secondary-button"
             type="button"
@@ -93,11 +93,11 @@ function GuestPlayersSection({ match, guests, onAdd, onDelete, onUpdateRating })
         </div>
       )}
 
-      {guests.length === 0 && !showForm ? (
+      {(guests || []).length === 0 && !showForm ? (
         <div className="empty-state compact">No hay jugadores invitados.</div>
       ) : (
         <div className="player-list">
-          {guests.map((guest) => (
+          {(guests || []).map((guest) => (
             <div className="player-row" key={guest.id}>
               <div>
                 <strong>{guest.name}</strong>
@@ -130,7 +130,6 @@ function GuestPlayersSection({ match, guests, onAdd, onDelete, onUpdateRating })
 }
 
 export default function MatchDetail({
-  attendances,
   confirmedCount,
   fineAmount,
   isAdmin,
@@ -146,7 +145,8 @@ export default function MatchDetail({
   onAddGuest,
   onDeleteGuest,
   onUpdateGuestRating,
-  guests,
+  attendances = [],
+  guests = [],
   profile,
   profiles = [],
   profileById,
@@ -168,7 +168,7 @@ export default function MatchDetail({
 
   // Get all confirmed players for the stats editor
   const confirmedPlayers = useMemo(() => {
-    const regularConfirmed = attendances
+    const regularConfirmed = (attendances || [])
       .filter((a) => ["confirmed", "checked_in"].includes(a.status))
       .map((a) => {
         const p = profileById?.get(a.profile_id);
@@ -179,7 +179,7 @@ export default function MatchDetail({
         };
       });
 
-    const guestPlayers = guests.map((g) => ({
+    const guestPlayers = (guests || []).map((g) => ({
       id: g.id,
       name: g.name,
       is_guest: true,
@@ -258,7 +258,7 @@ export default function MatchDetail({
           const p = profileById?.get(s.player_id);
           name = p ? displayName(p) : "Jugador";
         } else if (s.guest_player_id) {
-          const g = guests.find((guest) => guest.id === s.guest_player_id);
+          const g = (guests || []).find((guest) => guest.id === s.guest_player_id);
           name = g ? g.name : "Invitado";
         }
         return {

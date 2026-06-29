@@ -342,7 +342,7 @@ export default function App() {
       api.listFines(groupId), api.listRatings(groupId),
       api.listSettings(groupId), api.listGroupProfiles(groupId),
       api.listVenues(groupId), api.listCollections(groupId), api.listGroupTags(groupId),
-      api.listGroupGuestPlayers(groupId),
+      api.listGroupGuestPlayers(groupId).catch(() => []),
       api.listGroupMatchPlayerStats(groupId).catch(() => []),
       api.listGroupExpenses(groupId).catch(() => []),
     ]);
@@ -366,9 +366,11 @@ export default function App() {
     setGroupExpenses(expensesRows || []);
 
     const groupedGuests = {};
-    guestRows.forEach((g) => {
-      if (!groupedGuests[g.match_id]) groupedGuests[g.match_id] = [];
-      groupedGuests[g.match_id].push(g);
+    (guestRows || []).forEach((g) => {
+      if (g && g.match_id) {
+        if (!groupedGuests[g.match_id]) groupedGuests[g.match_id] = [];
+        groupedGuests[g.match_id].push(g);
+      }
     });
     setGuests(groupedGuests);
 
