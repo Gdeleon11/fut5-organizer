@@ -375,7 +375,7 @@ export default function App() {
     setVotes(voteRows || []);
     setProfiles(profileRows || []); setTeamsByMatch(teamsMap || {});
     setGroupTagRows(tagRows || []);
-    loadSkills();
+    loadSkills(groupId);
     setVenues(venueRows || []); setCollections(collectionRows || []);
     setMatchFees((feePairs || []).filter(Boolean));
     setMatchStats(statsRows || []);
@@ -807,10 +807,11 @@ export default function App() {
     }
   }
 
-  async function loadSkills() {
-    if (!activeGroupId) return;
+  async function loadSkills(gId) {
+    const targetGroupId = gId || activeGroupId;
+    if (!targetGroupId) return;
     try {
-      const rows = await api.listPlayerSkills(activeGroupId);
+      const rows = await api.listPlayerSkills(targetGroupId);
       setSkills(rows || []);
     } catch (err) {
       console.warn("Skills not available:", err.message);
