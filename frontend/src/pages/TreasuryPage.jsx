@@ -138,6 +138,27 @@ export default function TreasuryPage({
     return list.sort((a, b) => b.date.localeCompare(a.date));
   }, [fines, matchFees, matches, expenses]);
 
+  const categoryTotals = useMemo(() => {
+    const totals = {
+      canchas: courtCostsTotal,
+      balones: 0,
+      chalecos: 0,
+      arbitraje: 0,
+      comida: 0,
+      otros: 0,
+    };
+    (expenses || []).forEach((exp) => {
+      if (!exp) return;
+      const cat = exp.category || "otros";
+      if (totals[cat] !== undefined) {
+        totals[cat] += Number(exp.amount || 0);
+      } else {
+        totals.otros += Number(exp.amount || 0);
+      }
+    });
+    return totals;
+  }, [courtCostsTotal, expenses]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!description.trim() || !amount || Number(amount) <= 0) return;
@@ -186,6 +207,45 @@ export default function TreasuryPage({
           </span>
         </div>
       </section>
+
+      {/* Distribución de Gastos */}
+      {totalExpense > 0 && (
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Distribución de Egresos</h2>
+              <small>Porcentaje del total de egresos ({formatMoney(totalExpense)})</small>
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: "1rem", marginTop: "1rem" }}>
+            {Object.entries(categoryTotals)
+              .filter(([_, amount]) => amount > 0)
+              .sort((a, b) => b[1] - a[1])
+              .map(([key, amount]) => {
+                const percentage = Math.round((amount / totalExpense) * 100);
+                return (
+                  <div key={key}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "0.25rem" }}>
+                      <span>{CATEGORY_LABELS[key] || key}</span>
+                      <strong>{formatMoney(amount)} ({percentage}%)</strong>
+                    </div>
+                    <div style={{ background: "var(--surface-3)", height: "8px", borderRadius: "4px", overflow: "hidden" }}>
+                      <div
+                        style={{
+                          background: key === "canchas" ? "var(--primary)" : "var(--text-muted)",
+                          height: "100%",
+                          width: `${percentage}%`,
+                          borderRadius: "4px",
+                          transition: "width 0.5s ease-out"
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+        </section>
+      )}
 
       {/* Agregar Egreso (Solo Admin) */}
       {isAdmin && (
