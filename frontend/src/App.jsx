@@ -332,11 +332,12 @@ export default function App() {
   async function loadData(currentProfile = profile, groupId = activeGroupId) {
     if (!currentProfile || !groupId) return;
     const [matchRows, attendanceRows, fineRows, ratingRows, settingRows,
-           profileRows, venueRows, collectionRows, tagRows] = await Promise.all([
+           profileRows, venueRows, collectionRows, tagRows, guestRows] = await Promise.all([
       api.listMatches(groupId), api.listAttendances(groupId),
       api.listFines(groupId), api.listRatings(groupId),
       api.listSettings(groupId), api.listGroupProfiles(groupId),
       api.listVenues(groupId), api.listCollections(groupId), api.listGroupTags(groupId),
+      api.listGroupGuestPlayers(groupId),
     ]);
     let voteRows = [];
     try { voteRows = await api.getPlayerVotes(groupId); } catch (e) { console.warn("Votes not available:", e.message); }
@@ -354,6 +355,13 @@ export default function App() {
     loadSkills();
     setVenues(venueRows); setCollections(collectionRows);
     setMatchFees(feePairs.filter(Boolean));
+
+    const groupedGuests = {};
+    guestRows.forEach((g) => {
+      if (!groupedGuests[g.match_id]) groupedGuests[g.match_id] = [];
+      groupedGuests[g.match_id].push(g);
+    });
+    setGuests(groupedGuests);
 
     const activeIds = profileRows
       .filter((p) => p.membership_is_active)
@@ -1071,7 +1079,8 @@ export default function App() {
             onOpenMatch={openMatch} profile={currentPlayer} teamsByMatch={teamsByMatch}
             venues={venues} profiles={profiles} groupTags={groupTags}
             onCreateGroupTag={createGroupTag}
-            onNotice={setNotice} />
+            onNotice={setNotice}
+            guests={guests} />
         )}
         {page === "match" && selectedMatch && (
           <MatchDetail attendances={matchAttendances(selectedMatch.id)}

@@ -33,10 +33,17 @@ export default function MatchesPage({
   groupTags = [],
   onCreateGroupTag,
   onNotice,
+  guests = {},
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const venueById = new Map(venues.map((venue) => [venue.id, venue]));
+
+  function matchConfirmedCount(matchId) {
+    const regularConfirmed = matchAttendances(matchId).filter(isConfirmedAttendance).length;
+    const guestList = guests[matchId] || [];
+    return regularConfirmed + guestList.length;
+  }
 
   function matchVenue(match) {
     return venueById.get(match?.venue_id) || venues.find((venue) => venue.name === match?.venue) || null;
@@ -62,8 +69,7 @@ export default function MatchesPage({
           </div>
           {nextMatch && (
             <span className="count-pill">
-              {matchAttendances(nextMatch.id).filter(isConfirmedAttendance).length}{" "}
-              confirmados
+              {matchConfirmedCount(nextMatch.id)} confirmados
             </span>
           )}
         </div>
@@ -114,7 +120,7 @@ export default function MatchesPage({
               label="Invitación para WhatsApp"
               text={matchInvitationText(
                 nextMatch,
-                matchAttendances(nextMatch.id).filter(isConfirmedAttendance).length,
+                matchConfirmedCount(nextMatch.id),
               )}
             />
           </>
@@ -178,10 +184,7 @@ export default function MatchesPage({
                     )}
                   </span>
                   <span className="count-pill">
-                    {
-                      matchAttendances(match.id).filter(isConfirmedAttendance)
-                        .length
-                    }
+                    {matchConfirmedCount(match.id)}
                   </span>
                 </button>
                 {isAdmin && (

@@ -1613,6 +1613,13 @@ export const api = {
     );
   },
 
+  async listGroupGuestPlayers(groupId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("guest_players").select("*").eq("group_id", groupId),
+    );
+  },
+
   async addGuestPlayer(matchId, groupId, name, rating, adminId) {
     const client = requireSupabase();
     return readOne(
