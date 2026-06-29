@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Check, X, Link as LinkIcon, FileText } from "lucide-react";
 import Stat from "../components/Stat.jsx";
 import { api } from "../api.js";
 import { classNames, displayName, formatMatchDate, formatMoney } from "../utils.js";
@@ -50,12 +51,14 @@ function CopyProofLinkButton({ paymentId, paymentType, disabled }) {
 
   return (
     <button
-      className="secondary-button copy-link-btn"
+      className="fee-btn-icon"
       type="button"
       onClick={handleCopy}
       disabled={disabled || generating}
+      title="Copiar link"
     >
-      {generating ? "Generando..." : copied ? "Copiado ✓" : "Copiar link"}
+      <LinkIcon />
+      {generating ? "..." : copied ? "✓" : "Copiar"}
     </button>
   );
 }
@@ -216,33 +219,35 @@ function MatchFeePanel({
                 <ProofStatusBadge status={proofStatus} />
               </div>
 
-              <div className="button-row">
+              <div className="fee-actions">
                 {isAdmin && payment.status === "pending" && (
                   <>
                     <button
+                      className="fee-btn-icon is-primary"
                       type="button"
                       onClick={() => onUpdatePayment(payment.id, { status: "paid" })}
                     >
-                      Marcar pagado
+                      <Check /> Pagó
                     </button>
                     <button
-                      className="secondary-button"
+                      className="fee-btn-icon is-danger"
                       type="button"
                       onClick={() =>
                         onUpdatePayment(payment.id, { status: "forgiven" })
                       }
                     >
-                      Perdonar
+                      <X /> Perdonar
                     </button>
                   </>
                 )}
 
                 {isAdmin && hasProof && proofStatus === "submitted" && (
                   <button
+                    className="fee-btn-icon"
                     type="button"
                     onClick={() => setModalPayment(payment)}
                   >
-                    Ver comprobante
+                    <FileText /> Ver comp.
                   </button>
                 )}
 
@@ -468,35 +473,37 @@ function CollectionsPanel({
                         </small>
                         <ProofStatusBadge status={proofStatus} />
                       </div>
-                      <div className="button-row">
+                      <div className="fee-actions">
                         {payment.status === "pending" && (
                           <>
                             <button
+                              className="fee-btn-icon is-primary"
                               type="button"
                               onClick={() =>
                                 onUpdatePayment(payment.id, { status: "paid" })
                               }
                             >
-                              Pagó
+                              <Check /> Pagó
                             </button>
                             <button
-                              className="secondary-button"
+                              className="fee-btn-icon is-danger"
                               type="button"
                               onClick={() =>
                                 onUpdatePayment(payment.id, { status: "forgiven" })
                               }
                             >
-                              Perdonar
+                              <X /> Perdonar
                             </button>
                           </>
                         )}
 
                         {hasProof && proofStatus === "submitted" && (
                           <button
+                            className="fee-btn-icon"
                             type="button"
                             onClick={() => setModalPayment(payment)}
                           >
-                            Ver comprobante
+                            <FileText /> Ver comp.
                           </button>
                         )}
 

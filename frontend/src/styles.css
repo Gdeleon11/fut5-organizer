@@ -575,6 +575,62 @@ small, .muted {
   flex: 1 1 100%;
 }
 
+.fee-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.fee-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--text-primary);
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fee-btn-icon:hover:not(:disabled) {
+  background: var(--surface-4);
+  border-color: var(--border);
+}
+
+.fee-btn-icon.is-primary {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+.fee-btn-icon.is-primary:hover:not(:disabled) {
+  background: rgba(34, 197, 94, 0.25);
+}
+
+.fee-btn-icon.is-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+.fee-btn-icon.is-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+.fee-btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fee-btn-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
 /* ============================================================
    Pills & status
    ============================================================ */
