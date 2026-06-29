@@ -200,7 +200,7 @@ function MatchFeePanel({
           const hasProof = payment.proof_url;
 
           return (
-            <div className="player-row" key={payment.id}>
+            <div className="fee-player-row" key={payment.id}>
               <div>
                 <strong>{displayName(player)}</strong>
                 <small>
@@ -455,7 +455,7 @@ function CollectionsPanel({
                   const hasProof = payment.proof_url;
 
                   return (
-                    <div className="player-row" key={payment.id}>
+                    <div className="fee-player-row" key={payment.id}>
                       <div>
                         <strong>{displayName(player)}</strong>
                         <small>
@@ -539,7 +539,7 @@ function CollectionsPanel({
                   .map((payment) => {
                     const proofStatus = payment.proof_status;
                     return (
-                      <div className="player-row" key={payment.id}>
+                      <div className="fee-player-row" key={payment.id}>
                         <div>
                           <ProofStatusBadge status={proofStatus} />
                         </div>
