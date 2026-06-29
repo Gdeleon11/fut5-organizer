@@ -37,16 +37,16 @@ export default function MatchesPage({
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const venueById = new Map(venues.map((venue) => [venue.id, venue]));
+  const venueById = new Map((venues || []).map((venue) => venue && [venue.id, venue]).filter(Boolean));
 
   function matchConfirmedCount(matchId) {
-    const regularConfirmed = matchAttendances(matchId).filter(isConfirmedAttendance).length;
-    const guestList = guests[matchId] || [];
+    const regularConfirmed = (matchAttendances(matchId) || []).filter(isConfirmedAttendance).length;
+    const guestList = (guests || {})[matchId] || [];
     return regularConfirmed + guestList.length;
   }
 
   function matchVenue(match) {
-    return venueById.get(match?.venue_id) || venues.find((venue) => venue.name === match?.venue) || null;
+    return venueById.get(match?.venue_id) || (venues || []).find((venue) => venue && venue.name === match?.venue) || null;
   }
 
   async function handleCreate(payload, photoFile) {
@@ -162,10 +162,10 @@ export default function MatchesPage({
         )}
 
         <div className="list">
-          {matches.length === 0 ? (
+          {(matches || []).length === 0 ? (
             <div className="empty-state compact">No hay próximos partidos.</div>
           ) : (
-            matches.map((match) => (
+            (matches || []).map((match) => (
               <div className="match-row-wrapper" key={match.id}>
                 <button
                   className="match-row"
@@ -175,9 +175,9 @@ export default function MatchesPage({
                   <span>
                     <strong>{match.title || "Chamuscón"}</strong>
                     <small>{formatMatchDate(match)}</small>
-                    {match.allowed_tags?.length > 0 && (
+                    {match && (match.allowed_tags || []).length > 0 && (
                       <span className="tag-list compact">
-                        {match.allowed_tags.map((tag) => (
+                        {(match.allowed_tags || []).map((tag) => (
                           <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
                         ))}
                       </span>

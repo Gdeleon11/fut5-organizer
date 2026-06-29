@@ -1,11 +1,12 @@
 import TeamCards from "../components/TeamCards.jsx";
 
 export default function TeamPage({ matches, profile, teamsByMatch, isAdmin, ratingMap, skills, matchStats = [] }) {
-  const assigned = matches
+  const assigned = (matches || [])
     .map((match) => {
-      const team = (teamsByMatch[match.id] || []).find((item) =>
-        (item.team_members || []).some(
-          (member) => member.profile_id === profile.id,
+      if (!match) return null;
+      const team = ((teamsByMatch || {})[match.id] || []).find((item) =>
+        item && (item.team_members || []).some(
+          (member) => member && member.profile_id === profile?.id,
         ),
       );
       if (team) {

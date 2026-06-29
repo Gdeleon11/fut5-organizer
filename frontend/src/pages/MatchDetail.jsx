@@ -37,7 +37,7 @@ function GuestPlayersSection({ match, guests = [], onAdd, onDelete, onUpdateRati
   }
 
   async function copyGuestLink() {
-    const link = api.generateGuestLink(match.id);
+    const link = api.generateGuestLink(match?.id);
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
@@ -194,6 +194,7 @@ export default function MatchDetail({
       const existing = (matchStats || []).find(
         (s) =>
           s &&
+          match &&
           s.match_id === match.id &&
           (player.is_guest
             ? s.guest_player_id === player.id
@@ -212,7 +213,7 @@ export default function MatchDetail({
       };
     });
     setStatsForm(initialStats);
-  }, [confirmedPlayers, matchStats, match.id]);
+  }, [confirmedPlayers, matchStats, match?.id]);
 
   const updateStatField = (playerId, isGuest, field, value) => {
     setStatsForm((prev) =>
@@ -238,7 +239,7 @@ export default function MatchDetail({
   };
 
   const handleSaveStats = async () => {
-    if (!onSaveStats) return;
+    if (!onSaveStats || !match?.id) return;
     setSavingStats(true);
     try {
       await onSaveStats(match.id, statsForm);
@@ -252,7 +253,7 @@ export default function MatchDetail({
   // Match stats for this specific match
   const currentMatchStats = useMemo(() => {
     return (matchStats || [])
-      .filter((s) => s && s.match_id === match.id)
+      .filter((s) => s && match && s.match_id === match.id)
       .map((s) => {
         let name = "Jugador";
         if (s.player_id) {
@@ -268,7 +269,7 @@ export default function MatchDetail({
         };
       })
       .sort((a, b) => b.goals - a.goals || b.assists - a.assists || (b.mvp ? 1 : 0) - (a.mvp ? 1 : 0));
-  }, [matchStats, match.id, profileById, guests]);
+  }, [matchStats, match?.id, profileById, guests]);
 
   async function handleAIDistribute() {
     setAiError("");
@@ -385,7 +386,7 @@ export default function MatchDetail({
           fineAmount={fineAmount}
           match={match}
           isFull={isFullMatch(match, attendances)}
-          waitlistPos={waitlistPosition(match.id, profile?.id, attendances)}
+          waitlistPos={waitlistPosition(match?.id, profile?.id, attendances)}
           onConfirm={onConfirm}
           onJoinWaitlist={onJoinWaitlist}
           onCancel={onCancel}
@@ -433,7 +434,7 @@ export default function MatchDetail({
                 <button
                   className="danger-button"
                   type="button"
-                  onClick={() => onDeleteMatch(match.id)}
+                  onClick={() => onDeleteMatch(match?.id)}
                 >
                   Confirmar eliminar
                 </button>
