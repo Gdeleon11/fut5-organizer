@@ -274,8 +274,8 @@ export default function MatchDetail({
     setAiError("");
     setAiLoading(true);
     try {
-      const confirmedAttendances = attendances.filter(
-        (a) => a.status === "confirmed" || a.status === "checked_in"
+      const confirmedAttendances = (attendances || []).filter(
+        (a) => a && (a.status === "confirmed" || a.status === "checked_in")
       );
       const confirmedIds = confirmedAttendances.map((a) => a.profile_id);
       const registeredPlayers = profileById
@@ -508,13 +508,13 @@ export default function MatchDetail({
         <section className="panel">
           <div className="section-heading">
             <h2>Asistencia</h2>
-            <span className="count-pill">{attendances.length}</span>
+            <span className="count-pill">{(attendances || []).length}</span>
           </div>
           <div className="player-list">
-            {attendances.length === 0 ? (
+            {(attendances || []).length === 0 ? (
               <div className="empty-state compact">Aún no hay confirmaciones.</div>
             ) : (
-              attendances.map((attendance) => {
+              (attendances || []).map((attendance) => {
                 const player = profileById.get(attendance.profile_id);
                 return (
                   <div className="player-row" key={attendance.id}>

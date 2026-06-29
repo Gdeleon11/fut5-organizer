@@ -165,16 +165,16 @@ export function matchReminderText(match, confirmedCount) {
 }
 
 export function isFullMatch(match, attendances) {
-  if (!match.max_players) return false;
-  const confirmed = attendances.filter(
-    (a) => a.match_id === match.id && ["confirmed", "checked_in"].includes(a.status),
+  if (!match || !match.max_players) return false;
+  const confirmed = (attendances || []).filter(
+    (a) => a && a.match_id === match.id && ["confirmed", "checked_in"].includes(a.status),
   ).length;
   return confirmed >= match.max_players;
 }
 
 export function waitlistPosition(matchId, profileId, attendances) {
-  const waitlisted = attendances
-    .filter((a) => a.match_id === matchId && a.status === "waitlist")
+  const waitlisted = (attendances || [])
+    .filter((a) => a && a.match_id === matchId && a.status === "waitlist")
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const idx = waitlisted.findIndex((a) => a.profile_id === profileId);
   return idx >= 0 ? idx + 1 : null;
