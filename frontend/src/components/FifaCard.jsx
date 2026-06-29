@@ -59,7 +59,7 @@ export function calculateFifaStats(profile, ratingObj = null, playerSkills = [],
   }
   
   // Skill adjustments
-  const skillIds = playerSkills.map(s => typeof s === "string" ? s : s.skill);
+  const skillIds = (playerSkills || []).map(s => typeof s === "string" ? s : s?.skill).filter(Boolean);
   if (skillIds.includes("wings") || skillIds.includes("speedy")) pac += 12;
   if (skillIds.includes("cannon") || skillIds.includes("strong_leg")) sho += 12;
   if (skillIds.includes("tactician") || skillIds.includes("wizard")) pas += 10;
@@ -138,7 +138,7 @@ export default function FifaCard({
   const name = isGuest ? (profile?.full_name || "Invitado") : (profile?.nickname || profile?.full_name?.split(" ")[0] || "Jugador");
   
   // Determine card tier/style based on overall rating and special skills
-  const skillIds = playerSkills.map(s => typeof s === "string" ? s : s.skill);
+  const skillIds = (playerSkills || []).map(s => typeof s === "string" ? s : s?.skill).filter(Boolean);
   const isSpecial = skillIds.includes("wizard") || skillIds.includes("captain");
   
   let cardClass = "bronze";
@@ -152,9 +152,9 @@ export default function FifaCard({
   
   // Find skill emojis
   const SKILL_MAP = Object.fromEntries(SKILL_OPTIONS.map((o) => [o.id, o]));
-  const activeSkillEmojis = playerSkills
+  const activeSkillEmojis = (playerSkills || [])
     .map(s => {
-      const sId = typeof s === "string" ? s : s.skill;
+      const sId = typeof s === "string" ? s : s?.skill;
       return SKILL_MAP[sId]?.emoji;
     })
     .filter(Boolean)

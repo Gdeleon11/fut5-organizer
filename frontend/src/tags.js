@@ -17,7 +17,7 @@ export function formatTag(tag) {
 }
 
 export function collectGroupTags(profiles = []) {
-  return normalizeTags(profiles.flatMap((profile) => profile.group_tags || []));
+  return normalizeTags((profiles || []).flatMap((profile) => profile?.group_tags || []));
 }
 
 export function canAccessMatch(match, profile, isAdmin = false) {

@@ -86,11 +86,11 @@ export default function App() {
   const isAdmin = myRole === "admin" || isSuperAdmin;
   const isActiveMember = Boolean(activeMembership?.is_active);
   const currentGroupProfile = profile
-    ? profiles.find((p) => p.id === profile.id) || profile
+    ? (profiles || []).find((p) => p && p.id === profile.id) || profile
     : profile;
   const currentPlayer = currentGroupProfile ? { ...currentGroupProfile, is_active: isActiveMember } : currentGroupProfile;
   const groupTags = useMemo(
-    () => collectGroupTags([...profiles, { group_tags: groupTagRows.map((tag) => tag.name) }]),
+    () => collectGroupTags([...(profiles || []), { group_tags: (groupTagRows || []).map((tag) => tag && tag.name) }]),
     [profiles, groupTagRows],
   );
   const ratingMap = useMemo(() => api.latestRatingsByProfile(ratings), [ratings]);
@@ -98,11 +98,13 @@ export default function App() {
 
   const voteScoreMap = useMemo(() => {
     const map = new Map();
-    votes.forEach((v) => {
-      if (!map.has(v.voted_id)) map.set(v.voted_id, { total: 0, count: 0 });
-      const entry = map.get(v.voted_id);
-      entry.total += v.vote;
-      entry.count += 1;
+    (votes || []).forEach((v) => {
+      if (v && !map.has(v.voted_id)) map.set(v.voted_id, { total: 0, count: 0 });
+      const entry = map.get(v?.voted_id);
+      if (entry && v) {
+        entry.total += v.vote || 0;
+        entry.count += 1;
+      }
     });
     const result = new Map();
     map.forEach((val, key) => {
@@ -182,7 +184,7 @@ export default function App() {
   const nextMatch = upcomingMatches[0] || null;
   const selectedMatch = sortedMatches.find((m) => m.id === selectedMatchId) || nextMatch;
   const profileById = useMemo(
-    () => new Map((profiles || []).map((p) => p && [p.id, p]).filter(Boolean)), [profiles]
+    () => new Map((profiles || []).filter((p) => p && p.id).map((p) => [p.id, p])), [profiles]
   );
   const matchGuests = guests?.[selectedMatch?.id] || [];
   const myPendingAssistedReservations = useMemo(
