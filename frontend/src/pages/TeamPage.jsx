@@ -1,6 +1,6 @@
 import TeamCards from "../components/TeamCards.jsx";
 
-export default function TeamPage({ matches, profile, teamsByMatch, isAdmin, ratingMap, skills }) {
+export default function TeamPage({ matches, profile, teamsByMatch, isAdmin, ratingMap, skills, matchStats = [] }) {
   const assigned = matches
     .map((match) => {
       const team = (teamsByMatch[match.id] || []).find((item) =>
@@ -33,6 +33,7 @@ export default function TeamPage({ matches, profile, teamsByMatch, isAdmin, rati
             isAdmin={isAdmin}
             ratingMap={ratingMap}
             skills={skills}
+            matchStats={matchStats}
           />
         )}
       </section>

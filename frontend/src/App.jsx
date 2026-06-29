@@ -22,6 +22,7 @@ import SuperAdminPage from "./pages/SuperAdminPage.jsx";
 import TeamPage from "./pages/TeamPage.jsx";
 import TournamentPage from "./pages/TournamentPage.jsx";
 import VenuesPage from "./pages/VenuesPage.jsx";
+import TreasuryPage from "./pages/TreasuryPage.jsx";
 import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
 import { activeReservationStatus, canUseReservationAssistant } from "./reservationAssistant.js";
 import { canAccessMatch, collectGroupTags } from "./tags.js";
@@ -70,6 +71,8 @@ export default function App() {
   const [venues, setVenues] = useState([]);
   const [matchFees, setMatchFees] = useState([]);
   const [collections, setCollections] = useState([]);
+  const [matchStats, setMatchStats] = useState([]);
+  const [groupExpenses, setGroupExpenses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -139,6 +142,7 @@ export default function App() {
     { id: "team", label: "Equipo", mobileLabel: "Equipo" },
     { id: "fines", label: "Multas", mobileLabel: "Multas" },
     { id: "fees", label: "Cobros", mobileLabel: "Cobros" },
+    { id: "treasury", label: "Finanzas", mobileLabel: "Finan." },
     { id: "profile", label: "Perfil", mobileLabel: "Perfil" },
     { id: "groups", label: "Grupos", mobileLabel: "Grupos" },
     ...(canUseReservationAssistant ? [
@@ -332,12 +336,15 @@ export default function App() {
   async function loadData(currentProfile = profile, groupId = activeGroupId) {
     if (!currentProfile || !groupId) return;
     const [matchRows, attendanceRows, fineRows, ratingRows, settingRows,
-           profileRows, venueRows, collectionRows, tagRows, guestRows] = await Promise.all([
+           profileRows, venueRows, collectionRows, tagRows, guestRows,
+           statsRows, expensesRows] = await Promise.all([
       api.listMatches(groupId), api.listAttendances(groupId),
       api.listFines(groupId), api.listRatings(groupId),
       api.listSettings(groupId), api.listGroupProfiles(groupId),
       api.listVenues(groupId), api.listCollections(groupId), api.listGroupTags(groupId),
       api.listGroupGuestPlayers(groupId),
+      api.listGroupMatchPlayerStats(groupId).catch(() => []),
+      api.listGroupExpenses(groupId).catch(() => []),
     ]);
     let voteRows = [];
     try { voteRows = await api.getPlayerVotes(groupId); } catch (e) { console.warn("Votes not available:", e.message); }
@@ -355,6 +362,8 @@ export default function App() {
     loadSkills();
     setVenues(venueRows); setCollections(collectionRows);
     setMatchFees(feePairs.filter(Boolean));
+    setMatchStats(statsRows || []);
+    setGroupExpenses(expensesRows || []);
 
     const groupedGuests = {};
     guestRows.forEach((g) => {
@@ -737,6 +746,44 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
+  async function saveMatchStats(matchId, statsArray) {
+    if (!profile) return;
+    try {
+      const savedRows = await api.saveMatchPlayerStats(matchId, activeGroupId, statsArray, profile.id);
+      setMatchStats((prev) => [
+        ...prev.filter((s) => s.match_id !== matchId),
+        ...savedRows,
+      ]);
+    } catch (err) {
+      console.error("Error saving match stats:", err);
+      setError(err.message);
+      alert("Error al guardar estadísticas: " + err.message);
+    }
+  }
+
+  async function addExpense(description, amount, category, date) {
+    if (!profile) return;
+    try {
+      const newExpense = await api.addGroupExpense(activeGroupId, description, amount, category, date, profile.id);
+      setGroupExpenses((prev) => [newExpense, ...prev]);
+    } catch (err) {
+      console.error("Error adding expense:", err);
+      setError(err.message);
+      alert("Error al guardar egreso: " + err.message);
+    }
+  }
+
+  async function deleteExpense(expenseId) {
+    try {
+      await api.deleteGroupExpense(expenseId);
+      setGroupExpenses((prev) => prev.filter((exp) => exp.id !== expenseId));
+    } catch (err) {
+      console.error("Error deleting expense:", err);
+      setError(err.message);
+      alert("Error al eliminar egreso: " + err.message);
+    }
+  }
+
   async function loadSkills() {
     if (!activeGroupId) return;
     try {
@@ -1101,10 +1148,12 @@ export default function App() {
             profile={currentPlayer} profiles={profiles} profileById={profileById}
             skills={skills} ratingMap={ratingMap}
             teams={teamsByMatch[selectedMatch.id] || []}
-            venues={venues} />
+            venues={venues}
+            matchStats={matchStats}
+            onSaveStats={saveMatchStats} />
         )}
         {page === "team" && (
-          <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} isAdmin={isAdmin} ratingMap={ratingMap} skills={skills} />
+          <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} isAdmin={isAdmin} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
         )}
         {page === "fines" && (
           <FinesPage fines={fines} isAdmin={isAdmin} matches={matches}
@@ -1123,6 +1172,21 @@ export default function App() {
             onDeleteCollection={deleteCollection}
             onUpdateMatchFeePayment={updateMatchFeePayment}
             onReviewProof={reviewProof} />
+        )}
+        {page === "treasury" && (
+          <TreasuryPage
+            isAdmin={isAdmin}
+            activeGroupId={activeGroupId}
+            matches={matches}
+            attendances={attendances}
+            fines={fines}
+            matchFees={matchFees}
+            expenses={groupExpenses}
+            venues={venues}
+            onAddExpense={addExpense}
+            onDeleteExpense={deleteExpense}
+            profile={currentPlayer}
+          />
         )}
         {page === "profile" && (
           <div className="page-grid">
@@ -1162,7 +1226,8 @@ export default function App() {
             profiles={profiles} ratingMap={ratingMap} isSuperAdmin={isSuperAdmin}
             voteScoreMap={voteScoreMap} userVoteMap={userVoteMap} onVote={votePlayer}
             currentProfileId={profile?.id}
-            skills={skills} onAddSkill={addSkill} onRemoveSkill={removeSkill} />
+            skills={skills} onAddSkill={addSkill} onRemoveSkill={removeSkill}
+            matchStats={matchStats} />
         )}
         {page === "venues" && isAdmin && (
           <VenuesPage groupId={activeGroupId} profileId={profile?.id} venues={venues}

@@ -1807,4 +1807,65 @@ export const api = {
     }
     return readMany(query);
   },
+
+  // Match Stats API
+  async listGroupMatchPlayerStats(groupId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("match_player_stats").select("*").eq("group_id", groupId)
+    );
+  },
+
+  async saveMatchPlayerStats(matchId, groupId, statsArray, adminId) {
+    const client = requireSupabase();
+    // Delete existing stats for the match to prevent conflicts
+    await client.from("match_player_stats").delete().eq("match_id", matchId);
+    
+    if (statsArray.length === 0) return [];
+    
+    // Insert new stats array
+    const rowsToInsert = statsArray.map(stat => ({
+      group_id: groupId,
+      match_id: matchId,
+      player_id: stat.player_id || null,
+      guest_player_id: stat.guest_player_id || null,
+      goals: stat.goals || 0,
+      assists: stat.assists || 0,
+      mvp: stat.mvp || false,
+      clean_sheet: stat.clean_sheet || false,
+      created_by: adminId
+    }));
+    
+    return readMany(
+      client.from("match_player_stats").insert(rowsToInsert).select("*")
+    );
+  },
+
+  // Group Expenses API
+  async listGroupExpenses(groupId) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("group_expenses").select("*").eq("group_id", groupId).order("expense_date", { ascending: false })
+    );
+  },
+
+  async addGroupExpense(groupId, description, amount, category, expenseDate, adminId) {
+    const client = requireSupabase();
+    return readOne(
+      client.from("group_expenses").insert({
+        group_id: groupId,
+        description,
+        amount,
+        category,
+        expense_date: expenseDate || new Date().toISOString().split("T")[0],
+        created_by: adminId
+      }).select("*").single()
+    );
+  },
+
+  async deleteGroupExpense(expenseId) {
+    const client = requireSupabase();
+    const { error } = await client.from("group_expenses").delete().eq("id", expenseId);
+    raise(error);
+  },
 };

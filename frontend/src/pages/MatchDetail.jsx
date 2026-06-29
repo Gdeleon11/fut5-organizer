@@ -154,11 +154,120 @@ export default function MatchDetail({
   ratingMap,
   teams,
   venues = [],
+  matchStats = [],
+  onSaveStats,
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [teamInstructions, setTeamInstructions] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+
+  const [statsForm, setStatsForm] = useState([]);
+  const [savingStats, setSavingStats] = useState(false);
+  const [isEditingStats, setIsEditingStats] = useState(false);
+
+  // Get all confirmed players for the stats editor
+  const confirmedPlayers = useMemo(() => {
+    const regularConfirmed = attendances
+      .filter((a) => ["confirmed", "checked_in"].includes(a.status))
+      .map((a) => {
+        const p = profileById?.get(a.profile_id);
+        return {
+          id: a.profile_id,
+          name: p ? displayName(p) : "Jugador",
+          is_guest: false,
+        };
+      });
+
+    const guestPlayers = guests.map((g) => ({
+      id: g.id,
+      name: g.name,
+      is_guest: true,
+    }));
+
+    return [...regularConfirmed, ...guestPlayers];
+  }, [attendances, guests, profileById]);
+
+  // Initialize stats form state
+  useEffect(() => {
+    const initialStats = confirmedPlayers.map((player) => {
+      const existing = matchStats.find(
+        (s) =>
+          s.match_id === match.id &&
+          (player.is_guest
+            ? s.guest_player_id === player.id
+            : s.player_id === player.id)
+      );
+
+      return {
+        player_id: player.is_guest ? null : player.id,
+        guest_player_id: player.is_guest ? player.id : null,
+        name: player.name,
+        is_guest: player.is_guest,
+        goals: existing ? existing.goals : 0,
+        assists: existing ? existing.assists : 0,
+        mvp: existing ? existing.mvp : false,
+        clean_sheet: existing ? existing.clean_sheet : false,
+      };
+    });
+    setStatsForm(initialStats);
+  }, [confirmedPlayers, matchStats, match.id]);
+
+  const updateStatField = (playerId, isGuest, field, value) => {
+    setStatsForm((prev) =>
+      prev.map((item) => {
+        const isMatch = isGuest
+          ? item.guest_player_id === playerId
+          : item.player_id === playerId;
+        if (!isMatch) return item;
+        return { ...item, [field]: value };
+      }).map((item) => {
+        // Enforce only one MVP
+        if (field === "mvp" && value === true) {
+          const isThis = isGuest
+            ? item.guest_player_id === playerId
+            : item.player_id === playerId;
+          if (!isThis) {
+            return { ...item, mvp: false };
+          }
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleSaveStats = async () => {
+    if (!onSaveStats) return;
+    setSavingStats(true);
+    try {
+      await onSaveStats(match.id, statsForm);
+      alert("Estadísticas guardadas con éxito.");
+      setIsEditingStats(false);
+    } finally {
+      setSavingStats(false);
+    }
+  };
+
+  // Match stats for this specific match
+  const currentMatchStats = useMemo(() => {
+    return matchStats
+      .filter((s) => s.match_id === match.id)
+      .map((s) => {
+        let name = "Jugador";
+        if (s.player_id) {
+          const p = profileById?.get(s.player_id);
+          name = p ? displayName(p) : "Jugador";
+        } else if (s.guest_player_id) {
+          const g = guests.find((guest) => guest.id === s.guest_player_id);
+          name = g ? g.name : "Invitado";
+        }
+        return {
+          ...s,
+          name,
+        };
+      })
+      .sort((a, b) => b.goals - a.goals || b.assists - a.assists || (b.mvp ? 1 : 0) - (a.mvp ? 1 : 0));
+  }, [matchStats, match.id, profileById, guests]);
 
   async function handleAIDistribute() {
     setAiError("");
@@ -376,6 +485,7 @@ export default function MatchDetail({
               isAdmin={isAdmin}
               ratingMap={ratingMap}
               skills={skills}
+              matchStats={matchStats}
             />
             {isAdmin && (
               <div className="export-cards-grid">
@@ -449,6 +559,167 @@ export default function MatchDetail({
           onDelete={onDeleteGuest}
           onUpdateRating={onUpdateGuestRating}
         />
+      )}
+
+      {/* Panel de Estadísticas del Partido (solo si el partido está cerrado/jugado) */}
+      {match.status === "closed" && (
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <h2>Estadísticas del Partido</h2>
+              <small>Goles, asistencias, jugador del partido (MVP) y valla invicta.</small>
+            </div>
+            {isAdmin && (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => setIsEditingStats((prev) => !prev)}
+              >
+                {isEditingStats ? "Cancelar" : "Editar Estadísticas"}
+              </button>
+            )}
+          </div>
+
+          {isEditingStats && isAdmin ? (
+            <div style={{ display: "grid", gap: "1rem" }}>
+              <div className="list" style={{ display: "grid", gap: "0.75rem" }}>
+                {statsForm.map((row) => {
+                  const pId = row.is_guest ? row.guest_player_id : row.player_id;
+                  return (
+                    <div
+                      key={`${row.is_guest ? 'g' : 'p'}-${pId}`}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "0.5rem 0.75rem",
+                        background: "var(--surface-2)",
+                        borderRadius: "8px",
+                        border: "1px solid var(--border-light)",
+                        gap: "0.5rem",
+                        flexWrap: "wrap"
+                      }}
+                    >
+                      <strong style={{ minWidth: "120px", flex: "1" }}>
+                        {row.name} {row.is_guest && <span className="tag-chip is-readonly" style={{ fontSize: "0.7rem", padding: "0.1rem 0.3rem" }}>invitado</span>}
+                      </strong>
+
+                      <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                        {/* Goles */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                          <span title="Goles">⚽</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={row.goals}
+                            onChange={(e) =>
+                              updateStatField(pId, row.is_guest, "goals", parseInt(e.target.value) || 0)
+                            }
+                            style={{
+                              width: "50px",
+                              padding: "0.25rem",
+                              textAlign: "center",
+                              fontSize: "0.85rem",
+                              height: "auto",
+                              minHeight: "auto"
+                            }}
+                          />
+                        </div>
+
+                        {/* Asistencias */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                          <span title="Asistencias">👟</span>
+                          <input
+                            type="number"
+                            min="0"
+                            value={row.assists}
+                            onChange={(e) =>
+                              updateStatField(pId, row.is_guest, "assists", parseInt(e.target.value) || 0)
+                            }
+                            style={{
+                              width: "50px",
+                              padding: "0.25rem",
+                              textAlign: "center",
+                              fontSize: "0.85rem",
+                              height: "auto",
+                              minHeight: "auto"
+                            }}
+                          />
+                        </div>
+
+                        {/* MVP */}
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", fontSize: "0.85rem", userSelect: "none" }}>
+                          <input
+                            type="checkbox"
+                            checked={row.mvp}
+                            onChange={(e) =>
+                              updateStatField(pId, row.is_guest, "mvp", e.target.checked)
+                            }
+                          />
+                          👑 MVP
+                        </label>
+
+                        {/* Valla Invicta */}
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", fontSize: "0.85rem", userSelect: "none" }}>
+                          <input
+                            type="checkbox"
+                            checked={row.clean_sheet}
+                            onChange={(e) =>
+                              updateStatField(pId, row.is_guest, "clean_sheet", e.target.checked)
+                            }
+                          />
+                          🧤 Valla
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                disabled={savingStats}
+                onClick={handleSaveStats}
+                style={{ width: "100%" }}
+              >
+                {savingStats ? "Guardando..." : "Guardar Estadísticas"}
+              </button>
+            </div>
+          ) : (
+            <div className="list">
+              {currentMatchStats.length === 0 ? (
+                <div className="empty-state compact">
+                  Aún no se han registrado las estadísticas de este partido.
+                </div>
+              ) : (
+                currentMatchStats.map((stat) => (
+                  <div
+                    key={stat.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "0.75rem 1rem",
+                      borderBottom: "1px solid var(--border-light)"
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <strong>{stat.name}</strong>
+                      {stat.is_guest && <span className="tag-chip is-readonly" style={{ fontSize: "0.7rem", padding: "0.1rem 0.3rem" }}>invitado</span>}
+                      {stat.mvp && <span title="Jugador del Partido (MVP)" style={{ fontSize: "1.2rem" }}>👑</span>}
+                      {stat.clean_sheet && <span title="Valla Invicta" style={{ fontSize: "1.2rem" }}>🧤</span>}
+                    </div>
+                    <div style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
+                      {stat.goals > 0 && <span style={{ marginRight: "0.75rem" }}>⚽ <strong>{stat.goals}</strong> {stat.goals === 1 ? "gol" : "goles"}</span>}
+                      {stat.assists > 0 && <span>👟 <strong>{stat.assists}</strong> {stat.assists === 1 ? "asistencia" : "asistencias"}</span>}
+                      {stat.goals === 0 && stat.assists === 0 && <span className="muted" style={{ fontSize: "0.8rem" }}>Participó</span>}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </section>
       )}
     </div>
   );

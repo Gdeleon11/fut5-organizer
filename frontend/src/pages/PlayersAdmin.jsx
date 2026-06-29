@@ -42,6 +42,7 @@ export default function PlayersAdmin({
   skills,
   onAddSkill,
   onRemoveSkill,
+  matchStats = [],
 }) {
   const [filter, setFilter] = useState("all");
   const [selectedId, setSelectedId] = useState(null);
@@ -268,6 +269,8 @@ export default function PlayersAdmin({
                   ratingObj={ratingMap.get(selected.id)}
                   playerSkills={skills?.filter((s) => s.player_id === selected.id) || []}
                   isGuest={false}
+                  matchStats={matchStats}
+                  showStats={true}
                 />
               </div>
 

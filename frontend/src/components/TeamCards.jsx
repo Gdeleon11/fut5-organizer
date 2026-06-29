@@ -3,7 +3,7 @@ import Avatar from "./Avatar.jsx";
 import FifaCard from "./FifaCard.jsx";
 import { displayName, formatMatchDate } from "../utils.js";
 
-export default function TeamCards({ teams, isAdmin, ratingMap, skills }) {
+export default function TeamCards({ teams, isAdmin, ratingMap, skills, matchStats = [] }) {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   return (
@@ -106,6 +106,8 @@ export default function TeamCards({ teams, isAdmin, ratingMap, skills }) {
               playerSkills={selectedPlayer.isGuest ? [] : (skills || []).filter((s) => s.player_id === selectedPlayer.id)}
               isGuest={selectedPlayer.isGuest}
               guestRating={selectedPlayer.isGuest ? selectedPlayer.guestRating : 3}
+              matchStats={matchStats}
+              showStats={true}
             />
             <button 
               className="fifa-modal-close-btn" 
