@@ -13,11 +13,23 @@ export default function LeaderboardPage({
 }) {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [sortBy, setSortBy] = useState("goals"); // goals, assists, mvps, cleanSheets, votes, matches
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPosition, setSelectedPosition] = useState("all"); // all, Forward, Midfielder, Defender, Goalkeeper
 
   // Compute accumulated stats for all active players
   const leaderboardData = useMemo(() => {
     const data = (profiles || [])
       .filter((p) => p && p.membership_is_active)
+      .filter((p) => {
+        if (selectedPosition !== "all" && p.preferred_position !== selectedPosition) return false;
+        if (searchQuery.trim()) {
+          const query = searchQuery.toLowerCase();
+          const fullName = (p.full_name || "").toLowerCase();
+          const nickname = (p.nickname || "").toLowerCase();
+          return fullName.includes(query) || nickname.includes(query);
+        }
+        return true;
+      })
       .map((profile) => {
         const playerStats = (matchStats || []).filter(
           (s) => s && s.player_id === profile.id
@@ -63,7 +75,7 @@ export default function LeaderboardPage({
       if (sortBy === "matches") return b.matchesPlayed - a.matchesPlayed || b.voteAverage - a.voteAverage;
       return 0;
     });
-  }, [profiles, attendances, matchStats, voteScoreMap, sortBy]);
+  }, [profiles, attendances, matchStats, voteScoreMap, sortBy, searchQuery, selectedPosition]);
 
   // Extract top players for the podium highlights
   const topScorer = useMemo(() => {
@@ -131,22 +143,45 @@ export default function LeaderboardPage({
 
       {/* Main Leaderboard Table */}
       <section className="panel">
-        <div className="section-heading">
+        <div className="section-heading" style={{ flexWrap: "wrap", gap: "1rem" }}>
           <h2>Estadísticas Generales</h2>
-          <div className="sorting-controls">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="secondary-button"
-              style={{ minHeight: "auto", padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
-            >
-              <option value="goals">⚽ Goles</option>
-              <option value="assists">👟 Asistencias</option>
-              <option value="mvps">👑 MVPs</option>
-              <option value="cleanSheets">🧤 Vallas Invictas</option>
-              <option value="votes">⭐ Votación Promedio</option>
-              <option value="matches">📅 Partidos</option>
-            </select>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", width: "100%", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: "0.5rem", flex: "1", minWidth: "200px" }}>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por apodo o nombre..."
+                style={{ fontSize: "0.85rem", padding: "0.4rem 0.8rem", height: "auto", minHeight: "auto", width: "100%" }}
+              />
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <select
+                value={selectedPosition}
+                onChange={(e) => setSelectedPosition(e.target.value)}
+                className="secondary-button"
+                style={{ minHeight: "auto", padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+              >
+                <option value="all">Todas las posiciones</option>
+                <option value="Forward">Posición: DEL</option>
+                <option value="Midfielder">Posición: MED</option>
+                <option value="Defender">Posición: DFC</option>
+                <option value="Goalkeeper">Posición: POR</option>
+              </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="secondary-button"
+                style={{ minHeight: "auto", padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+              >
+                <option value="goals">⚽ Goles</option>
+                <option value="assists">👟 Asistencias</option>
+                <option value="mvps">👑 MVPs</option>
+                <option value="cleanSheets">🧤 Vallas Invictas</option>
+                <option value="votes">⭐ Votación Promedio</option>
+                <option value="matches">📅 Partidos</option>
+              </select>
+            </div>
           </div>
         </div>
 
