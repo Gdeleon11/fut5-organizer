@@ -18,6 +18,7 @@ export default function MatchesPage({
   isAdmin,
   matchAttendances,
   matches,
+  pastMatches = [],
   myAttendance,
   nextMatch,
   onCancel,
@@ -37,6 +38,7 @@ export default function MatchesPage({
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" or "past"
   const venueById = new Map((venues || []).map((venue) => venue && [venue.id, venue]).filter(Boolean));
 
   function matchConfirmedCount(matchId) {
@@ -59,12 +61,15 @@ export default function MatchesPage({
     setDeletingId(null);
   }
 
+  const upcomingExcludingNext = (matches || []).filter((m) => nextMatch ? m.id !== nextMatch.id : true);
+  const currentList = activeTab === "upcoming" ? upcomingExcludingNext : (pastMatches || []);
+
   return (
     <div className="page-grid">
       <section className="panel">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Próximo partido</p>
+            <p className="eyebrow">Siguiente partido</p>
             <h2>{nextMatch ? formatMatchDate(nextMatch) : "Sin partidos"}</h2>
           </div>
           {nextMatch && (
@@ -132,20 +137,35 @@ export default function MatchesPage({
       </section>
 
       <section className="panel">
-        <div className="section-heading">
-          <h2>Próximos partidos</h2>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <span className="count-pill">{matches.length}</span>
-            {isAdmin && (
-              <button
-                className={showCreate ? "secondary-button" : ""}
-                type="button"
-                onClick={() => setShowCreate((v) => !v)}
-              >
-                {showCreate ? "Cancelar" : "+ Nuevo partido"}
-              </button>
-            )}
-          </div>
+        <div className="section-heading" style={{ marginBottom: "0.5rem" }}>
+          <h2>Historial de Partidos</h2>
+          {isAdmin && (
+            <button
+              className={showCreate ? "secondary-button" : ""}
+              type="button"
+              onClick={() => setShowCreate((v) => !v)}
+              style={{ minHeight: "auto", padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
+            >
+              {showCreate ? "Cancelar" : "+ Nuevo partido"}
+            </button>
+          )}
+        </div>
+
+        <div className="tab-row">
+          <button
+            className={`tab-button ${activeTab === "upcoming" ? "active" : ""}`}
+            type="button"
+            onClick={() => setActiveTab("upcoming")}
+          >
+            Próximos ({upcomingExcludingNext.length})
+          </button>
+          <button
+            className={`tab-button ${activeTab === "past" ? "active" : ""}`}
+            type="button"
+            onClick={() => setActiveTab("past")}
+          >
+            Pasados ({(pastMatches || []).length})
+          </button>
         </div>
 
         {showCreate && isAdmin && (
@@ -162,10 +182,12 @@ export default function MatchesPage({
         )}
 
         <div className="list">
-          {(matches || []).length === 0 ? (
-            <div className="empty-state compact">No hay próximos partidos.</div>
+          {currentList.length === 0 ? (
+            <div className="empty-state compact">
+              {activeTab === "upcoming" ? "No hay próximos partidos." : "No hay partidos pasados."}
+            </div>
           ) : (
-            (matches || []).map((match) => (
+            currentList.map((match) => (
               <div className="match-row-wrapper" key={match.id}>
                 <button
                   className="match-row"

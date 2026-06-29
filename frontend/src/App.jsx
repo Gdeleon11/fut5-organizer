@@ -183,6 +183,18 @@ export default function App() {
     },
     [sortedMatches],
   );
+  const pastMatches = useMemo(
+    () => {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      return sortedMatches.filter((m) => {
+        if (m.status === "closed" || m.status === "canceled") return true;
+        if (m.match_date && m.match_date < today) return true;
+        return false;
+      }).reverse();
+    },
+    [sortedMatches],
+  );
   const nextMatch = upcomingMatches[0] || null;
   const selectedMatch = sortedMatches.find((m) => m.id === selectedMatchId) || nextMatch;
   const profileById = useMemo(
@@ -1129,6 +1141,7 @@ export default function App() {
         {page === "matches" && (
           <MatchesPage attendances={attendances} fineAmount={lateCancelFineAmount}
             isAdmin={isAdmin} matchAttendances={matchAttendances} matches={upcomingMatches}
+            pastMatches={pastMatches}
             myAttendance={myAttendance} nextMatch={nextMatch}
             onCancel={cancelMatch} onConfirm={confirmMatch} onJoinWaitlist={joinWaitlist}
             onCreateMatch={createMatch} onDeleteMatch={deleteMatch}
