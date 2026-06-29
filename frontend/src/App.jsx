@@ -772,6 +772,11 @@ export default function App() {
         ...prev.filter((s) => s.match_id !== matchId),
         ...savedRows,
       ]);
+      const match = matches.find((m) => m.id === matchId);
+      if (match && match.status !== "closed") {
+        const updated = await api.updateMatch(matchId, { status: "closed" });
+        setMatches((c) => c.map((m) => (m.id === updated.id ? updated : m)));
+      }
     } catch (err) {
       console.error("Error saving match stats:", err);
       setError(err.message);

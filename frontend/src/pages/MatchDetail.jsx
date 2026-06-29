@@ -564,165 +564,170 @@ export default function MatchDetail({
       )}
 
       {/* Panel de Estadísticas del Partido (solo si el partido está cerrado/jugado) */}
-      {match.status === "closed" && (
-        <section className="panel">
-          <div className="section-heading">
-            <div>
-              <h2>Estadísticas del Partido</h2>
-              <small>Goles, asistencias, jugador del partido (MVP) y valla invicta.</small>
+      {(() => {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        const canShowStats = match?.status === "closed" || (match?.match_date && match.match_date <= today);
+        return canShowStats ? (
+          <section className="panel">
+            <div className="section-heading">
+              <div>
+                <h2>Estadísticas del Partido</h2>
+                <small>Goles, asistencias, jugador del partido (MVP) y valla invicta.</small>
+              </div>
+              {isAdmin && (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => setIsEditingStats((prev) => !prev)}
+                >
+                  {isEditingStats ? "Cancelar" : "Editar Estadísticas"}
+                </button>
+              )}
             </div>
-            {isAdmin && (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => setIsEditingStats((prev) => !prev)}
-              >
-                {isEditingStats ? "Cancelar" : "Editar Estadísticas"}
-              </button>
-            )}
-          </div>
 
-          {isEditingStats && isAdmin ? (
-            <div style={{ display: "grid", gap: "1rem" }}>
-              <div className="list" style={{ display: "grid", gap: "0.75rem" }}>
-                {statsForm.map((row) => {
-                  const pId = row.is_guest ? row.guest_player_id : row.player_id;
-                  return (
+            {isEditingStats && isAdmin ? (
+              <div style={{ display: "grid", gap: "1rem" }}>
+                <div className="list" style={{ display: "grid", gap: "0.75rem" }}>
+                  {statsForm.map((row) => {
+                    const pId = row.is_guest ? row.guest_player_id : row.player_id;
+                    return (
+                      <div
+                        key={`${row.is_guest ? 'g' : 'p'}-${pId}`}
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "0.5rem 0.75rem",
+                          background: "var(--surface-2)",
+                          borderRadius: "8px",
+                          border: "1px solid var(--border-light)",
+                          gap: "0.5rem",
+                          flexWrap: "wrap"
+                        }}
+                      >
+                        <strong style={{ minWidth: "120px", flex: "1" }}>
+                          {row.name} {row.is_guest && <span className="tag-chip is-readonly" style={{ fontSize: "0.7rem", padding: "0.1rem 0.3rem" }}>invitado</span>}
+                        </strong>
+
+                        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                          {/* Goles */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                            <span title="Goles">⚽</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={row.goals}
+                              onChange={(e) =>
+                                updateStatField(pId, row.is_guest, "goals", parseInt(e.target.value) || 0)
+                              }
+                              style={{
+                                width: "50px",
+                                padding: "0.25rem",
+                                textAlign: "center",
+                                fontSize: "0.85rem",
+                                height: "auto",
+                                minHeight: "auto"
+                              }}
+                            />
+                          </div>
+
+                          {/* Asistencias */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                            <span title="Asistencias">👟</span>
+                            <input
+                              type="number"
+                              min="0"
+                              value={row.assists}
+                              onChange={(e) =>
+                                updateStatField(pId, row.is_guest, "assists", parseInt(e.target.value) || 0)
+                              }
+                              style={{
+                                width: "50px",
+                                padding: "0.25rem",
+                                textAlign: "center",
+                                fontSize: "0.85rem",
+                                height: "auto",
+                                minHeight: "auto"
+                              }}
+                            />
+                          </div>
+
+                          {/* MVP */}
+                          <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", fontSize: "0.85rem", userSelect: "none" }}>
+                            <input
+                              type="checkbox"
+                              checked={row.mvp}
+                              onChange={(e) =>
+                                updateStatField(pId, row.is_guest, "mvp", e.target.checked)
+                              }
+                            />
+                            👑 MVP
+                          </label>
+
+                          {/* Valla Invicta */}
+                          <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", fontSize: "0.85rem", userSelect: "none" }}>
+                            <input
+                              type="checkbox"
+                              checked={row.clean_sheet}
+                              onChange={(e) =>
+                                updateStatField(pId, row.is_guest, "clean_sheet", e.target.checked)
+                              }
+                            />
+                            🧤 Valla
+                          </label>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  disabled={savingStats}
+                  onClick={handleSaveStats}
+                  style={{ width: "100%" }}
+                >
+                  {savingStats ? "Guardando..." : "Guardar Estadísticas"}
+                </button>
+              </div>
+            ) : (
+              <div className="list">
+                {currentMatchStats.length === 0 ? (
+                  <div className="empty-state compact">
+                    Aún no se han registrado las estadísticas de este partido.
+                  </div>
+                ) : (
+                  currentMatchStats.map((stat) => (
                     <div
-                      key={`${row.is_guest ? 'g' : 'p'}-${pId}`}
+                      key={stat.id}
                       style={{
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
-                        padding: "0.5rem 0.75rem",
-                        background: "var(--surface-2)",
-                        borderRadius: "8px",
-                        border: "1px solid var(--border-light)",
-                        gap: "0.5rem",
-                        flexWrap: "wrap"
+                        padding: "0.75rem 1rem",
+                        borderBottom: "1px solid var(--border-light)"
                       }}
                     >
-                      <strong style={{ minWidth: "120px", flex: "1" }}>
-                        {row.name} {row.is_guest && <span className="tag-chip is-readonly" style={{ fontSize: "0.7rem", padding: "0.1rem 0.3rem" }}>invitado</span>}
-                      </strong>
-
-                      <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-                        {/* Goles */}
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                          <span title="Goles">⚽</span>
-                          <input
-                            type="number"
-                            min="0"
-                            value={row.goals}
-                            onChange={(e) =>
-                              updateStatField(pId, row.is_guest, "goals", parseInt(e.target.value) || 0)
-                            }
-                            style={{
-                              width: "50px",
-                              padding: "0.25rem",
-                              textAlign: "center",
-                              fontSize: "0.85rem",
-                              height: "auto",
-                              minHeight: "auto"
-                            }}
-                          />
-                        </div>
-
-                        {/* Asistencias */}
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-                          <span title="Asistencias">👟</span>
-                          <input
-                            type="number"
-                            min="0"
-                            value={row.assists}
-                            onChange={(e) =>
-                              updateStatField(pId, row.is_guest, "assists", parseInt(e.target.value) || 0)
-                            }
-                            style={{
-                              width: "50px",
-                              padding: "0.25rem",
-                              textAlign: "center",
-                              fontSize: "0.85rem",
-                              height: "auto",
-                              minHeight: "auto"
-                            }}
-                          />
-                        </div>
-
-                        {/* MVP */}
-                        <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", fontSize: "0.85rem", userSelect: "none" }}>
-                          <input
-                            type="checkbox"
-                            checked={row.mvp}
-                            onChange={(e) =>
-                              updateStatField(pId, row.is_guest, "mvp", e.target.checked)
-                            }
-                          />
-                          👑 MVP
-                        </label>
-
-                        {/* Valla Invicta */}
-                        <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", fontSize: "0.85rem", userSelect: "none" }}>
-                          <input
-                            type="checkbox"
-                            checked={row.clean_sheet}
-                            onChange={(e) =>
-                              updateStatField(pId, row.is_guest, "clean_sheet", e.target.checked)
-                            }
-                          />
-                          🧤 Valla
-                        </label>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <strong>{stat.name}</strong>
+                        {stat.is_guest && <span className="tag-chip is-readonly" style={{ fontSize: "0.7rem", padding: "0.1rem 0.3rem" }}>invitado</span>}
+                        {stat.mvp && <span title="Jugador del Partido (MVP)" style={{ fontSize: "1.2rem" }}>👑</span>}
+                        {stat.clean_sheet && <span title="Valla Invicta" style={{ fontSize: "1.2rem" }}>🧤</span>}
+                      </div>
+                      <div style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
+                        {stat.goals > 0 && <span style={{ marginRight: "0.75rem" }}>⚽ <strong>{stat.goals}</strong> {stat.goals === 1 ? "gol" : "goles"}</span>}
+                        {stat.assists > 0 && <span>👟 <strong>{stat.assists}</strong> {stat.assists === 1 ? "asistencia" : "asistencias"}</span>}
+                        {stat.goals === 0 && stat.assists === 0 && <span className="muted" style={{ fontSize: "0.8rem" }}>Participó</span>}
                       </div>
                     </div>
-                  );
-                })}
+                  ))
+                )}
               </div>
-
-              <button
-                type="button"
-                disabled={savingStats}
-                onClick={handleSaveStats}
-                style={{ width: "100%" }}
-              >
-                {savingStats ? "Guardando..." : "Guardar Estadísticas"}
-              </button>
-            </div>
-          ) : (
-            <div className="list">
-              {currentMatchStats.length === 0 ? (
-                <div className="empty-state compact">
-                  Aún no se han registrado las estadísticas de este partido.
-                </div>
-              ) : (
-                currentMatchStats.map((stat) => (
-                  <div
-                    key={stat.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "0.75rem 1rem",
-                      borderBottom: "1px solid var(--border-light)"
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <strong>{stat.name}</strong>
-                      {stat.is_guest && <span className="tag-chip is-readonly" style={{ fontSize: "0.7rem", padding: "0.1rem 0.3rem" }}>invitado</span>}
-                      {stat.mvp && <span title="Jugador del Partido (MVP)" style={{ fontSize: "1.2rem" }}>👑</span>}
-                      {stat.clean_sheet && <span title="Valla Invicta" style={{ fontSize: "1.2rem" }}>🧤</span>}
-                    </div>
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.9rem" }}>
-                      {stat.goals > 0 && <span style={{ marginRight: "0.75rem" }}>⚽ <strong>{stat.goals}</strong> {stat.goals === 1 ? "gol" : "goles"}</span>}
-                      {stat.assists > 0 && <span>👟 <strong>{stat.assists}</strong> {stat.assists === 1 ? "asistencia" : "asistencias"}</span>}
-                      {stat.goals === 0 && stat.assists === 0 && <span className="muted" style={{ fontSize: "0.8rem" }}>Participó</span>}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </section>
-      )}
+            )}
+          </section>
+        ) : null;
+      })()}
     </div>
   );
 }
