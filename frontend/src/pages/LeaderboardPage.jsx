@@ -7,11 +7,12 @@ export default function LeaderboardPage({
   profiles = [],
   attendances = [],
   matchStats = [],
+  voteScoreMap,
   ratingMap,
   skills,
 }) {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
-  const [sortBy, setSortBy] = useState("goals"); // goals, assists, mvps, cleanSheets, rating, matches
+  const [sortBy, setSortBy] = useState("goals"); // goals, assists, mvps, cleanSheets, votes, matches
 
   // Compute accumulated stats for all active players
   const leaderboardData = useMemo(() => {
@@ -37,28 +38,9 @@ export default function LeaderboardPage({
             matchIdsWithStats.has(a.match_id)
         ).length;
 
-        // Overall FUT Rating
-        const ratingObj = ratingMap?.get(profile.id) || null;
-        const pos = profile.preferred_position || "Flexible";
-        let overallRating = 60; // base fallback
-        if (ratingObj) {
-          const att = ratingObj.attack_rating || 3;
-          const mid = ratingObj.midfield_rating || 3;
-          const def = ratingObj.defense_rating || 3;
-          const gk = ratingObj.goalkeeper_rating || 3;
-          
-          if (pos === "Goalkeeper") {
-            overallRating = Math.round(gk * 25);
-          } else if (pos === "Forward") {
-            overallRating = Math.round(((att * 2 + mid) / 3) * 25);
-          } else if (pos === "Defender") {
-            overallRating = Math.round(((def * 2 + mid) / 3) * 25);
-          } else if (pos === "Midfielder") {
-            overallRating = Math.round(((mid * 2 + att + def) / 4) * 25);
-          } else {
-            overallRating = Math.round(((att + mid + def) / 3) * 25);
-          }
-        }
+        // Average Voting Score
+        const voteObj = voteScoreMap?.get(profile.id) || null;
+        const voteAverage = voteObj ? Number(voteObj.average.toFixed(1)) : 0;
 
         return {
           profile,
@@ -67,21 +49,21 @@ export default function LeaderboardPage({
           mvps,
           cleanSheets,
           matchesPlayed,
-          overallRating,
+          voteAverage,
         };
       });
 
     // Sort based on current selection
     return [...data].sort((a, b) => {
-      if (sortBy === "goals") return b.goals - a.goals || b.assists - a.assists || b.overallRating - a.overallRating;
-      if (sortBy === "assists") return b.assists - a.assists || b.goals - a.goals || b.overallRating - a.overallRating;
-      if (sortBy === "mvps") return b.mvps - a.mvps || b.goals - a.goals || b.overallRating - a.overallRating;
-      if (sortBy === "cleanSheets") return b.cleanSheets - a.cleanSheets || b.overallRating - a.overallRating;
-      if (sortBy === "rating") return b.overallRating - a.overallRating || b.goals - a.goals;
-      if (sortBy === "matches") return b.matchesPlayed - a.matchesPlayed || b.overallRating - a.overallRating;
+      if (sortBy === "goals") return b.goals - a.goals || b.assists - a.assists || b.voteAverage - a.voteAverage;
+      if (sortBy === "assists") return b.assists - a.assists || b.goals - a.goals || b.voteAverage - a.voteAverage;
+      if (sortBy === "mvps") return b.mvps - a.mvps || b.goals - a.goals || b.voteAverage - a.voteAverage;
+      if (sortBy === "cleanSheets") return b.cleanSheets - a.cleanSheets || b.voteAverage - a.voteAverage;
+      if (sortBy === "votes") return b.voteAverage - a.voteAverage || b.goals - a.goals;
+      if (sortBy === "matches") return b.matchesPlayed - a.matchesPlayed || b.voteAverage - a.voteAverage;
       return 0;
     });
-  }, [profiles, attendances, matchStats, ratingMap, sortBy]);
+  }, [profiles, attendances, matchStats, voteScoreMap, sortBy]);
 
   // Extract top players for the podium highlights
   const topScorer = useMemo(() => {
@@ -162,7 +144,7 @@ export default function LeaderboardPage({
               <option value="assists">👟 Asistencias</option>
               <option value="mvps">👑 MVPs</option>
               <option value="cleanSheets">🧤 Vallas Invictas</option>
-              <option value="rating">📈 FUT Rating</option>
+              <option value="votes">⭐ Votación Promedio</option>
               <option value="matches">📅 Partidos</option>
             </select>
           </div>
@@ -175,7 +157,7 @@ export default function LeaderboardPage({
                 <th>#</th>
                 <th>Jugador</th>
                 <th>Pos</th>
-                <th className={sortBy === "rating" ? "active-sort" : ""}>OVR</th>
+                <th className={sortBy === "votes" ? "active-sort" : ""}>⭐ Voto</th>
                 <th className={sortBy === "matches" ? "active-sort" : ""}>PJ</th>
                 <th className={sortBy === "goals" ? "active-sort" : ""}>⚽ G</th>
                 <th className={sortBy === "assists" ? "active-sort" : ""}>👟 A</th>
@@ -198,7 +180,7 @@ export default function LeaderboardPage({
                     </div>
                   </td>
                   <td><span className="pos-badge">{posTranslation[row.profile.preferred_position] || "FLX"}</span></td>
-                  <td><strong>{row.overallRating}</strong></td>
+                  <td><strong>{row.voteAverage > 0 ? `${row.voteAverage} ⭐` : "-"}</strong></td>
                   <td>{row.matchesPlayed}</td>
                   <td>{row.goals}</td>
                   <td>{row.assists}</td>

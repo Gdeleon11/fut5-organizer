@@ -1169,6 +1169,7 @@ export default function App() {
             profiles={profiles}
             attendances={attendances}
             matchStats={matchStats}
+            voteScoreMap={voteScoreMap}
             ratingMap={ratingMap}
             skills={skills}
           />
