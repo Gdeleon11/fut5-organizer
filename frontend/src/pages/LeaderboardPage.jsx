@@ -39,6 +39,14 @@ export default function LeaderboardPage({
         const assists = playerStats.reduce((sum, s) => sum + (s.assists || 0), 0);
         const mvps = playerStats.filter((s) => s.mvp).length;
         const cleanSheets = playerStats.filter((s) => s.clean_sheet).length;
+        const playerAttendances = (attendances || []).filter(
+          (a) => a && a.profile_id === profile.id
+        );
+        const confirmedAttendances = playerAttendances.filter((a) =>
+          ["confirmed", "checked_in"].includes(a.status)
+        ).length;
+        const canceledAttendances = playerAttendances.filter((a) => a.status === "canceled").length;
+        const noShows = playerAttendances.filter((a) => a.status === "no_show").length;
 
         // Matches played (confirmed or checked_in attendances in matches that have stats)
         const matchIdsWithStats = new Set((matchStats || []).map((s) => s.match_id));
@@ -62,6 +70,10 @@ export default function LeaderboardPage({
           cleanSheets,
           matchesPlayed,
           voteAverage,
+          confirmedAttendances,
+          canceledAttendances,
+          noShows,
+          reliabilityScore: confirmedAttendances - canceledAttendances - (noShows * 2),
         };
       });
 
@@ -91,6 +103,19 @@ export default function LeaderboardPage({
   const topMvp = useMemo(() => {
     const sorted = [...leaderboardData].sort((a, b) => b.mvps - a.mvps);
     return sorted[0] && sorted[0].mvps > 0 ? sorted[0] : null;
+  }, [leaderboardData]);
+
+  const attendanceLeaders = useMemo(() => {
+    return [...leaderboardData]
+      .sort((a, b) => b.confirmedAttendances - a.confirmedAttendances || b.reliabilityScore - a.reliabilityScore)
+      .slice(0, 5);
+  }, [leaderboardData]);
+
+  const reliabilityLeaders = useMemo(() => {
+    return [...leaderboardData]
+      .filter((row) => row.confirmedAttendances > 0 || row.canceledAttendances > 0 || row.noShows > 0)
+      .sort((a, b) => b.reliabilityScore - a.reliabilityScore || b.confirmedAttendances - a.confirmedAttendances)
+      .slice(0, 5);
   }, [leaderboardData]);
 
   const posTranslation = {
@@ -142,6 +167,47 @@ export default function LeaderboardPage({
       )}
 
       {/* Main Leaderboard Table */}
+      {(attendanceLeaders.length > 0 || reliabilityLeaders.length > 0) && (
+        <section className="panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Cumplimiento</p>
+              <h2>Asistencia y confiabilidad</h2>
+            </div>
+          </div>
+          <div className="performance-grid">
+            <div>
+              <h3>Más cumplidos</h3>
+              {attendanceLeaders.map((row, index) => (
+                <button
+                  className="performance-row"
+                  key={row.profile.id}
+                  type="button"
+                  onClick={() => setSelectedPlayer(row.profile)}
+                >
+                  <span>{index + 1}. {displayName(row.profile)}</span>
+                  <strong>{row.confirmedAttendances}</strong>
+                </button>
+              ))}
+            </div>
+            <div>
+              <h3>Confiabilidad</h3>
+              {reliabilityLeaders.map((row, index) => (
+                <button
+                  className="performance-row"
+                  key={row.profile.id}
+                  type="button"
+                  onClick={() => setSelectedPlayer(row.profile)}
+                >
+                  <span>{index + 1}. {displayName(row.profile)}</span>
+                  <strong>{row.reliabilityScore}</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="panel">
         <div className="section-heading" style={{ flexWrap: "wrap", gap: "1rem" }}>
           <h2>Estadísticas Generales</h2>
@@ -194,6 +260,7 @@ export default function LeaderboardPage({
                 <th>Pos</th>
                 <th className={sortBy === "votes" ? "active-sort" : ""}>⭐ Voto</th>
                 <th className={sortBy === "matches" ? "active-sort" : ""}>PJ</th>
+                <th>Cump.</th>
                 <th className={sortBy === "goals" ? "active-sort" : ""}>⚽ G</th>
                 <th className={sortBy === "assists" ? "active-sort" : ""}>👟 A</th>
                 <th className={sortBy === "mvps" ? "active-sort" : ""}>👑 MVP</th>
@@ -217,6 +284,7 @@ export default function LeaderboardPage({
                   <td><span className="pos-badge">{posTranslation[row.profile.preferred_position] || "FLX"}</span></td>
                   <td><strong>{row.voteAverage > 0 ? `${row.voteAverage} ⭐` : "-"}</strong></td>
                   <td>{row.matchesPlayed}</td>
+                  <td>{row.confirmedAttendances}</td>
                   <td>{row.goals}</td>
                   <td>{row.assists}</td>
                   <td>{row.mvps}</td>

@@ -17,6 +17,7 @@ export default function TreasuryPage({
   attendances = [],
   fines = [],
   matchFees = [],
+  collections = [],
   expenses = [],
   venues = [],
   onAddExpense,
@@ -47,9 +48,33 @@ export default function TreasuryPage({
     }, 0);
   }, [matchFees]);
 
+  const collectionsIncome = useMemo(() => {
+    return (collections || []).reduce((sum, col) => {
+      const paidPaymentsCount = (col.collection_payments || []).filter(
+        (p) => p.status === "paid"
+      ).length;
+      return sum + paidPaymentsCount * Number(col.amount_per_player || 0);
+    }, 0);
+  }, [collections]);
+
   const totalIncome = useMemo(() => {
-    return finesIncome + matchFeesIncome;
-  }, [finesIncome, matchFeesIncome]);
+    return finesIncome + matchFeesIncome + collectionsIncome;
+  }, [finesIncome, matchFeesIncome, collectionsIncome]);
+
+  const pendingReceivables = useMemo(() => {
+    const pendingFees = (matchFees || []).reduce((sum, fee) => {
+      const pending = (fee.match_fee_payments || []).filter((p) => p.status === "pending").length;
+      return sum + pending * Number(fee.per_player_amount || 0);
+    }, 0);
+    const pendingCollections = (collections || []).reduce((sum, col) => {
+      const pending = (col.collection_payments || []).filter((p) => p.status === "pending").length;
+      return sum + pending * Number(col.amount_per_player || 0);
+    }, 0);
+    const pendingFines = (fines || [])
+      .filter((fine) => fine.status === "open")
+      .reduce((sum, fine) => sum + Number(fine.amount || 0), 0);
+    return pendingFees + pendingCollections + pendingFines;
+  }, [collections, fines, matchFees]);
 
   // 2. Calculate Expenses
   const manualExpensesTotal = useMemo(() => {
@@ -106,6 +131,22 @@ export default function TreasuryPage({
         });
     });
 
+    // Collections (Incomes)
+    collections.forEach((col) => {
+      (col.collection_payments || [])
+        .filter((p) => p.status === "paid")
+        .forEach((p) => {
+          list.push({
+            id: `collection-payment-${p.id}`,
+            type: "income",
+            title: `Colaboración - ${p.profiles?.full_name || "Jugador"}`,
+            description: col.title || "Colaboración extra",
+            amount: Number(col.amount_per_player || 0),
+            date: p.created_at ? p.created_at.split("T")[0] : col.due_date || "",
+          });
+        });
+    });
+
     // Concluded Match Court Costs (Expenses)
     matches
       .filter((m) => m.status === "closed" && Number(m.court_cost || 0) > 0)
@@ -136,7 +177,7 @@ export default function TreasuryPage({
 
     // Sort descending by date
     return list.sort((a, b) => b.date.localeCompare(a.date));
-  }, [fines, matchFees, matches, expenses]);
+  }, [collections, fines, matchFees, matches, expenses]);
 
   const categoryTotals = useMemo(() => {
     const totals = {
@@ -205,6 +246,25 @@ export default function TreasuryPage({
             </strong>
             <small>Saldo Disponible</small>
           </span>
+        </div>
+
+        <div className="finance-snapshot">
+          <div>
+            <small>Cobrado cancha</small>
+            <strong>{formatMoney(matchFeesIncome)}</strong>
+          </div>
+          <div>
+            <small>Colaboraciones</small>
+            <strong>{formatMoney(collectionsIncome)}</strong>
+          </div>
+          <div>
+            <small>Multas pagadas</small>
+            <strong>{formatMoney(finesIncome)}</strong>
+          </div>
+          <div className={classNames(pendingReceivables > 0 && "is-warning")}>
+            <small>Por cobrar</small>
+            <strong>{formatMoney(pendingReceivables)}</strong>
+          </div>
         </div>
       </section>
 

@@ -2,8 +2,10 @@ import AttendanceAction from "../components/AttendanceAction.jsx";
 import CourtPhoto from "../components/CourtPhoto.jsx";
 import CopyReservationTextButton from "../components/CopyReservationTextButton.jsx";
 import ExportCard from "../components/ExportCard.jsx";
+import PostMatchSummaryCard from "../components/PostMatchSummaryCard.jsx";
 import StarRatingControl from "../components/StarRatingControl.jsx";
 import TeamCards from "../components/TeamCards.jsx";
+import TeamShareCard from "../components/TeamShareCard.jsx";
 import WeatherWidget from "../components/WeatherWidget.jsx";
 import { distributeTeamsWithAI } from "../groq.js";
 import { useEffect, useMemo, useState } from "react";
@@ -140,6 +142,7 @@ export default function MatchDetail({
   onCancel,
   onJoinWaitlist,
   onDeleteMatch,
+  clearance,
   onGenerateTeams,
   onMarkNoShow,
   onAddGuest,
@@ -391,7 +394,15 @@ export default function MatchDetail({
           onJoinWaitlist={onJoinWaitlist}
           onCancel={onCancel}
           profile={profile}
+          clearance={clearance}
         />
+        <div className="rules-card">
+          <div>
+            <strong>Reglas de asistencia</strong>
+            <small>Cancelar a menos de 4 horas genera multa de Q{fineAmount || 0}. Si el admin marca “No llegó”, se genera multa por ausencia.</small>
+          </div>
+          <span className="status-pill">Claro antes de tocar</span>
+        </div>
         {isAdmin && (
           <>
             <div className="team-instructions-box">
@@ -499,6 +510,7 @@ export default function MatchDetail({
                   label="Notificar equipos a jugadores"
                   text={teamNotificationText(match, teams)}
                 />
+                <TeamShareCard match={match} teams={teams} />
               </div>
             )}
           </>
@@ -692,6 +704,12 @@ export default function MatchDetail({
                 </button>
               </div>
             ) : (
+              <>
+              <PostMatchSummaryCard
+                match={match}
+                stats={currentMatchStats}
+                confirmedCount={confirmedCount}
+              />
               <div className="list">
                 {currentMatchStats.length === 0 ? (
                   <div className="empty-state compact">
@@ -724,6 +742,7 @@ export default function MatchDetail({
                   ))
                 )}
               </div>
+              </>
             )}
           </section>
         ) : null;

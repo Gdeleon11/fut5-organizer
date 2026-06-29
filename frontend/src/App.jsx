@@ -42,7 +42,7 @@ function ShellMessage({ title, message }) {
   return (
     <div className="app auth-shell">
       <section className="panel auth-panel">
-        <p className="eyebrow">fut5-organizer</p>
+        <p className="eyebrow">f5manager</p>
         <h1>{title}</h1>
         <p className="muted">{message}</p>
       </section>
@@ -209,6 +209,25 @@ export default function App() {
     ),
     [matches, profile?.id, currentPlayer, isAdmin],
   );
+  const clearance = useMemo(() => {
+    if (!currentPlayer?.id) return { clear: true, total: 0, items: [] };
+    const items = [];
+    (fines || [])
+      .filter((fine) => fine.profile_id === currentPlayer.id && fine.status === "open")
+      .forEach((fine) => items.push({ type: "Multa", amount: Number(fine.amount || 0) }));
+    (matchFees || []).forEach((fee) => {
+      (fee.match_fee_payments || [])
+        .filter((payment) => payment.profile_id === currentPlayer.id && payment.status === "pending")
+        .forEach(() => items.push({ type: "Cancha", amount: Number(fee.per_player_amount || 0) }));
+    });
+    (collections || []).forEach((collection) => {
+      (collection.collection_payments || [])
+        .filter((payment) => payment.profile_id === currentPlayer.id && payment.status === "pending")
+        .forEach(() => items.push({ type: "Colaboración", amount: Number(collection.amount_per_player || 0) }));
+    });
+    const total = items.reduce((sum, item) => sum + item.amount, 0);
+    return { clear: items.length === 0, total, items };
+  }, [collections, currentPlayer?.id, fines, matchFees]);
 
   useEffect(() => {
     if (selectedMatch?.id && !guests?.[selectedMatch.id]) {
@@ -269,7 +288,7 @@ export default function App() {
     upcoming.forEach((m) => {
       if (!lastReminded[m.id]) {
         const confirmed = confirmedAttendances(m.id).length;
-        const text = `RECORDATORIO FUT5\n\n${m.title || "Chamuscón"}\nCuándo: ${formatMatchDate(m)}\nDónde: ${m.venue || "Cancha pendiente"}\nConfirmados: ${confirmed}\n\nNos vemos ahí!`;
+        const text = `RECORDATORIO F5MANAGER\n\n${m.title || "Chamuscón"}\nCuándo: ${formatMatchDate(m)}\nDónde: ${m.venue || "Cancha pendiente"}\nConfirmados: ${confirmed}\n\nNos vemos ahí!`;
         newReminders.push({ match: m, text });
         lastReminded[m.id] = now.toISOString();
       }
@@ -454,6 +473,11 @@ export default function App() {
 
   async function confirmMatch(match) {
     setNotice(""); setError("");
+    if (!clearance.clear && !isAdmin) {
+      setError(`Necesitás finiquito para sumarte. Pendiente: ${new Intl.NumberFormat(undefined, { style: "currency", currency: "GTQ" }).format(clearance.total)}.`);
+      setPage("fees");
+      return;
+    }
     if (!canAccessMatch(match, currentPlayer, isAdmin)) {
       setError("Este partido es exclusivo para otros tags del grupo.");
       return;
@@ -508,6 +532,11 @@ export default function App() {
 
   async function joinWaitlist(match) {
     setNotice(""); setError("");
+    if (!clearance.clear && !isAdmin) {
+      setError(`Necesitás finiquito para entrar a lista de espera. Pendiente: ${new Intl.NumberFormat(undefined, { style: "currency", currency: "GTQ" }).format(clearance.total)}.`);
+      setPage("fees");
+      return;
+    }
     if (!canAccessMatch(match, currentPlayer, isAdmin)) {
       setError("Este partido es exclusivo para otros tags del grupo.");
       return;
@@ -1088,7 +1117,7 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="identity-block">
-          <img className="topbar-logo" src="/brand/fut5-logo-source.png" alt="Fut5" />
+          <img className="topbar-logo" src="/brand/f5manager-logo.jpg" alt="F5Manager" />
           <div>
             <h1>{displayName(profile)}</h1>
             <small>
@@ -1158,6 +1187,7 @@ export default function App() {
             venues={venues} profiles={profiles} groupTags={groupTags}
             onCreateGroupTag={createGroupTag}
             onNotice={setNotice}
+            clearance={clearance}
             guests={guests} />
         )}
         {page === "match" && selectedMatch && (
@@ -1170,6 +1200,7 @@ export default function App() {
             onConfirm={() => confirmMatch(selectedMatch)}
             onJoinWaitlist={() => joinWaitlist(selectedMatch)}
             onDeleteMatch={deleteMatch}
+            clearance={clearance}
             onGenerateTeams={(opts) => generateTeams(selectedMatch, opts || {})}
             onMarkNoShow={markNoShow}
             onAddGuest={(name, rating) => addGuestPlayer(selectedMatch.id, name, rating)}
@@ -1222,6 +1253,7 @@ export default function App() {
             attendances={attendances}
             fines={fines}
             matchFees={matchFees}
+            collections={collections}
             expenses={groupExpenses}
             venues={venues}
             onAddExpense={addExpense}
@@ -1271,7 +1303,7 @@ export default function App() {
             matchStats={matchStats} />
         )}
         {page === "venues" && isAdmin && (
-          <VenuesPage groupId={activeGroupId} profileId={profile?.id} venues={venues}
+          <VenuesPage groupId={activeGroupId} profileId={profile?.id} venues={venues} matches={matches}
             onCreateVenue={createVenue} onUpdateVenue={updateVenue} />
         )}
         {page === "reservations" && canUseReservationAssistant && (

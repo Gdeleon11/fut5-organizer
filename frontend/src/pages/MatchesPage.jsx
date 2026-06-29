@@ -2,6 +2,7 @@ import AttendanceAction from "../components/AttendanceAction.jsx";
 import CourtPhoto from "../components/CourtPhoto.jsx";
 import ExportCard from "../components/ExportCard.jsx";
 import MatchForm from "../components/MatchForm.jsx";
+import SocialShareCard from "../components/SocialShareCard.jsx";
 import WeatherWidget from "../components/WeatherWidget.jsx";
 import { useState } from "react";
 import { formatTag } from "../tags.js";
@@ -34,6 +35,7 @@ export default function MatchesPage({
   groupTags = [],
   onCreateGroupTag,
   onNotice,
+  clearance,
   guests = {},
 }) {
   const [showCreate, setShowCreate] = useState(false);
@@ -45,6 +47,31 @@ export default function MatchesPage({
     const regularConfirmed = (matchAttendances(matchId) || []).filter(isConfirmedAttendance).length;
     const guestList = (guests || {})[matchId] || [];
     return regularConfirmed + guestList.length;
+  }
+
+  function matchWaitlist(matchId) {
+    return (matchAttendances(matchId) || [])
+      .filter((attendance) => attendance && attendance.status === "waitlist")
+      .map((attendance) => profiles.find((p) => p.id === attendance.profile_id))
+      .filter(Boolean);
+  }
+
+  function waitlistText(match) {
+    const waiting = matchWaitlist(match.id);
+    const confirmed = matchConfirmedCount(match.id);
+    const maxPlayers = Number(match.max_players || 0);
+    return [
+      "ESTADO F5MANAGER",
+      "",
+      match.title || "Chamuscón",
+      `Cuándo: ${formatMatchDate(match)}`,
+      `Cupos: ${confirmed}/${maxPlayers || "sin límite"}`,
+      waiting.length > 0
+        ? `Lista de espera: ${waiting.map((p) => p.nickname || p.full_name).join(", ")}`
+        : "Lista de espera: vacía",
+      "",
+      "Avisen si alguien libera cupo.",
+    ].join("\n");
   }
 
   function matchVenue(match) {
@@ -115,7 +142,35 @@ export default function MatchesPage({
               onJoinWaitlist={() => onJoinWaitlist(nextMatch)}
               onCancel={() => onCancel(nextMatch)}
               profile={profile}
+              clearance={clearance}
             />
+            <div className="capacity-board">
+              <div>
+                <small>Cupos</small>
+                <strong>
+                  {matchConfirmedCount(nextMatch.id)}/{nextMatch.max_players || "∞"}
+                </strong>
+              </div>
+              <div>
+                <small>Libres</small>
+                <strong>
+                  {nextMatch.max_players
+                    ? Math.max(0, Number(nextMatch.max_players) - matchConfirmedCount(nextMatch.id))
+                    : "∞"}
+                </strong>
+              </div>
+              <div>
+                <small>Espera</small>
+                <strong>{matchWaitlist(nextMatch.id).length}</strong>
+              </div>
+            </div>
+            {matchWaitlist(nextMatch.id).length > 0 && (
+              <div className="waitlist-strip">
+                {matchWaitlist(nextMatch.id).map((player, index) => (
+                  <span key={player.id}>#{index + 1} {player.nickname || player.full_name}</span>
+                ))}
+              </div>
+            )}
             <div className="button-row">
               <button type="button" onClick={() => onOpenMatch(nextMatch.id)}>
                 Abrir partido
@@ -127,6 +182,15 @@ export default function MatchesPage({
                 nextMatch,
                 matchConfirmedCount(nextMatch.id),
               )}
+            />
+            <ExportCard
+              label="Cupos y lista de espera"
+              text={waitlistText(nextMatch)}
+            />
+            <SocialShareCard
+              match={nextMatch}
+              confirmedCount={matchConfirmedCount(nextMatch.id)}
+              waitlistCount={matchWaitlist(nextMatch.id).length}
             />
           </>
         ) : (

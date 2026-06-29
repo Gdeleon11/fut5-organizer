@@ -1198,6 +1198,23 @@ export const api = {
     return btoa(JSON.stringify(tokenData));
   },
 
+  async generateCollectionProofToken(collectionId) {
+    const client = requireSupabase();
+    const { data } = await client
+      .from("collections")
+      .select("id, group_id")
+      .eq("id", collectionId)
+      .single();
+
+    if (!data) throw new Error("Cobro no encontrado");
+
+    return btoa(JSON.stringify({
+      cid: data.id,
+      gid: data.group_id,
+      type: "collection_group",
+    }));
+  },
+
   /**
    * Verify a payment proof token and return payment info.
    */
@@ -1207,6 +1224,65 @@ export const api = {
     try {
       const tokenData = JSON.parse(atob(token));
       const { pid: paymentId, uid: profileId, type: paymentType, gid: groupId } = tokenData;
+
+      if (paymentType === "collection_group") {
+        const { cid: collectionId } = tokenData;
+        const { data: authData } = await client.auth.getUser();
+        const currentUserId = authData?.user?.id;
+        if (!currentUserId) {
+          const { data: collection } = await client
+            .from("collections")
+            .select("id, group_id, title, amount_per_player, due_date")
+            .eq("id", collectionId)
+            .single();
+          return collection
+            ? {
+                valid: true,
+                requires_login: true,
+                group_id: collection.group_id,
+                collection_id: collection.id,
+                payment_type: "collection",
+                amount: collection.amount_per_player,
+                title: collection.title,
+                proof_status: "pending",
+              }
+            : { valid: false, error: "Cobro no encontrado" };
+        }
+
+        const { data: paymentRecord } = await client
+          .from("collection_payments")
+          .select(`
+            id, profile_id, group_id, status, proof_status, proof_url, proof_rejection_reason,
+            collections!inner(id, amount_per_player, title, due_date)
+          `)
+          .eq("collection_id", collectionId)
+          .eq("profile_id", currentUserId)
+          .single();
+
+        if (!paymentRecord) {
+          return { valid: false, error: "No tenés un pago asignado para este cobro." };
+        }
+
+        const dueDate = paymentRecord.collections?.due_date;
+        if (dueDate && new Date(dueDate + "T23:59:59") < new Date()) {
+          return { valid: false, error: "Este cobro ya venció" };
+        }
+
+        return {
+          valid: true,
+          payment_id: paymentRecord.id,
+          profile_id: currentUserId,
+          group_id: groupId || paymentRecord.group_id,
+          collection_id: collectionId,
+          payment_type: "collection",
+          payment_status: paymentRecord.status,
+          proof_status: paymentRecord.proof_status || "pending",
+          proof_url: paymentRecord.proof_url,
+          proof_rejection_reason: paymentRecord.proof_rejection_reason,
+          amount: paymentRecord.collections?.amount_per_player,
+          title: paymentRecord.collections?.title,
+        };
+      }
 
       // Get payment details
       let paymentRecord;
@@ -1655,7 +1731,7 @@ export const api = {
 
   generateGuestLink(matchId) {
     const origin = typeof window === "undefined"
-      ? "https://fut5-organizer.vercel.app"
+      ? "https://f5manager.lat"
       : window.location.origin;
     const token = matchId.replace(/-/g, "");
     return `${origin}/guest/${token}`;

@@ -35,7 +35,7 @@ export default function ProofUploadPage({ token, session }) {
         return;
       }
 
-      if (session.user.id !== result.profile_id) {
+      if (result.profile_id && session.user.id !== result.profile_id) {
         setError("Este comprobante no te pertenece.");
         return;
       }
@@ -126,7 +126,7 @@ export default function ProofUploadPage({ token, session }) {
       <div className="app auth-shell">
         <section className="panel auth-panel">
           <div>
-            <p className="eyebrow">fut5-organizer</p>
+            <p className="eyebrow">f5manager</p>
             <h1>Error</h1>
           </div>
           <div className="alert error">{error}</div>
@@ -143,7 +143,7 @@ export default function ProofUploadPage({ token, session }) {
       <div className="app auth-shell">
         <section className="panel auth-panel">
           <div>
-            <p className="eyebrow">fut5-organizer</p>
+            <p className="eyebrow">f5manager</p>
             <h1>Iniciar Sesión</h1>
           </div>
           <div className="alert info">
@@ -158,12 +158,12 @@ export default function ProofUploadPage({ token, session }) {
     );
   }
 
-  if (session.user.id !== paymentInfo?.profile_id) {
+  if (paymentInfo?.profile_id && session.user.id !== paymentInfo.profile_id) {
     return (
       <div className="app auth-shell">
         <section className="panel auth-panel">
           <div>
-            <p className="eyebrow">fut5-organizer</p>
+            <p className="eyebrow">f5manager</p>
             <h1>Error</h1>
           </div>
           <div className="alert error">Este comprobante no te pertenece.</div>
@@ -182,7 +182,7 @@ export default function ProofUploadPage({ token, session }) {
     <div className="app auth-shell">
       <section className="panel auth-panel">
         <div>
-          <p className="eyebrow">fut5-organizer</p>
+          <p className="eyebrow">f5manager</p>
           <h1>Subir Comprobante</h1>
         </div>
 

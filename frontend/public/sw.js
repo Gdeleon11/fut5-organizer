@@ -1,8 +1,8 @@
-const CACHE_NAME = "fut5-organizer-v2";
+const CACHE_NAME = "f5manager-v2";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
-  "/icon.svg",
+  "/brand/f5manager-logo.jpg",
   "/icon-192.png",
   "/icon-512.png",
 ];
@@ -63,7 +63,7 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: "Fut5", body: event.data.text() };
+    data = { title: "F5Manager", body: event.data.text() };
   }
 
   const options = {
@@ -79,7 +79,7 @@ self.addEventListener("push", (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || "Fut5 Organizer", options),
+    self.registration.showNotification(data.title || "F5Manager", options),
   );
 });
 

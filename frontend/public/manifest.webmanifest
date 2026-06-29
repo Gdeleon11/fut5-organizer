@@ -1,7 +1,7 @@
 {
-  "name": "Fut5 Organizer",
+  "name": "F5Manager",
   "short_name": "fut5",
-  "description": "Organizador de partidos Fut5 para grupos privados",
+  "description": "Organizador de partidos F5Manager para grupos privados",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -21,7 +21,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/icon.svg",
+      "src": "/brand/f5manager-logo.jpg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

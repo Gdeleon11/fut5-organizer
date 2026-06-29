@@ -1,4 +1,4 @@
-import { attendanceLabel, displayName } from "../utils.js";
+import { attendanceLabel, displayName, formatMoney } from "../utils.js";
 
 export default function AttendanceAction({
   attendance,
@@ -10,6 +10,7 @@ export default function AttendanceAction({
   onCancel,
   profile,
   fineAmount,
+  clearance,
 }) {
   const isUpcoming = match.status === "upcoming";
   const isActive = Boolean(profile?.is_active);
@@ -19,6 +20,7 @@ export default function AttendanceAction({
   const isCanceled = status === "canceled";
   const isNoShow = status === "no_show";
   const isCheckedIn = status === "checked_in";
+  const hasClearance = clearance?.clear !== false;
 
   const matchDateTime = match?.match_date && match?.start_time
     ? new Date(`${match.match_date}T${match.start_time}`)
@@ -26,14 +28,17 @@ export default function AttendanceAction({
   const hoursUntilMatch = matchDateTime ? (matchDateTime - new Date()) / (1000 * 60 * 60) : 99;
   const isLateCancel = hoursUntilMatch < 4;
 
-  const confirmDisabled = isConfirmed || !isActive || !isUpcoming || isWaitlisted;
-  const waitlistDisabled = isConfirmed || isWaitlisted || !isActive || !isUpcoming;
+  const confirmDisabled = isConfirmed || !isActive || !isUpcoming || isWaitlisted || !hasClearance;
+  const waitlistDisabled = isConfirmed || isWaitlisted || !isActive || !isUpcoming || !hasClearance;
   let confirmLabel = "Confirmar asistencia";
   let message = "Un toque confirma tu lugar.";
 
   if (!isActive) {
     confirmLabel = "Inactivo";
     message = "Pedile a un admin que active tu perfil.";
+  } else if (!hasClearance) {
+    confirmLabel = "Sin finiquito";
+    message = `Tenés pendiente ${formatMoney(clearance?.total || 0)}. Pagá antes de sumarte a otro juego.`;
   } else if (!isUpcoming) {
     confirmLabel = "Cerrado";
     message = "Este partido no está abierto para confirmar.";

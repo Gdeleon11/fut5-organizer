@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Check, X, Link as LinkIcon, FileText } from "lucide-react";
+import ExportCard from "../components/ExportCard.jsx";
 import Stat from "../components/Stat.jsx";
 import { api } from "../api.js";
 import { classNames, displayName, formatMatchDate, formatMoney } from "../utils.js";
@@ -59,6 +60,50 @@ function CopyProofLinkButton({ paymentId, paymentType, disabled }) {
     >
       <LinkIcon />
       {generating ? "..." : copied ? "✓" : "Copiar"}
+    </button>
+  );
+}
+
+function CopyCollectionGroupLinkButton({ collection }) {
+  const [copied, setCopied] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  async function handleCopy() {
+    try {
+      setGenerating(true);
+      const token = await api.generateCollectionProofToken(collection.id);
+      const proofUrl = `${window.location.origin}/proof/${token}`;
+      const text = [
+        "COBRO F5MANAGER",
+        "",
+        collection.title,
+        `Monto: ${formatMoney(collection.amount_per_player)}`,
+        collection.due_date
+          ? `Vence: ${new Date(collection.due_date + "T12:00:00").toLocaleDateString("es-GT")}`
+          : "",
+        "",
+        "Subí tu comprobante aquí:",
+        proofUrl,
+      ].filter(Boolean).join("\n");
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Error generating collection link:", err);
+      alert("Error al generar el enlace. Intentá de nuevo.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <button
+      className="secondary-button"
+      type="button"
+      onClick={handleCopy}
+      disabled={generating}
+    >
+      {generating ? "Generando..." : copied ? "Link copiado" : "Link general"}
     </button>
   );
 }
@@ -385,9 +430,69 @@ function CollectionsPanel({
 }) {
   const [showForm, setShowForm] = useState(false);
   const [modalPayment, setModalPayment] = useState(null);
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const [selectedPayments, setSelectedPayments] = useState({});
+
+  const collectionSummaries = useMemo(() => {
+    return (collections || []).map((col) => {
+      const payments = col.collection_payments || [];
+      const pending = payments.filter((p) => p.status === "pending");
+      const paid = payments.filter((p) => p.status === "paid");
+      const forgiven = payments.filter((p) => p.status === "forgiven");
+      const pendingNames = pending
+        .map((p) => displayName(profileById.get(p.profile_id)))
+        .sort((a, b) => a.localeCompare(b));
+      const progress = payments.length ? Math.round((paid.length / payments.length) * 100) : 0;
+      return { col, payments, pending, paid, forgiven, pendingNames, progress };
+    });
+  }, [collections, profileById]);
+
+  const whatsappSummary = useMemo(() => {
+    const lines = ["COBROS F5MANAGER", ""];
+    collectionSummaries
+      .filter(({ col, pending }) => col.status === "open" && pending.length > 0)
+      .forEach(({ col, pendingNames }) => {
+        lines.push(`${col.title} - ${formatMoney(col.amount_per_player)}`);
+        lines.push(`Pendientes: ${pendingNames.join(", ")}`);
+        if (col.due_date) {
+          lines.push(`Vence: ${new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}`);
+        }
+        lines.push("");
+      });
+    if (lines.length === 2) lines.push("No hay pendientes abiertos.");
+    return lines.join("\n").trim();
+  }, [collectionSummaries]);
+
+  function filteredPayments(payments) {
+    if (statusFilter === "all") return payments;
+    return payments.filter((payment) => payment.status === statusFilter);
+  }
+
+  function togglePayment(collectionId, paymentId) {
+    setSelectedPayments((current) => {
+      const selected = new Set(current[collectionId] || []);
+      if (selected.has(paymentId)) selected.delete(paymentId);
+      else selected.add(paymentId);
+      return { ...current, [collectionId]: [...selected] };
+    });
+  }
+
+  function selectFiltered(collectionId, payments) {
+    setSelectedPayments((current) => ({
+      ...current,
+      [collectionId]: payments.map((payment) => payment.id),
+    }));
+  }
+
+  async function markSelectedPaid(collectionId) {
+    const ids = selectedPayments[collectionId] || [];
+    if (ids.length === 0) return;
+    await Promise.all(ids.map((id) => onUpdatePayment(id, { status: "paid" })));
+    setSelectedPayments((current) => ({ ...current, [collectionId]: [] }));
+  }
 
   return (
-    <section className="panel">
+    <section className="panel collections-panel">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Grupo</p>
@@ -404,6 +509,28 @@ function CollectionsPanel({
         )}
       </div>
 
+      <div className="collections-toolbar">
+        <div className="segmented-control">
+          {[
+            ["pending", "Pendientes"],
+            ["paid", "Pagados"],
+            ["forgiven", "Perdonados"],
+            ["all", "Todos"],
+          ].map(([value, label]) => (
+            <button
+              className={statusFilter === value ? "is-active" : ""}
+              key={value}
+              type="button"
+              onClick={() => setStatusFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <ExportCard label="Resumen para WhatsApp" text={whatsappSummary} />
+
       {showForm && (
         <CollectionForm
           onSave={async (payload) => {
@@ -418,38 +545,81 @@ function CollectionsPanel({
         <div className="empty-state compact">No hay colaboraciones activas.</div>
       )}
 
-      {collections.map((col) => {
-        const payments = col.collection_payments || [];
-        const paidCount = payments.filter((p) => p.status === "paid").length;
+      {collectionSummaries.map(({ col, payments, pending, paid, forgiven, progress }) => {
+        const visiblePayments = filteredPayments(payments);
+        const paidCount = paid.length;
         const totalCollected = paidCount * col.amount_per_player;
+        const selectedForCollection = selectedPayments[col.id] || [];
 
         return (
-          <div className="ledger-row" key={col.id}>
-            <div>
-              <strong>{col.title}</strong>
-              {col.description && <small>{col.description}</small>}
-              <small>
-                {formatMoney(col.amount_per_player)} por jugador
-                {col.due_date
-                  ? ` · vence ${new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}`
-                  : ""}
-              </small>
-            </div>
-            <div className="ledger-meta">
-              <span className="fine-amount">{formatMoney(totalCollected)}</span>
-              <span
-                className={classNames(
-                  "status-pill",
-                  col.status === "closed" && "is-paid",
-                )}
-              >
-                {col.status === "closed" ? "Cerrada" : `${paidCount}/${payments.length}`}
-              </span>
+          <article className="collection-card" key={col.id}>
+            <div className="collection-card-head">
+              <div className="collection-title">
+                <p className="eyebrow">Colaboración</p>
+                <strong>{col.title}</strong>
+                {col.description && <small>{col.description}</small>}
+              </div>
+              <div className="collection-stats">
+                <div>
+                  <small>Monto</small>
+                  <span>{formatMoney(col.amount_per_player)}</span>
+                </div>
+                <div>
+                  <small>Recaudado</small>
+                  <span>{formatMoney(totalCollected)}</span>
+                </div>
+                <div>
+                  <small>Estado</small>
+                  <span
+                    className={classNames(
+                      "status-pill",
+                      col.status === "closed" && "is-paid",
+                    )}
+                  >
+                    {col.status === "closed" ? "Cerrada" : `${paidCount}/${payments.length}`}
+                  </span>
+                </div>
+              </div>
+              {col.due_date && (
+                <small className="collection-due">
+                  Vence {new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}
+                </small>
+              )}
             </div>
 
+            <div className="collection-progress">
+              <span style={{ width: `${progress}%` }} />
+            </div>
+
+            <div className="collection-breakdown">
+              <span>Pendientes: {pending.length}</span>
+              <span>Pagados: {paid.length}</span>
+              <span>Perdonados: {forgiven.length}</span>
+            </div>
+
+            {isAdmin && col.status === "open" && visiblePayments.length > 0 && (
+              <div className="collection-batch-actions">
+                <CopyCollectionGroupLinkButton collection={col} />
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => selectFiltered(col.id, visiblePayments)}
+                >
+                  Seleccionar visibles
+                </button>
+                <button
+                  type="button"
+                  disabled={selectedForCollection.length === 0}
+                  onClick={() => markSelectedPaid(col.id)}
+                >
+                  Marcar pagados ({selectedForCollection.length})
+                </button>
+              </div>
+            )}
+
             {isAdmin && col.status === "open" && (
-              <div className="player-list">
-                {payments.map((payment) => {
+              <div className="collection-player-grid">
+                {visiblePayments.map((payment) => {
                   const player = profileById.get(payment.profile_id);
                   const proofStatus = payment.proof_status;
                   const hasProof = payment.proof_url;
@@ -457,7 +627,14 @@ function CollectionsPanel({
                   return (
                     <div className="fee-player-row" key={payment.id}>
                       <div>
-                        <strong>{displayName(player)}</strong>
+                        <label className="payment-select">
+                          <input
+                            checked={selectedForCollection.includes(payment.id)}
+                            type="checkbox"
+                            onChange={() => togglePayment(col.id, payment.id)}
+                          />
+                          <span>{displayName(player)}</span>
+                        </label>
                         <small>
                           {payment.status === "paid"
                             ? "Pagó"
@@ -529,11 +706,14 @@ function CollectionsPanel({
                     </div>
                   );
                 })}
+                {visiblePayments.length === 0 && (
+                  <div className="empty-state compact">No hay pagos con ese filtro.</div>
+                )}
               </div>
             )}
 
             {!isAdmin && (
-              <div className="player-list">
+              <div className="collection-player-grid">
                 {payments
                   .filter((p) => p.profile_id === profileById.get("current")?.id)
                   .map((payment) => {
@@ -576,7 +756,7 @@ function CollectionsPanel({
                 </button>
               </div>
             )}
-          </div>
+          </article>
         );
       })}
 

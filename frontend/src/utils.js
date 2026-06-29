@@ -98,7 +98,7 @@ export function isConfirmedAttendance(attendance) {
 export function appShareUrl(match, groupId = match?.group_id) {
   const origin =
     typeof window === "undefined"
-      ? "https://fut5-organizer.vercel.app"
+      ? "https://f5manager.lat"
       : window.location.origin;
   const params = new URLSearchParams();
   if (groupId) params.set("group", groupId);
@@ -108,7 +108,7 @@ export function appShareUrl(match, groupId = match?.group_id) {
 
 export function matchInvitationText(match, confirmedCount) {
   return [
-    "INVITACIÓN FUT5",
+    "INVITACIÓN F5MANAGER",
     "",
     match.title || "Chamuscón",
     `Cuándo: ${formatMatchDate(match)}`,
@@ -121,7 +121,7 @@ export function matchInvitationText(match, confirmedCount) {
 
 export function teamAnnouncementText(match, teams) {
   const lines = [
-    "EQUIPOS FUT5",
+    "EQUIPOS F5MANAGER",
     "",
     match?.title || "Chamuscón",
     `Cuándo: ${formatMatchDate(match)}`,
@@ -153,7 +153,7 @@ export function groupInvitationText(group) {
 
 export function matchReminderText(match, confirmedCount) {
   return [
-    "RECORDATORIO FUT5",
+    "RECORDATORIO F5MANAGER",
     "",
     "El partido es en 1 hora",
     "",
@@ -215,7 +215,7 @@ export async function copyToClipboard(text) {
 
 export function teamNotificationText(match, teams) {
   const lines = [
-    "TUS EQUIPOS FUT5",
+    "TUS EQUIPOS F5MANAGER",
     "",
     match?.title || "Chamuscón",
     `Cuándo: ${formatMatchDate(match)}`,
@@ -238,7 +238,7 @@ export function teamNotificationText(match, teams) {
 
 export function playerTeamText(playerName, team, match) {
   return [
-    "TU EQUIPO FUT5",
+    "TU EQUIPO F5MANAGER",
     "",
     `Hola ${playerName}!`,
     "",

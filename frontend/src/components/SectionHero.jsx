@@ -21,7 +21,7 @@ export default function SectionHero({ page }) {
     <section className="section-hero" style={{ "--hero-image": `url(${hero.image})` }}
       aria-labelledby="section-hero-title">
       <div className="section-hero-copy">
-        <p className="eyebrow">FUT5 ORGANIZER</p>
+        <p className="eyebrow">F5MANAGER</p>
         <h2 id="section-hero-title">{hero.title}</h2>
         <p>{hero.subtitle}</p>
       </div>

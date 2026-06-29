@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import MapPicker from "../components/MapPicker.jsx";
-import { formatMoney } from "../utils.js";
+import { copyToClipboard, formatMoney } from "../utils.js";
 
 function VenueForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState({
@@ -126,9 +126,10 @@ function VenueForm({ initial, onSave, onCancel }) {
   );
 }
 
-export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, onUpdateVenue }) {
+export default function VenuesPage({ groupId, profileId, venues, matches = [], onCreateVenue, onUpdateVenue }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
 
   async function handleCreate(payload, photoFile) {
     await onCreateVenue({ ...payload, group_id: groupId, created_by: profileId }, photoFile);
@@ -138,6 +139,43 @@ export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, 
   async function handleUpdate(payload, photoFile) {
     await onUpdateVenue(editingId, payload, photoFile);
     setEditingId(null);
+  }
+
+  function mapUrl(venue) {
+    if (venue.lat && venue.lng) return `https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([venue.name, venue.address].filter(Boolean).join(" "))}`;
+  }
+
+  async function copyVenue(venue) {
+    const text = [
+      "CANCHA F5MANAGER",
+      "",
+      venue.name,
+      venue.address ? `Dirección: ${venue.address}` : "",
+      Number(venue.default_cost || 0) > 0 ? `Costo típico: ${formatMoney(venue.default_cost)}` : "",
+      venue.notes ? `Notas: ${venue.notes}` : "",
+      `Mapa: ${mapUrl(venue)}`,
+    ].filter(Boolean).join("\n");
+    await copyToClipboard(text);
+    setCopiedId(venue.id);
+    window.setTimeout(() => setCopiedId(null), 1600);
+  }
+
+  function venueHistory(venue) {
+    const usedMatches = (matches || []).filter((match) =>
+      match && (match.venue_id === venue.id || match.venue === venue.name)
+    );
+    const totalCost = usedMatches.reduce((sum, match) => sum + Number(match.court_cost || 0), 0);
+    const withCost = usedMatches.filter((match) => Number(match.court_cost || 0) > 0);
+    const latest = [...usedMatches]
+      .filter((match) => match.match_date)
+      .sort((a, b) => b.match_date.localeCompare(a.match_date))[0];
+    return {
+      count: usedMatches.length,
+      totalCost,
+      averageCost: withCost.length ? totalCost / withCost.length : Number(venue.default_cost || 0),
+      latestDate: latest?.match_date || null,
+    };
   }
 
   return (
@@ -160,6 +198,10 @@ export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, 
         <div className="list">
           {venues.map((venue) => (
             <article className="ledger-row" key={venue.id}>
+              {(() => {
+                const history = venueHistory(venue);
+                return (
+                  <>
               {venue.photo_url && (
                 <div className="venue-thumb">
                   <img
@@ -186,6 +228,12 @@ export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, 
                     : "Gratis"}
                 </span>
               </div>
+              <div className="venue-history">
+                <span><small>Usos</small><strong>{history.count}</strong></span>
+                <span><small>Total</small><strong>{formatMoney(history.totalCost)}</strong></span>
+                <span><small>Promedio</small><strong>{formatMoney(history.averageCost)}</strong></span>
+                <span><small>Última</small><strong>{history.latestDate ? new Date(history.latestDate + "T12:00:00").toLocaleDateString("es-GT") : "-"}</strong></span>
+              </div>
               {editingId === venue.id ? (
                 <VenueForm
                   initial={venue}
@@ -194,6 +242,16 @@ export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, 
                 />
               ) : (
                 <div className="button-row ledger-actions">
+                  <a className="share-link" href={mapUrl(venue)} target="_blank" rel="noreferrer">
+                    Mapa
+                  </a>
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => copyVenue(venue)}
+                  >
+                    {copiedId === venue.id ? "Copiado" : "Copiar datos"}
+                  </button>
                   <button
                     className="secondary-button"
                     type="button"
@@ -203,6 +261,9 @@ export default function VenuesPage({ groupId, profileId, venues, onCreateVenue, 
                   </button>
                 </div>
               )}
+                  </>
+                );
+              })()}
             </article>
           ))}
         </div>
