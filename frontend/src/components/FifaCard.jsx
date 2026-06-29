@@ -71,10 +71,10 @@ export function calculateFifaStats(profile, ratingObj = null, playerSkills = [],
   
   // --- Dynamic Stats Boosts ---
   const playerId = profile?.id;
-  const playerStatsList = matchStats.filter(s =>
-    isGuest
+  const playerStatsList = (matchStats || []).filter(s =>
+    s && (isGuest
       ? s.guest_player_id === playerId
-      : s.player_id === playerId
+      : s.player_id === playerId)
   );
 
   const totalGoals = playerStatsList.reduce((sum, s) => sum + (s.goals || 0), 0);
@@ -172,10 +172,10 @@ export default function FifaCard({
   
   // Compute bio stats
   const playerId = profile?.id;
-  const playerStatsList = matchStats.filter(s =>
-    isGuest
+  const playerStatsList = (matchStats || []).filter(s =>
+    s && (isGuest
       ? s.guest_player_id === playerId
-      : s.player_id === playerId
+      : s.player_id === playerId)
   );
   const totalGoals = playerStatsList.reduce((sum, s) => sum + (s.goals || 0), 0);
   const totalAssists = playerStatsList.reduce((sum, s) => sum + (s.assists || 0), 0);

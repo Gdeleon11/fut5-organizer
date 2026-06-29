@@ -191,8 +191,9 @@ export default function MatchDetail({
   // Initialize stats form state
   useEffect(() => {
     const initialStats = confirmedPlayers.map((player) => {
-      const existing = matchStats.find(
+      const existing = (matchStats || []).find(
         (s) =>
+          s &&
           s.match_id === match.id &&
           (player.is_guest
             ? s.guest_player_id === player.id
@@ -250,8 +251,8 @@ export default function MatchDetail({
 
   // Match stats for this specific match
   const currentMatchStats = useMemo(() => {
-    return matchStats
-      .filter((s) => s.match_id === match.id)
+    return (matchStats || [])
+      .filter((s) => s && s.match_id === match.id)
       .map((s) => {
         let name = "Jugador";
         if (s.player_id) {
