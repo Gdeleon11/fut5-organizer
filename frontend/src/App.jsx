@@ -767,6 +767,7 @@ export default function App() {
   async function saveMatchStats(matchId, statsArray) {
     if (!profile) return;
     try {
+      setError(null);
       const savedRows = await api.saveMatchPlayerStats(matchId, activeGroupId, statsArray, profile.id);
       setMatchStats((prev) => [
         ...prev.filter((s) => s.match_id !== matchId),
@@ -787,6 +788,7 @@ export default function App() {
   async function addExpense(description, amount, category, date) {
     if (!profile) return;
     try {
+      setError(null);
       const newExpense = await api.addGroupExpense(activeGroupId, description, amount, category, date, profile.id);
       setGroupExpenses((prev) => [newExpense, ...prev]);
     } catch (err) {
@@ -798,6 +800,7 @@ export default function App() {
 
   async function deleteExpense(expenseId) {
     try {
+      setError(null);
       await api.deleteGroupExpense(expenseId);
       setGroupExpenses((prev) => prev.filter((exp) => exp.id !== expenseId));
     } catch (err) {
