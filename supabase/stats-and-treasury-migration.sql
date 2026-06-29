@@ -31,24 +31,14 @@ alter table public.match_player_stats enable row level security;
 create policy "Permitir lectura de estadísticas a miembros"
   on public.match_player_stats for select
   using (
-    exists (
-      select 1 from public.group_members
-      where group_members.group_id = match_player_stats.group_id
-      and group_members.profile_id = auth.uid()
-      and group_members.is_active = true
-    )
+    public.is_group_member(group_id)
   );
 
 -- Política de modificación total para administradores del grupo
 create policy "Permitir gestionar estadísticas a administradores"
   on public.match_player_stats for all
   using (
-    exists (
-      select 1 from public.group_members
-      where group_members.group_id = match_player_stats.group_id
-      and group_members.profile_id = auth.uid()
-      and group_members.role = 'admin'
-    )
+    public.is_group_admin(group_id)
   );
 
 
@@ -71,22 +61,12 @@ alter table public.group_expenses enable row level security;
 create policy "Permitir lectura de egresos a miembros"
   on public.group_expenses for select
   using (
-    exists (
-      select 1 from public.group_members
-      where group_members.group_id = group_expenses.group_id
-      and group_members.profile_id = auth.uid()
-      and group_members.is_active = true
-    )
+    public.is_group_member(group_id)
   );
 
 -- Política de modificación total para administradores del grupo
 create policy "Permitir gestionar egresos a administradores"
   on public.group_expenses for all
   using (
-    exists (
-      select 1 from public.group_members
-      where group_members.group_id = group_expenses.group_id
-      and group_members.profile_id = auth.uid()
-      and group_members.role = 'admin'
-    )
+    public.is_group_admin(group_id)
   );
