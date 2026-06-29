@@ -24,7 +24,7 @@ export default function AdBanner({ dataAdSlot, dataAdFormat = "auto", fullWidthR
       <ins
         className="adsbygoogle"
         style={{ display: 'block', width: '100%', minHeight: '50px' }}
-        data-ad-client="ca-pub-1167628160615065" // Replaced with actual ID
+        data-ad-client="ca-pub-6167628668615065" // Replaced with actual ID
         data-ad-slot={dataAdSlot} // REPLACE WITH YOUR AD SLOT ID
         data-ad-format={dataAdFormat}
         data-full-width-responsive={fullWidthResponsive}
