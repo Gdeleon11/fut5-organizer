@@ -25,8 +25,6 @@ export default function AuthScreen() {
             typeof window === "undefined"
               ? undefined
               : window.location.href, // preserve ?group= and ?match= params
-          scopes:
-            "openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile",
           queryParams: {
             prompt: "select_account",
           },
