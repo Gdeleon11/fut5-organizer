@@ -13,7 +13,7 @@ export default function ProofUploadPage({ token, session }) {
 
   useEffect(() => {
     verifyToken();
-  }, [token]);
+  }, [token, session?.user?.id]);
 
   async function verifyToken() {
     try {

@@ -1375,9 +1375,12 @@ export const api = {
    * Upload payment proof image and update status to 'submitted'.
    */
   async uploadPaymentProof(paymentId, paymentType, file) {
+    if (!paymentId) {
+      throw new Error("No se puede subir el comprobante: el ID de pago no está asignado. Probá refrescando la página o volviendo a iniciar sesión.");
+    }
     const client = requireSupabase();
     const ext = fileExtension(file) || "jpg";
-    const path = `${paymentId || "misc"}/${Date.now()}.${ext}`;
+    const path = `${paymentId}/${Date.now()}.${ext}`;
 
     const { error: uploadError } = await client.storage
       .from("payment-proofs")
