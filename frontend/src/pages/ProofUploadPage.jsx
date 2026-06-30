@@ -21,6 +21,7 @@ export default function ProofUploadPage({ token, session }) {
       setError("");
 
       const result = await api.verifyProofToken(token);
+      console.log("verifyProofToken result:", result);
 
       if (!result.valid) {
         setError(result.error || "Token inválido");

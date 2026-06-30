@@ -496,6 +496,7 @@ function CollectionsPanel({
   }
 
   const collectionSummaries = useMemo(() => {
+    console.log("collections loaded in FeesPage:", collections);
     return (collections || []).map((col) => {
       const payments = col.collection_payments || [];
       const pending = payments.filter((p) => p.status === "pending");

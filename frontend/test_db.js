@@ -34,11 +34,14 @@ async function test() {
   const key = env.VITE_SUPABASE_ANON_KEY;
   const supabase = createClient(url, key);
   
-  const { data: groups, error } = await supabase.from('groups').select('id, name');
-  if (error) {
-    console.error("Error groups:", error);
+  const { data: groups, error: grpError } = await supabase
+    .from('groups')
+    .select('id, name, created_at');
+      
+  if (grpError) {
+    console.error("Error groups:", grpError);
   } else {
-    console.log("All groups:", groups);
+    console.log("All groups in DB:", groups);
   }
 }
 
