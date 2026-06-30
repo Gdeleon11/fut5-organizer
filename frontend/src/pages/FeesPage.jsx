@@ -239,6 +239,11 @@ function MatchFeePanel({
   if (!fee) return null;
 
   const payments = fee.match_fee_payments || [];
+  const sortedPayments = [...payments].sort((a, b) => {
+    const nameA = displayName(profileById.get(a.profile_id)) || "";
+    const nameB = displayName(profileById.get(b.profile_id)) || "";
+    return nameA.localeCompare(nameB);
+  });
   const paidCount = payments.filter((p) => p.status === "paid").length;
 
   return (
@@ -289,7 +294,7 @@ function MatchFeePanel({
         </span>
       </div>
       <div className="player-list">
-        {payments.map((payment) => {
+        {sortedPayments.map((payment) => {
           const player = profileById.get(payment.profile_id);
           const proofStatus = payment.proof_status;
           const hasProof = payment.proof_url;
@@ -609,7 +614,11 @@ function CollectionsPanel({
       )}
 
       {collectionSummaries.map(({ col, payments, pending, paid, forgiven, progress }) => {
-        const visiblePayments = filteredPayments(payments);
+        const visiblePayments = [...filteredPayments(payments)].sort((a, b) => {
+          const nameA = displayName(profileById.get(a.profile_id)) || "";
+          const nameB = displayName(profileById.get(b.profile_id)) || "";
+          return nameA.localeCompare(nameB);
+        });
         const paidCount = paid.length;
         const totalCollected = paidCount * col.amount_per_player;
         const selectedForCollection = selectedPayments[col.id] || [];
