@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
 import TeamColorPicker from "../components/TeamColorPicker.jsx";
@@ -8,7 +8,7 @@ import { displayName, positionLabel } from "../utils.js";
 
 const TEAM_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#f97316", "#a855f7", "#1f2937", "#ffffff"];
 
-export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, skills }) {
+export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, skills, onResultChange }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -146,6 +146,10 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
       return { ...prev, teams };
     });
   }
+
+  useEffect(() => {
+    onResultChange?.(Boolean(result?.teams?.length));
+  }, [onResultChange, result]);
 
   if (!isSuperAdmin) {
     return (

@@ -14,11 +14,12 @@ const HEROES = {
   superadmin: { title: "Super Admin", subtitle: "Toda la organización bajo control.", image: "/images/banners/super-admin.webp" },
 };
 
-export default function SectionHero({ page }) {
+export default function SectionHero({ page, showArtwork = true }) {
   const hero = HEROES[page] || HEROES.matches;
+  const style = showArtwork ? { "--hero-image": `url(${hero.image})` } : undefined;
 
   return (
-    <section className="section-hero" style={{ "--hero-image": `url(${hero.image})` }}
+    <section className={`section-hero ${showArtwork ? "" : "no-artwork"}`} style={style}
       aria-labelledby="section-hero-title">
       <div className="section-hero-copy">
         <p className="eyebrow">F5MANAGER</p>

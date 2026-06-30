@@ -67,11 +67,11 @@ export default function TeamCards({ teams = [], isAdmin, ratingMap, skills, matc
                 };
 
                 return (
-                  <div 
+                  <button
                     className="squad-row" 
                     key={member.id}
                     onClick={handlePlayerClick}
-                    style={{ cursor: "pointer" }}
+                    type="button"
                     title="Click para ver FIFA Card"
                   >
                     <div className="squad-player-info">
@@ -88,7 +88,7 @@ export default function TeamCards({ teams = [], isAdmin, ratingMap, skills, matc
                     {isGuest && (
                       <span className="squad-guest-tag">Invitado</span>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>

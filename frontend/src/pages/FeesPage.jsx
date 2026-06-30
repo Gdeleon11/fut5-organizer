@@ -213,9 +213,28 @@ function MatchFeePanel({
   profileById,
   isAdmin,
   onUpdatePayment,
+  onUpdateMatchFee,
   onReviewProof,
 }) {
   const [modalPayment, setModalPayment] = useState(null);
+  const [editingFeeId, setEditingFeeId] = useState(null);
+  const [newFeeDueBefore, setNewFeeDueBefore] = useState("");
+
+  const formatForDateTimeLocal = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  async function handleSaveFeeDueBefore(feeId) {
+    try {
+      await onUpdateMatchFee(feeId, { due_before: newFeeDueBefore ? new Date(newFeeDueBefore).toISOString() : null });
+      setEditingFeeId(null);
+    } catch (err) {
+      alert("Error al actualizar la fecha: " + err.message);
+    }
+  }
 
   if (!fee) return null;
 
@@ -229,9 +248,40 @@ function MatchFeePanel({
           <h2>Costo de cancha</h2>
           <small>
             {formatMoney(fee.per_player_amount)} por jugador ·{" "}
-            {fee.due_before
-              ? `antes del ${new Date(fee.due_before).toLocaleDateString("es-GT")}`
-              : "sin fecha límite"}
+            {isAdmin ? (
+              editingFeeId === fee.id ? (
+                <span className="edit-due-date-form">
+                  <input
+                    type="datetime-local"
+                    value={newFeeDueBefore}
+                    onChange={(e) => setNewFeeDueBefore(e.target.value)}
+                  />
+                  <button className="fee-btn-icon is-primary" type="button" onClick={() => handleSaveFeeDueBefore(fee.id)}>✓</button>
+                  <button className="fee-btn-icon is-danger" type="button" onClick={() => setEditingFeeId(null)}>×</button>
+                </span>
+              ) : (
+                <>
+                  {fee.due_before
+                    ? `vence el ${new Date(fee.due_before).toLocaleDateString("es-GT")} a las ${new Date(fee.due_before).toLocaleTimeString("es-GT", { hour: '2-digit', minute: '2-digit' })}`
+                    : "sin fecha límite"}
+                  <button
+                    className="edit-due-btn"
+                    type="button"
+                    onClick={() => {
+                      setEditingFeeId(fee.id);
+                      setNewFeeDueBefore(formatForDateTimeLocal(fee.due_before));
+                    }}
+                    title="Editar vencimiento"
+                  >
+                    ✏️
+                  </button>
+                </>
+              )
+            ) : (
+              fee.due_before
+                ? `antes del ${new Date(fee.due_before).toLocaleDateString("es-GT")}`
+                : "sin fecha límite"
+            )}
           </small>
         </div>
         <span className="count-pill">
@@ -423,6 +473,7 @@ function CollectionsPanel({
   profileById,
   isAdmin,
   onCreateCollection,
+  onUpdateCollection,
   onUpdatePayment,
   onCloseCollection,
   onDeleteCollection,
@@ -432,6 +483,17 @@ function CollectionsPanel({
   const [modalPayment, setModalPayment] = useState(null);
   const [statusFilter, setStatusFilter] = useState("pending");
   const [selectedPayments, setSelectedPayments] = useState({});
+  const [editingColId, setEditingColId] = useState(null);
+  const [newColDueDate, setNewColDueDate] = useState("");
+
+  async function handleSaveColDueDate(colId) {
+    try {
+      await onUpdateCollection(colId, { due_date: newColDueDate || null });
+      setEditingColId(null);
+    } catch (err) {
+      alert("Error al actualizar la fecha: " + err.message);
+    }
+  }
 
   const collectionSummaries = useMemo(() => {
     return (collections || []).map((col) => {
@@ -580,10 +642,41 @@ function CollectionsPanel({
                   </span>
                 </div>
               </div>
-              {col.due_date && (
-                <small className="collection-due">
-                  Vence {new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}
-                </small>
+              {isAdmin && col.status === "open" ? (
+                editingColId === col.id ? (
+                  <div className="edit-due-date-form">
+                    <input
+                      type="date"
+                      value={newColDueDate}
+                      onChange={(e) => setNewColDueDate(e.target.value)}
+                    />
+                    <button className="fee-btn-icon is-primary" type="button" onClick={() => handleSaveColDueDate(col.id)}>✓</button>
+                    <button className="fee-btn-icon is-danger" type="button" onClick={() => setEditingColId(null)}>×</button>
+                  </div>
+                ) : (
+                  <small className="collection-due">
+                    {col.due_date
+                      ? `Vence ${new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}`
+                      : "Sin fecha límite"}
+                    <button
+                      className="edit-due-btn"
+                      type="button"
+                      onClick={() => {
+                        setEditingColId(col.id);
+                        setNewColDueDate(col.due_date || "");
+                      }}
+                      title="Editar vencimiento"
+                    >
+                      ✏️
+                    </button>
+                  </small>
+                )
+              ) : (
+                col.due_date && (
+                  <small className="collection-due">
+                    Vence {new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}
+                  </small>
+                )
               )}
             </div>
 
@@ -935,9 +1028,11 @@ export default function FeesPage({
   profile,
   profileById,
   onCreateCollection,
+  onUpdateCollection,
   onUpdateCollectionPayment,
   onCloseCollection,
   onDeleteCollection,
+  onUpdateMatchFee,
   onUpdateMatchFeePayment,
   onReviewProof,
 }) {
@@ -983,6 +1078,7 @@ export default function FeesPage({
                 isAdmin={isAdmin}
                 profileById={profileById}
                 onUpdatePayment={onUpdateMatchFeePayment}
+                onUpdateMatchFee={onUpdateMatchFee}
                 onReviewProof={onReviewProof}
               />
             </div>
@@ -995,6 +1091,7 @@ export default function FeesPage({
         isAdmin={isAdmin}
         profileById={profileById}
         onCreateCollection={onCreateCollection}
+        onUpdateCollection={onUpdateCollection}
         onUpdatePayment={onUpdateCollectionPayment}
         onCloseCollection={onCloseCollection}
         onDeleteCollection={onDeleteCollection}

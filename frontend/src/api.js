@@ -962,6 +962,19 @@ export const api = {
     return api.getMatchFee(matchId);
   },
 
+  async updateMatchFee(feeId, payload) {
+    const client = requireSupabase();
+
+    return readOne(
+      client
+        .from("match_fees")
+        .update(payload)
+        .eq("id", feeId)
+        .select("*")
+        .single(),
+    );
+  },
+
   async updateMatchFeePayment(paymentId, payload) {
     const client = requireSupabase();
 
@@ -1264,8 +1277,13 @@ export const api = {
         }
 
         const dueDate = paymentRecord.collections?.due_date;
-        if (dueDate && new Date(dueDate + "T23:59:59") < new Date()) {
-          return { valid: false, error: "Este cobro ya venció" };
+        if (dueDate) {
+          const parsedDue = /^\d{4}-\d{2}-\d{2}$/.test(dueDate)
+            ? new Date(dueDate + "T23:59:59")
+            : new Date(dueDate);
+          if (parsedDue < new Date()) {
+            return { valid: false, error: "Este cobro ya venció" };
+          }
         }
 
         return {
@@ -1320,8 +1338,13 @@ export const api = {
         ? paymentRecord.match_fees?.due_before
         : paymentRecord.collections?.due_date;
 
-      if (dueDate && new Date(dueDate) < new Date()) {
-        return { valid: false, error: "Este cobro ya venció" };
+      if (dueDate) {
+        const parsedDue = /^\d{4}-\d{2}-\d{2}$/.test(dueDate)
+          ? new Date(dueDate + "T23:59:59")
+          : new Date(dueDate);
+        if (parsedDue < new Date()) {
+          return { valid: false, error: "Este cobro ya venció" };
+        }
       }
 
       return {

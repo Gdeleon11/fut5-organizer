@@ -16,10 +16,15 @@ function memberName(member) {
 
 export default function TeamShareCard({ match, teams = [] }) {
   const [copied, setCopied] = useState(false);
+  const drawableTeams = useMemo(
+    () => (teams || []).filter((team) => (team?.team_members || []).length > 0),
+    [teams],
+  );
+
   const svg = useMemo(() => {
     const title = escapeXml(match?.title || "Equipos F5Manager");
     const date = escapeXml(formatMatchDate(match));
-    const teamBlocks = (teams || []).slice(0, 4).map((team, teamIndex) => {
+    const teamBlocks = drawableTeams.slice(0, 4).map((team, teamIndex) => {
       const x = teamIndex % 2 === 0 ? 90 : 555;
       const y = teamIndex < 2 ? 330 : 780;
       const rows = (team.team_members || []).slice(0, 8).map((member, index) => (
@@ -39,13 +44,15 @@ ${rows}`;
 ${teamBlocks}
 <text x="90" y="1260" fill="#39e55a" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="800">f5manager.lat</text>
 </svg>`;
-  }, [match, teams]);
+  }, [drawableTeams, match]);
 
   const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
+  if (drawableTeams.length === 0) return null;
+
   async function copyCaption() {
     const lines = ["EQUIPOS F5MANAGER", "", match?.title || "Chamuscón", formatMatchDate(match), ""];
-    (teams || []).forEach((team) => {
+    drawableTeams.forEach((team) => {
       lines.push(`${team.name}:`);
       (team.team_members || []).forEach((member) => lines.push(`- ${memberName(member)}`));
       lines.push("");

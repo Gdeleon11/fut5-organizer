@@ -10,10 +10,10 @@ export default function TeamPage({ matches, profile, teamsByMatch, isAdmin, rati
         ),
       );
       if (team) {
-        // Attach the match context to the team so the TeamCards component can display the match date
-        team.match = match;
+        // Attach the match context without mutating the cached team row.
+        return { match, team: { ...team, match } };
       }
-      return team ? { match, team } : null;
+      return null;
     })
     .filter(Boolean);
 

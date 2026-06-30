@@ -75,6 +75,7 @@ export default function App() {
   const [collections, setCollections] = useState([]);
   const [matchStats, setMatchStats] = useState([]);
   const [groupExpenses, setGroupExpenses] = useState([]);
+  const [simHasGeneratedTeams, setSimHasGeneratedTeams] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -198,6 +199,15 @@ export default function App() {
   );
   const nextMatch = upcomingMatches[0] || null;
   const selectedMatch = sortedMatches.find((m) => m.id === selectedMatchId) || nextMatch;
+  const myGeneratedTeamsCount = useMemo(
+    () => (sortedMatches || []).reduce((count, match) => {
+      const assignedTeam = ((teamsByMatch || {})[match.id] || []).some((team) =>
+        (team?.team_members || []).some((member) => member?.profile_id === currentPlayer?.id),
+      );
+      return assignedTeam ? count + 1 : count;
+    }, 0),
+    [currentPlayer?.id, sortedMatches, teamsByMatch],
+  );
   const profileById = useMemo(
     () => new Map((profiles || []).filter((p) => p && p.id).map((p) => [p.id, p])), [profiles]
   );
@@ -235,6 +245,10 @@ export default function App() {
       loadGuests(selectedMatch.id);
     }
   }, [selectedMatch?.id, guests]);
+
+  useEffect(() => {
+    if (page !== "sim") setSimHasGeneratedTeams(false);
+  }, [page]);
 
   // Auth
   useEffect(() => {
@@ -987,6 +1001,28 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
+  async function updateCollection(collectionId, payload) {
+    setNotice(""); setError("");
+    try {
+      const updated = await api.updateCollection(collectionId, payload);
+      setCollections((c) => c.map((col) =>
+        col.id === collectionId ? { ...col, ...updated } : col
+      ));
+      setNotice("Colaboración actualizada.");
+    } catch (err) { setError(err.message); }
+  }
+
+  async function updateMatchFee(feeId, payload) {
+    setNotice(""); setError("");
+    try {
+      const updated = await api.updateMatchFee(feeId, payload);
+      setMatchFees((c) => c.map((fee) =>
+        fee.id === feeId ? { ...fee, ...updated } : fee
+      ));
+      setNotice("Cobro de cancha actualizado.");
+    } catch (err) { setError(err.message); }
+  }
+
   async function updateMatchFeePayment(paymentId, payload) {
     setNotice(""); setError("");
     try {
@@ -1164,7 +1200,16 @@ export default function App() {
         ))}
       </nav>
 
-      <SectionHero page={page} />
+      <SectionHero
+        page={page}
+        showArtwork={
+          page === "team"
+            ? myGeneratedTeamsCount > 0
+            : page === "sim"
+              ? simHasGeneratedTeams
+              : true
+        }
+      />
 
       {error && <div className="alert error">{error}</div>}
       {notice && <div className="alert success">{notice}</div>}
@@ -1240,9 +1285,11 @@ export default function App() {
           <FeesPage collections={collections} isAdmin={isAdmin} matchFees={matchFees}
             matches={matches} profile={currentPlayer} profileById={profileById}
             onCreateCollection={createCollection}
+            onUpdateCollection={updateCollection}
             onUpdateCollectionPayment={updateCollectionPayment}
             onCloseCollection={closeCollection}
             onDeleteCollection={deleteCollection}
+            onUpdateMatchFee={updateMatchFee}
             onUpdateMatchFeePayment={updateMatchFeePayment}
             onReviewProof={reviewProof} />
         )}
@@ -1317,7 +1364,14 @@ export default function App() {
             onCreateMatch={(m) => { setMatches((c) => [...c, m]); }} />
         )}
         {page === "sim" && isAdmin && (
-          <SimPage profiles={profiles} ratingMap={ratingMap} isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} skills={skills} />
+          <SimPage
+            profiles={profiles}
+            ratingMap={ratingMap}
+            isAdmin={isAdmin}
+            isSuperAdmin={isSuperAdmin}
+            skills={skills}
+            onResultChange={setSimHasGeneratedTeams}
+          />
         )}
         {page === "tournaments" && isSuperAdmin && (
           <TournamentPage activeGroupId={activeGroupId} profiles={profiles} ratingMap={ratingMap}
