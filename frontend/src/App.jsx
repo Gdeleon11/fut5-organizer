@@ -1130,14 +1130,14 @@ export default function App() {
     return <ReservePage token={reserveToken} />;
   }
 
+  // Render guards
+  if (!hasSupabaseConfig) return <ConfigMissing />;
+  if (!sessionReady) return <ShellMessage title="Cargando" message="Revisando tu sesión..." />;
+
   // Render proof upload page (no auth required, but page handles login check)
   if (proofToken) {
     return <ProofUploadPage token={proofToken} session={session} />;
   }
-
-  // Render guards
-  if (!hasSupabaseConfig) return <ConfigMissing />;
-  if (!sessionReady) return <ShellMessage title="Cargando" message="Revisando tu sesión..." />;
   if (!session) return <AuthScreen />;
   if (loading && !profile) return <ShellMessage title="Cargando" message="Preparando tu perfil..." />;
   if (profile && !profileComplete(profile)) {
