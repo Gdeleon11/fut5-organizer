@@ -29,24 +29,32 @@ function ProofStatusBadge({ status }) {
 // Copy link button
 // ---------------------------------------------------------------------------
 
-function CopyProofLinkButton({ paymentId, paymentType, disabled }) {
+function CopyProofLinkButton({ payment, paymentType, disabled }) {
   const [copied, setCopied] = useState(false);
-  const [generating, setGenerating] = useState(false);
 
-  async function handleCopy() {
+  function handleCopy() {
     try {
-      setGenerating(true);
-      const token = await api.generateProofToken(paymentId, paymentType);
+      const tokenData = {
+        pid: payment.id,
+        uid: payment.profile_id,
+        type: paymentType,
+        gid: payment.group_id,
+      };
+      const token = btoa(JSON.stringify(tokenData));
       const proofUrl = `${window.location.origin}/proof/${token}`;
 
-      await navigator.clipboard.writeText(proofUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      navigator.clipboard.writeText(proofUrl)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch((err) => {
+          console.error("Clipboard write failed:", err);
+          alert("Error al generar el enlace. Intentá de nuevo.");
+        });
     } catch (err) {
       console.error("Error generating proof link:", err);
       alert("Error al generar el enlace. Intentá de nuevo.");
-    } finally {
-      setGenerating(false);
     }
   }
 
@@ -55,23 +63,26 @@ function CopyProofLinkButton({ paymentId, paymentType, disabled }) {
       className="fee-btn-icon"
       type="button"
       onClick={handleCopy}
-      disabled={disabled || generating}
+      disabled={disabled}
       title="Copiar link"
     >
       <LinkIcon />
-      {generating ? "..." : copied ? "✓" : "Copiar"}
+      {copied ? "✓" : "Copiar"}
     </button>
   );
 }
 
 function CopyCollectionGroupLinkButton({ collection }) {
   const [copied, setCopied] = useState(false);
-  const [generating, setGenerating] = useState(false);
 
-  async function handleCopy() {
+  function handleCopy() {
     try {
-      setGenerating(true);
-      const token = await api.generateCollectionProofToken(collection.id);
+      const tokenData = {
+        cid: collection.id,
+        gid: collection.group_id,
+        type: "collection_group",
+      };
+      const token = btoa(JSON.stringify(tokenData));
       const proofUrl = `${window.location.origin}/proof/${token}`;
       const text = [
         "COBRO F5MANAGER",
@@ -85,14 +96,19 @@ function CopyCollectionGroupLinkButton({ collection }) {
         "Subí tu comprobante aquí:",
         proofUrl,
       ].filter(Boolean).join("\n");
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        })
+        .catch((err) => {
+          console.error("Clipboard write failed:", err);
+          alert("Error al generar el enlace. Intentá de nuevo.");
+        });
     } catch (err) {
       console.error("Error generating collection link:", err);
       alert("Error al generar el enlace. Intentá de nuevo.");
-    } finally {
-      setGenerating(false);
     }
   }
 
@@ -101,9 +117,8 @@ function CopyCollectionGroupLinkButton({ collection }) {
       className="secondary-button"
       type="button"
       onClick={handleCopy}
-      disabled={generating}
     >
-      {generating ? "Generando..." : copied ? "Link copiado" : "Link general"}
+      {copied ? "Link copiado" : "Link general"}
     </button>
   );
 }
@@ -353,7 +368,7 @@ function MatchFeePanel({
 
                 {isAdmin && !hasProof && payment.status === "pending" && (
                   <CopyProofLinkButton
-                    paymentId={payment.id}
+                    payment={payment}
                     paymentType="match_fee"
                   />
                 )}
@@ -789,7 +804,7 @@ function CollectionsPanel({
 
                         {!hasProof && payment.status === "pending" && (
                           <CopyProofLinkButton
-                            paymentId={payment.id}
+                            payment={payment}
                             paymentType="collection"
                           />
                         )}
@@ -952,7 +967,7 @@ function MyFeesPanel({
                   </span>
                   {payment.proof_status === "pending" && (
                     <CopyProofLinkButton
-                      paymentId={payment.id}
+                      payment={payment}
                       paymentType="match_fee"
                     />
                   )}
@@ -997,7 +1012,7 @@ function MyFeesPanel({
                   </span>
                   {payment.proof_status === "pending" && (
                     <CopyProofLinkButton
-                      paymentId={payment.id}
+                      payment={payment}
                       paymentType="collection"
                     />
                   )}

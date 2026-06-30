@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import MapPicker from "../components/MapPicker.jsx";
-import { copyToClipboard, formatMoney } from "../utils.js";
+import { cleanImageUrl, copyToClipboard, formatMoney } from "../utils.js";
 
 function VenueForm({ initial, onSave, onCancel }) {
   const [form, setForm] = useState({
@@ -12,7 +12,7 @@ function VenueForm({ initial, onSave, onCancel }) {
     lng: initial?.lng || null,
   });
   const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(initial?.photo_url || "");
+  const [photoPreview, setPhotoPreview] = useState(cleanImageUrl(initial?.photo_url));
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -206,7 +206,7 @@ export default function VenuesPage({ groupId, profileId, venues, matches = [], o
                 <div className="venue-thumb">
                   <img
                     alt={venue.name}
-                    src={venue.photo_url}
+                    src={cleanImageUrl(venue.photo_url)}
                     onError={(event) => {
                       event.currentTarget.closest(".venue-thumb")?.remove();
                     }}

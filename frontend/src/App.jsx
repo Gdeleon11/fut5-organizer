@@ -424,12 +424,27 @@ export default function App() {
     });
     setGuests(groupedGuests);
 
-    const activeIds = (profileRows || [])
-      .filter((p) => p && p.membership_is_active)
-      .map((p) => p.id);
-    await api.syncCollectionPayments(groupId, activeIds);
-    const updatedCollections = await api.listCollections(groupId);
-    setCollections(updatedCollections);
+    const myProfileRow = (profileRows || []).find((p) => p && p.id === currentProfile.id);
+    const userRole = myProfileRow?.membership_role || "player";
+    const userIsAdmin = userRole === "admin" || userRole === "super_admin";
+
+    if (userIsAdmin) {
+      try {
+        const activeIds = (profileRows || [])
+          .filter((p) => p && p.membership_is_active)
+          .map((p) => p.id);
+        await api.syncCollectionPayments(groupId, activeIds);
+      } catch (err) {
+        console.error("Error syncing collection payments:", err);
+      }
+    }
+
+    try {
+      const updatedCollections = await api.listCollections(groupId);
+      setCollections(updatedCollections || []);
+    } catch (err) {
+      console.error("Error loading collections:", err);
+    }
 
     const memberIds = new Set((profileRows || []).map((p) => p && p.id).filter(Boolean));
     const orphanProfileIds = [...new Set(
@@ -1134,7 +1149,10 @@ export default function App() {
   if (!hasSupabaseConfig) return <ConfigMissing />;
   if (!sessionReady) return <ShellMessage title="Cargando" message="Revisando tu sesión..." />;
 
-  // Render proof upload page (no auth required, but page handles login check)
+  // Render proof upload page (requires auth, so we prompt login first if no session)
+  if (proofToken && !session) {
+    return <AuthScreen />;
+  }
   if (proofToken) {
     return <ProofUploadPage token={proofToken} session={session} />;
   }

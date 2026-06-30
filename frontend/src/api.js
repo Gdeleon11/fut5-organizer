@@ -1238,29 +1238,28 @@ export const api = {
       const tokenData = JSON.parse(atob(token));
       const { pid: paymentId, uid: profileId, type: paymentType, gid: groupId } = tokenData;
 
+      const { data: authData } = await client.auth.getUser();
+      const currentUserId = authData?.user?.id;
+
+      // Si no hay sesión, no podemos consultar la DB debido a RLS.
+      // Retornamos de inmediato indicando que se requiere login.
+      if (!currentUserId) {
+        return {
+          valid: true,
+          requires_login: true,
+          payment_id: paymentId || null,
+          profile_id: profileId || null,
+          group_id: groupId || (paymentType === "collection_group" ? tokenData.gid : null),
+          collection_id: paymentType === "collection_group" ? tokenData.cid : null,
+          payment_type: paymentType === "collection_group" ? "collection" : paymentType,
+          amount: 0,
+          title: "Cargando cobro...",
+          proof_status: "pending",
+        };
+      }
+
       if (paymentType === "collection_group") {
         const { cid: collectionId } = tokenData;
-        const { data: authData } = await client.auth.getUser();
-        const currentUserId = authData?.user?.id;
-        if (!currentUserId) {
-          const { data: collection } = await client
-            .from("collections")
-            .select("id, group_id, title, amount_per_player, due_date")
-            .eq("id", collectionId)
-            .single();
-          return collection
-            ? {
-                valid: true,
-                requires_login: true,
-                group_id: collection.group_id,
-                collection_id: collection.id,
-                payment_type: "collection",
-                amount: collection.amount_per_player,
-                title: collection.title,
-                proof_status: "pending",
-              }
-            : { valid: false, error: "Cobro no encontrado" };
-        }
 
         const { data: paymentRecord } = await client
           .from("collection_payments")
@@ -1403,18 +1402,34 @@ export const api = {
 
     const proofUrl = (urlData?.publicUrl || "").replace(/%0A/g, "").trim();
 
-    // Update payment record directly
-    const table = paymentType === "match_fee" ? "match_fee_payments" : "collection_payments";
-    const { error: updateError } = await client
-      .from(table)
-      .update({
-        proof_url: proofUrl,
-        proof_status: "submitted",
-        proof_submitted_at: new Date().toISOString(),
-      })
-      .eq("id", paymentId);
+    // Intentar usar la función RPC segura primero
+    const { data: result, error: rpcError } = await client.rpc("submit_payment_proof", {
+      payment_id: paymentId,
+      payment_type: paymentType,
+      proof_url: proofUrl,
+    });
 
-    raise(updateError);
+    if (rpcError) {
+      // Fallback si la función RPC no existe
+      const table = paymentType === "match_fee" ? "match_fee_payments" : "collection_payments";
+      const { data: updatedData, error: updateError } = await client
+        .from(table)
+        .update({
+          proof_url: proofUrl,
+          proof_status: "submitted",
+          proof_submitted_at: new Date().toISOString(),
+        })
+        .eq("id", paymentId)
+        .select();
+
+      raise(updateError);
+
+      if (updatedData && updatedData.length === 0) {
+        throw new Error("No se pudo actualizar el comprobante. Es posible que no tengas permisos para actualizar este pago o que no exista.");
+      }
+    } else if (result && !result.success) {
+      throw new Error(result.error || "Error al actualizar el estado del pago.");
+    }
 
     return { proofUrl, success: true };
   },

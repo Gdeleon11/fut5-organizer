@@ -69,7 +69,7 @@ export default function SocialShareCard({ match, confirmedCount, waitlistCount =
 </svg>`;
   }, [confirmedCount, match, slots, title, venue, waitlistCount]);
 
-  const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  const dataUrl = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 
   async function copyCaption() {
     await copyToClipboard([

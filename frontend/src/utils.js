@@ -257,3 +257,9 @@ export function playerTeamText(playerName, team, match) {
 export function waUrl(text) {
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
+
+export function cleanImageUrl(url) {
+  if (!url) return "";
+  return String(url).replace(/%0A/g, "").replace(/\n/g, "").replace(/%0a/g, "").trim();
+}
+
