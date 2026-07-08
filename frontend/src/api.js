@@ -252,6 +252,31 @@ export const api = {
     return membership;
   },
 
+  async searchGroups(query) {
+    const client = requireSupabase();
+    const term = query.trim();
+    if (!term) return [];
+
+    if (/^[0-9a-f-]{20,}$/i.test(term)) {
+      return readMany(
+        client
+          .from("groups")
+          .select("id, name, description, created_at")
+          .eq("id", term)
+          .limit(5),
+      );
+    }
+
+    return readMany(
+      client
+        .from("groups")
+        .select("id, name, description, created_at")
+        .ilike("name", `%${term}%`)
+        .order("created_at", { ascending: false })
+        .limit(8),
+    );
+  },
+
   async updateGroupDescription(groupId, description) {
     const client = requireSupabase();
     return readOne(
@@ -724,7 +749,7 @@ export const api = {
 
     if (penaltyTeam && penaltyTeam.length > 0) {
       generated.teams.push({
-        name: "Equipo de castigo",
+        name: "Equipo C",
         team_order: generated.teams.length + 1,
         target_size: penaltyTeam.length,
         players: penaltyTeam,
@@ -1880,14 +1905,36 @@ export const api = {
   async confirmReservation(reservationId, groupId, venue, date, time, title) {
     const client = requireSupabase();
 
+    // 1. Fetch reservation details to extract tags from notes
+    const { data: resData } = await client.from("court_reservations")
+      .select("notes")
+      .eq("id", reservationId)
+      .single();
+
+    let allowedTags = [];
+    let cleanTitle = title || `Partido en ${venue}`;
+
+    if (resData?.notes) {
+      const matchTags = resData.notes.match(/^\[Tags:\s*([^\]]*)\]\s*(.*)/);
+      if (matchTags) {
+        const tagStr = matchTags[1];
+        allowedTags = tagStr.split(",").map((t) => t.trim()).filter(Boolean);
+        const restNotes = matchTags[2];
+        if (restNotes) {
+          cleanTitle = restNotes;
+        }
+      }
+    }
+
     const match = await readOne(
       client.from("matches").insert({
         group_id: groupId,
-        title: title || `Partido en ${venue}`,
+        title: cleanTitle,
         match_date: date,
         start_time: time || "19:00",
         venue,
         status: "upcoming",
+        allowed_tags: allowedTags,
       }).select("*").single(),
     );
 
@@ -1955,6 +2002,23 @@ export const api = {
     
     return readMany(
       client.from("match_player_stats").insert(rowsToInsert).select("*")
+    );
+  },
+
+  async saveSinglePlayerMatchStats(matchId, groupId, playerId, stats, userId) {
+    const client = requireSupabase();
+    const row = {
+      group_id: groupId,
+      match_id: matchId,
+      player_id: playerId,
+      goals: Number(stats.goals || 0),
+      assists: Number(stats.assists || 0),
+      mvp: Boolean(stats.mvp || false),
+      clean_sheet: Boolean(stats.clean_sheet || false),
+      created_by: userId
+    };
+    return readOne(
+      client.from("match_player_stats").upsert(row, { onConflict: "match_id,player_id" }).select("*")
     );
   },
 

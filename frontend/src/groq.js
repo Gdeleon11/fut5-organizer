@@ -16,15 +16,28 @@ export async function distributeTeamsWithAI({ players, skills, instructions, tea
       skills: playerSkills,
     };
   });
+  let sizesText = "";
+  let sizesExplanation = "";
+  if (teamCount) {
+    const targetSizes = [];
+    let remaining = players.length;
+    for (let i = 0; i < teamCount; i++) {
+      const size = Math.ceil(remaining / (teamCount - i));
+      targetSizes.push(size);
+      remaining -= size;
+    }
+    sizesText = targetSizes.join(", ");
+    sizesExplanation = `Las cantidades de jugadores por equipo deben ser EXACTAMENTE las siguientes: ${sizesText}.`;
+  }
 
   const systemPrompt = `Eres un asistente experto en fútbol. Tu trabajo es distribuir jugadores en equipos equilibrados.
 
 REGLAS ABSOLUTAS E INVIOLABLES DE DISTRIBUCIÓN:
 1. CADA JUGADOR (player_id) DEBE SER ASIGNADO EXACTAMENTE A UN EQUIPO.
 2. NO PUEDEN EXISTIR JUGADORES DUPLICADOS (un mismo player_id en múltiples equipos es un error grave).
-3. EL NÚMERO TOTAL DE JUGADORES EN TODOS LOS EQUIPOS DEBE SER IGUAL A LA CANTIDAD TOTAL DE JUGADORES RECIBIDOS.
-4. ${teamCount ? `Debes crear EXACTAMENTE ${teamCount} equipos.` : "Debes crear entre 2 y 3 equipos según el número de jugadores."}
-5. DISTRIBUCIÓN EQUITATIVA DE TAMAÑO: la diferencia de cantidad de jugadores entre el equipo más grande y el más pequeño debe ser como máximo 1. Por ejemplo, si hay 15 jugadores confirmados y 3 equipos, deben ser exactamente de 5, 5 y 5 jugadores cada uno.
+3. EL NÚMERO TOTAL DE JUGADORES EN TODOS LOS EQUIPOS DEBE SER EXACTAMENTE ${players.length}.
+4. ${teamCount ? `Debes crear EXACTAMENTE ${teamCount} equipos. ${sizesExplanation}` : "Debes crear entre 2 y 3 equipos según el número de jugadores."}
+5. DISTRIBUCIÓN EXACTA DE TAMAÑO: No puedes desobedecer los tamaños de equipo solicitados.
 6. Distribuye los ratings (1-4) de forma equitativa para que los equipos queden nivelados.
 7. Los porteros (goalkeeper) y habilidades de cracks deben distribuirse de manera equitativa entre los equipos.
 8. Si hay instrucciones especiales del usuario, cúmplelas.
