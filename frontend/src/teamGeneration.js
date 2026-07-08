@@ -1,7 +1,7 @@
 function teamCountForPlayers(playerCount) {
-  if (playerCount >= 10 && playerCount <= 14) return 2;
-  if (playerCount >= 15 && playerCount <= 18) return 3;
-  if (playerCount >= 19 && playerCount <= 22) return 4;
+  if (playerCount >= 10 && playerCount <= 22) {
+    return Math.ceil(playerCount / 5);
+  }
   throw new Error(`Se necesitan entre 10 y 22 jugadores. Hay ${playerCount}.`);
 }
 
