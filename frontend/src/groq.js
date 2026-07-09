@@ -2,9 +2,10 @@ const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.1-8b-instant";
 
 export async function distributeTeamsWithAI({ players, skills, instructions, teamCount }) {
+  const primaryUrl = import.meta.env.VITE_PRIMARY_LLM_URL;
   const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-  if (!apiKey) {
-    throw new Error("VITE_GROQ_API_KEY no está configurada. Agregala en el archivo .env");
+  if (!apiKey && !primaryUrl) {
+    throw new Error("Faltan las credenciales: configura VITE_GROQ_API_KEY o VITE_PRIMARY_LLM_URL en el archivo .env");
   }
 
   const playerList = players.map((p) => {
@@ -56,32 +57,50 @@ No agregues texto explicativo ni formato Markdown adicional fuera del JSON.`;
 
   const userPrompt = `${instructions ? `INSTRUCCIONES DEL USUARIO: ${instructions}\n\n` : ""}JUGADORES:\n${JSON.stringify(playerList, null, 2)}`;
 
-  const res = await fetch(GROQ_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.3,
-      max_tokens: 4000,
-      response_format: { type: "json_object" },
-    }),
-  });
+  async function callLLM(url, key, model) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(key ? { Authorization: `Bearer ${key}` } : {}),
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.3,
+        response_format: { type: "json_object" },
+      }),
+    });
 
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.error?.message || `Error de Groq: ${res.status}`);
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(error.error?.message || `Error del LLM: ${res.status}`);
+    }
+    return res.json();
   }
 
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("Groq no devolvió respuesta");
+  let data;
+  try {
+    if (primaryUrl) {
+      console.log("Intentando LLM primario local/Cloudflare:", primaryUrl);
+      data = await callLLM(primaryUrl, "", "local-model");
+    } else {
+      throw new Error("No primary URL");
+    }
+  } catch (error) {
+    console.warn("Fallo el LLM primario, usando Groq como respaldo:", error.message);
+    if (apiKey) {
+      data = await callLLM(GROQ_API_URL, apiKey, GROQ_MODEL);
+    } else {
+      throw new Error("El LLM primario falló y no hay VITE_GROQ_API_KEY configurada.");
+    }
+  }
+
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) throw new Error("El modelo no devolvió respuesta");
 
   const result = JSON.parse(content);
   if (!result.teams || !Array.isArray(result.teams)) {

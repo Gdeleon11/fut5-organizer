@@ -2,9 +2,13 @@ import React from "react";
 import Avatar from "./Avatar.jsx";
 import { displayName } from "../utils.js";
 import { SKILL_OPTIONS } from "../constants.js";
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from "recharts";
+import { getCapacities, capsToStats } from "../capacityStore.js";
 
-// Helper to calculate FIFA FUT attributes based on player skills, rating, position and historical match stats
-export function calculateFifaStats(profile, ratingObj = null, playerSkills = [], isGuest = false, guestRating = 3, matchStats = []) {
+// Helper to calculate FIFA FUT attributes based on player skills, rating, position and historical match stats.
+// `manualCaps` (optional) es un objeto { pac, sho, pas, dri, def, phy } con valores 1-100
+// puntuados manualmente. Cuando una capacidad está presente, sobreescribe el valor calculado.
+export function calculateFifaStats(profile, ratingObj = null, playerSkills = [], isGuest = false, guestRating = 3, matchStats = [], manualCaps = null) {
   const pos = profile?.preferred_position || "Flexible";
   
   let overallRating = 3;
@@ -103,15 +107,31 @@ export function calculateFifaStats(profile, ratingObj = null, playerSkills = [],
 
   // Constraints: stats between 30 and 99
   const cap = (val) => Math.max(30, Math.min(99, val));
-  
+
+  // Sobreescritura manual: si hay capacidades puntuadas a mano (1-100), mandan.
+  const mCap = (val) => Math.max(1, Math.min(99, Math.round(val)));
+  const finalPac = manualCaps?.pac != null ? mCap(manualCaps.pac) : cap(pac);
+  const finalSho = manualCaps?.sho != null ? mCap(manualCaps.sho) : cap(sho);
+  const finalPas = manualCaps?.pas != null ? mCap(manualCaps.pas) : cap(pas);
+  const finalDri = manualCaps?.dri != null ? mCap(manualCaps.dri) : cap(dri);
+  const finalDef = manualCaps?.def != null ? mCap(manualCaps.def) : cap(def);
+  const finalPhy = manualCaps?.phy != null ? mCap(manualCaps.phy) : cap(phy);
+
+  // Si hay CUALQUIER capacidad manual, el overall se recalcula como el promedio
+  // de las 6 capacidades finales (así el manual influye en carta y balanceo).
+  const hasManual = manualCaps && Object.values(manualCaps).some((v) => v != null);
+  const finalOverall = hasManual
+    ? Math.round((finalPac + finalSho + finalPas + finalDri + finalDef + finalPhy) / 6)
+    : cap(overall);
+
   return {
-    overall: cap(overall),
-    pac: cap(pac),
-    sho: cap(sho),
-    pas: cap(pas),
-    dri: cap(dri),
-    def: cap(def),
-    phy: cap(phy)
+    overall: finalOverall,
+    pac: finalPac,
+    sho: finalSho,
+    pas: finalPas,
+    dri: finalDri,
+    def: finalDef,
+    phy: finalPhy,
   };
 }
 
@@ -124,8 +144,9 @@ export default function FifaCard({
   matchStats = [],
   showStats = false,
 }) {
-  const stats = calculateFifaStats(profile, ratingObj, playerSkills, isGuest, guestRating, matchStats);
-  
+  const manualCaps = capsToStats(getCapacities(profile?.id));
+  const stats = calculateFifaStats(profile, ratingObj, playerSkills, isGuest, guestRating, matchStats, manualCaps);
+
   // Position abbreviations
   const posMap = {
     Forward: "DEL",
@@ -183,6 +204,16 @@ export default function FifaCard({
   const totalCleanSheets = playerStatsList.filter(s => s.clean_sheet).length;
   const totalMatches = playerStatsList.length;
     
+  // Chart data
+  const chartData = [
+    { subject: 'RIT', A: stats.pac, fullMark: 99 },
+    { subject: 'TIR', A: stats.sho, fullMark: 99 },
+    { subject: 'PAS', A: stats.pas, fullMark: 99 },
+    { subject: 'REG', A: stats.dri, fullMark: 99 },
+    { subject: 'DEF', A: stats.def, fullMark: 99 },
+    { subject: 'FIS', A: stats.phy, fullMark: 99 },
+  ];
+  
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
       <div className={`fifa-card-container ${cardClass} ${position === "POR" ? "goalkeeper" : ""}`}>
@@ -201,8 +232,10 @@ export default function FifaCard({
           <div className="fifa-avatar-wrap">
             {isGuest ? (
               <div className="fifa-placeholder-avatar">G</div>
+            ) : profile?.avatar_url ? (
+              <img className="fifa-player-photo" src={profile.avatar_url} alt={`${name} avatar`} />
             ) : (
-              <Avatar profile={profile} size="lg" />
+              <div className="fifa-placeholder-avatar">{name[0]?.toUpperCase() || "P"}</div>
             )}
           </div>
           
@@ -252,6 +285,17 @@ export default function FifaCard({
               ))}
             </div>
           )}
+
+          {/* Radar Chart Overlay */}
+          <div style={{ width: "100%", height: 110, marginTop: "0.5rem" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="70%" data={chartData}>
+                <PolarGrid gridType="polygon" stroke="currentColor" strokeOpacity={0.2} />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.8 }} />
+                <Radar name="Stats" dataKey="A" stroke="currentColor" fill="currentColor" fillOpacity={0.3} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

@@ -8,8 +8,8 @@ const THEMES = [
 
 export default function ThemeSwitcher() {
   const [theme, setTheme] = useState(() => {
-    if (typeof window === "undefined") return "field";
-    return localStorage.getItem("fut5_theme") || "field";
+    if (typeof window === "undefined") return "night";
+    return localStorage.getItem("fut5_theme") || "night";
   });
 
   useEffect(() => {

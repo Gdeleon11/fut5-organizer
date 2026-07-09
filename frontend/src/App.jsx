@@ -1,30 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, CalendarHeart, Home, Users, CreditCard, Shield, Trophy, UserCircle, BookOpen } from "lucide-react";
 import { api } from "./api.js";
 import Avatar from "./components/Avatar.jsx";
 import PushNotifications from "./components/PushNotifications.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
 import SectionHero from "./components/SectionHero.jsx";
 import AdBanner from "./components/AdBanner.jsx";
-import AdminPanel from "./pages/AdminPanel.jsx";
 import AuthScreen from "./pages/AuthScreen.jsx";
-import FeesPage from "./pages/FeesPage.jsx";
-import FinesPage from "./pages/FinesPage.jsx";
+import GroupOnboardingPage from "./pages/GroupOnboardingPage.jsx";
 import GroupsPage from "./pages/GroupsPage.jsx";
 import MatchDetail from "./pages/MatchDetail.jsx";
 import MatchesPage from "./pages/MatchesPage.jsx";
-import PlayersAdmin from "./pages/PlayersAdmin.jsx";
-import ProfileForm from "./pages/ProfileForm.jsx";
 import ProofUploadPage from "./pages/ProofUploadPage.jsx";
 import GuestRegisterPage from "./pages/GuestRegisterPage.jsx";
 import CourtReservationPage from "./pages/CourtReservationPage.jsx";
 import ReservePage from "./pages/ReservePage.jsx";
 import SimPage from "./pages/SimPage.jsx";
-import SuperAdminPage from "./pages/SuperAdminPage.jsx";
 import TeamPage from "./pages/TeamPage.jsx";
 import TournamentPage from "./pages/TournamentPage.jsx";
-import VenuesPage from "./pages/VenuesPage.jsx";
-import TreasuryPage from "./pages/TreasuryPage.jsx";
 import LeaderboardPage from "./pages/LeaderboardPage.jsx";
+import CashierPage from "./pages/CashierPage.jsx";
+import PlayersPage from "./pages/PlayersPage.jsx";
+import MyFifaCardPage from "./pages/MyFifaCardPage.jsx";
+import ProfileForm from "./pages/ProfileForm.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
+import BlogPage from "./pages/BlogPage.jsx";
+import { PrivacyPage, TermsPage, ContactPage } from "./pages/LegalPages.jsx";
 import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
 import { activeReservationStatus, canUseReservationAssistant } from "./reservationAssistant.js";
 import { canAccessMatch, collectGroupTags } from "./tags.js";
@@ -51,17 +52,76 @@ function ShellMessage({ title, message }) {
   );
 }
 
+const PAGE_PATHS = {
+  matches: "/partidos",
+  team: "/equipo",
+  leaderboard: "/estadisticas",
+  cashier: "/cobros-caja",
+  profile: "/perfil",
+  groups: "/grupos",
+  reservations: "/reservas",
+  players: "/jugadores",
+  tournaments: "/torneos",
+  landing: "/",
+  blog: "/blog",
+  privacy: "/privacidad",
+  terms: "/terminos",
+  contact: "/contacto",
+  auth: "/login",
+};
+
+const PATH_PAGES = Object.fromEntries(Object.entries(PAGE_PATHS).map(([page, path]) => [path, page]));
+
+function routeFromLocation() {
+  if (typeof window === "undefined") return { page: "matches", matchId: null };
+
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  const matchPath = path.match(/^\/partidos\/([^/]+)$/);
+  if (matchPath) {
+    return { page: "match", matchId: decodeURIComponent(matchPath[1]) };
+  }
+
+  const legacyMappings = {
+    "/multas": "cashier",
+    "/cobros": "cashier",
+    "/finanzas": "cashier",
+    "/canchas": "reservations",
+    "/simular": "matches",
+    "/super-admin": "players",
+    "/admin": "matches",
+    "/login": "auth",
+  };
+
+  if (legacyMappings[path]) {
+    return { page: legacyMappings[path], matchId: null };
+  }
+
+  return { page: PATH_PAGES[path] || "matches", matchId: null };
+}
+
+function urlForPage(page, matchId, groupId) {
+  const path = page === "match" && matchId
+    ? `/partidos/${encodeURIComponent(matchId)}`
+    : PAGE_PATHS[page] || PAGE_PATHS.matches;
+  const params = new URLSearchParams();
+  if (groupId) params.set("group", groupId);
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
 export default function App() {
+  const initialRoute = routeFromLocation();
   const [sessionReady, setSessionReady] = useState(!hasSupabaseConfig);
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [memberships, setMemberships] = useState([]);
   const [activeGroupId, setActiveGroupId] = useState("");
-  const [page, setPage] = useState("matches");
-  const [selectedMatchId, setSelectedMatchId] = useState(null);
+  const [page, setPage] = useState(initialRoute.page);
+  const [selectedMatchId, setSelectedMatchId] = useState(initialRoute.matchId);
   const [matches, setMatches] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [ratings, setRatings] = useState([]);
+  const [reservations, setReservations] = useState([]);
   const [attendances, setAttendances] = useState([]);
   const [teamsByMatch, setTeamsByMatch] = useState({});
   const [fines, setFines] = useState([]);
@@ -76,15 +136,208 @@ export default function App() {
   const [matchStats, setMatchStats] = useState([]);
   const [groupExpenses, setGroupExpenses] = useState([]);
   const [simHasGeneratedTeams, setSimHasGeneratedTeams] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const mobileNavRefs = useRef({});
 
+  const [devRoleOverride, setDevRoleOverride] = useState("");
+
+  function loadMockData() {
+    const mockProfiles = [
+      { id: "e62c1146-24be-47a3-83f1-778848d7d001", full_name: "Guille de León", nickname: "Guille", preferred_position: "Forward", phone: "5555-5555", avatar_url: null, membership_is_active: true, group_tags: ["residente", "veterano"] },
+      { id: "e62c1146-24be-47a3-83f1-778848d7d002", full_name: "Ale", nickname: "Ale", preferred_position: "Midfielder", phone: "5555-5555", avatar_url: null, membership_is_active: true, group_tags: ["residente"] },
+      { id: "e62c1146-24be-47a3-83f1-778848d7d003", full_name: "Javi B", nickname: "Javi B", preferred_position: "Defender", phone: "5555-5555", avatar_url: null, membership_is_active: true, group_tags: ["veterano"] },
+      { id: "e62c1146-24be-47a3-83f1-778848d7d004", full_name: "Darwin", nickname: "Darwin", preferred_position: "Defender", phone: "5555-5555", avatar_url: null, membership_is_active: true, group_tags: [] },
+      { id: "e62c1146-24be-47a3-83f1-778848d7d005", full_name: "Ariel", nickname: "Ariel", preferred_position: "Midfielder", phone: "5555-5555", avatar_url: null, membership_is_active: true, group_tags: [] },
+      { id: "e62c1146-24be-47a3-83f1-778848d7d006", full_name: "Quex", nickname: "Quex", preferred_position: "Goalkeeper", phone: "5555-5555", avatar_url: null, membership_is_active: true, group_tags: [] },
+      { id: "e62c1146-24be-47a3-83f1-778848d7d007", full_name: "Solis", nickname: "Solis", preferred_position: "Midfielder", phone: "5555-5555", avatar_url: null, membership_is_active: true, group_tags: [] },
+    ];
+
+    setProfiles(mockProfiles);
+    setProfile(mockProfiles[0]); // Guille
+    setMemberships([
+      { group_id: "e62c1146-24be-47a3-83f1-778848d7d010", role: "super_admin", is_active: true, groups: { id: "e62c1146-24be-47a3-83f1-778848d7d010", name: "Mi chamusca (Local Demo)" } }
+    ]);
+    setActiveGroupId("e62c1146-24be-47a3-83f1-778848d7d010");
+    setGroupTagRows([
+      { id: "t1", name: "residente" },
+      { id: "t2", name: "veterano" }
+    ]);
+
+    const mockMatches = [
+      { id: "e62c1146-24be-47a3-83f1-778848d7d101", title: "Plaza 1 - Sintética", match_date: new Date().toISOString().split("T")[0], start_time: "19:00", venue: "Plaza 1 - Sintética", venue_id: "e62c1146-24be-47a3-83f1-778848d7d201", max_players: 15, status: "upcoming", allowed_tags: ["residente"] },
+      { id: "e62c1146-24be-47a3-83f1-778848d7d102", title: "Plaza 3 - Domo Pro", match_date: new Date(Date.now() + 3*24*60*60*1000).toISOString().split("T")[0], start_time: "20:00", venue: "Plaza 3 - Domo Pro", venue_id: "e62c1146-24be-47a3-83f1-778848d7d202", max_players: 18, status: "upcoming", allowed_tags: ["veterano"] },
+      { id: "e62c1146-24be-47a3-83f1-778848d7d103", title: "Plaza 1 - Sintética", match_date: new Date(Date.now() - 4*24*60*60*1000).toISOString().split("T")[0], start_time: "19:00", venue: "Plaza 1 - Sintética", venue_id: "e62c1146-24be-47a3-83f1-778848d7d201", max_players: 15, status: "closed" }
+    ];
+    setMatches(mockMatches);
+
+    const mockAttendances = [];
+    mockProfiles.slice(0, 11).forEach((p, idx) => {
+      mockAttendances.push({ id: `e62c1146-24be-47a3-83f1-778848d70${idx}1`, match_id: "e62c1146-24be-47a3-83f1-778848d7d101", profile_id: p.id, status: "confirmed", checked_in: true });
+    });
+    mockProfiles.slice(0, 3).forEach((p, idx) => {
+      mockAttendances.push({ id: `e62c1146-24be-47a3-83f1-778848d70${idx}2`, match_id: "e62c1146-24be-47a3-83f1-778848d7d102", profile_id: p.id, status: "confirmed", checked_in: false });
+    });
+    setAttendances(mockAttendances);
+
+    setVenues([
+      { id: "e62c1146-24be-47a3-83f1-778848d7d201", name: "Plaza 1 - Sintética", address: "Plaza San Ángel, Calzada Roosevelt Km 14, Guatemala", default_cost: 150, notes: "Techada, sintética", lat: 14.6284, lng: -90.5843 },
+      { id: "e62c1146-24be-47a3-83f1-778848d7d202", name: "Plaza 3 - Domo Pro", address: "Plaza San Ángel, Calzada Roosevelt Km 14, Guatemala", default_cost: 175, notes: "Domo cerrado", lat: 14.6284, lng: -90.5843 }
+    ]);
+
+    setReservations([
+      {
+        id: "res-mock-1",
+        group_id: "e62c1146-24be-47a3-83f1-778848d7d010",
+        venue: "Plaza 1 - Sintética",
+        reservation_date: new Date(Date.now() + 5*24*60*60*1000).toISOString().split("T")[0],
+        reservation_time: "19:00",
+        assigned_to: "e62c1146-24be-47a3-83f1-778848d7d001", // Guille
+        status: "pending",
+        notes: "[Tags: residente] Partido de fin de semana para residentes",
+        proof_url: null,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: "res-mock-2",
+        group_id: "e62c1146-24be-47a3-83f1-778848d7d010",
+        venue: "Plaza 3 - Domo Pro",
+        reservation_date: new Date(Date.now() + 6*24*60*60*1000).toISOString().split("T")[0],
+        reservation_time: "20:00",
+        assigned_to: "e62c1146-24be-47a3-83f1-778848d7d002", // Ale
+        status: "pending",
+        notes: "Partido libre para el grupo completo",
+        proof_url: null,
+        created_at: new Date().toISOString()
+      }
+    ]);
+
+    // ---- Datos dummy adicionales para que el demo sea 100% funcional ----
+    const pid = (n) => `e62c1146-24be-47a3-83f1-778848d7d00${n}`;
+    const GROUP = "e62c1146-24be-47a3-83f1-778848d7d010";
+    const CLOSED_MATCH = "e62c1146-24be-47a3-83f1-778848d7d103";
+    const NEXT_MATCH = "e62c1146-24be-47a3-83f1-778848d7d101";
+    const receiptDemo =
+      "data:image/svg+xml;utf8," +
+      encodeURIComponent(
+        "<svg xmlns='http://www.w3.org/2000/svg' width='320' height='420'><rect width='100%' height='100%' fill='#143d1a'/><text x='50%' y='45%' fill='#39e55a' font-size='26' font-family='sans-serif' text-anchor='middle'>Recibo Demo</text><text x='50%' y='58%' fill='#8eb896' font-size='16' font-family='sans-serif' text-anchor='middle'>Transferencia Q150.00</text></svg>",
+      );
+
+    // Ratings por posición (escala 1-5)
+    const ratingDefs = {
+      1: { attack_rating: 5, midfield_rating: 3, defense_rating: 2, goalkeeper_rating: 1 },
+      2: { attack_rating: 3, midfield_rating: 5, defense_rating: 3, goalkeeper_rating: 1 },
+      3: { attack_rating: 2, midfield_rating: 3, defense_rating: 5, goalkeeper_rating: 2 },
+      4: { attack_rating: 2, midfield_rating: 3, defense_rating: 4, goalkeeper_rating: 1 },
+      5: { attack_rating: 4, midfield_rating: 4, defense_rating: 2, goalkeeper_rating: 1 },
+      6: { attack_rating: 1, midfield_rating: 2, defense_rating: 3, goalkeeper_rating: 5 },
+      7: { attack_rating: 3, midfield_rating: 4, defense_rating: 3, goalkeeper_rating: 1 },
+    };
+    setRatings(
+      Object.entries(ratingDefs).map(([n, r]) => {
+        const avg = Math.round(
+          (r.attack_rating + r.midfield_rating + r.defense_rating + r.goalkeeper_rating) / 4,
+        );
+        return {
+          id: `rating-mock-${n}`,
+          group_id: GROUP,
+          profile_id: pid(n),
+          rating: avg,
+          ...r,
+          assigned_by: pid(1),
+          created_at: new Date().toISOString(),
+        };
+      }),
+    );
+
+    // Habilidades especiales
+    setSkills([
+      { id: "skill-m1", group_id: GROUP, player_id: pid(1), skill: "cannon" },
+      { id: "skill-m2", group_id: GROUP, player_id: pid(1), skill: "speedy" },
+      { id: "skill-m3", group_id: GROUP, player_id: pid(2), skill: "tactician" },
+      { id: "skill-m4", group_id: GROUP, player_id: pid(3), skill: "shield" },
+      { id: "skill-m5", group_id: GROUP, player_id: pid(5), skill: "wings" },
+      { id: "skill-m6", group_id: GROUP, player_id: pid(6), skill: "goalkeeper" },
+    ]);
+
+    // Estadísticas del partido cerrado
+    setMatchStats([
+      { id: "stat-m1", match_id: CLOSED_MATCH, player_id: pid(1), goals: 2, assists: 1, mvp: true, clean_sheet: false },
+      { id: "stat-m2", match_id: CLOSED_MATCH, player_id: pid(2), goals: 0, assists: 2, mvp: false, clean_sheet: false },
+      { id: "stat-m3", match_id: CLOSED_MATCH, player_id: pid(3), goals: 0, assists: 0, mvp: false, clean_sheet: true },
+      { id: "stat-m4", match_id: CLOSED_MATCH, player_id: pid(5), goals: 1, assists: 0, mvp: false, clean_sheet: false },
+      { id: "stat-m5", match_id: CLOSED_MATCH, player_id: pid(6), goals: 0, assists: 0, mvp: false, clean_sheet: true },
+    ]);
+
+    // Ajustes del grupo
+    setSettings({ id: "settings-mock", group_id: GROUP, late_cancel_fine_amount: 25 });
+
+    // Cuota de cancha (con comprobantes por validar para probar botones admin)
+    setMatchFees([
+      {
+        id: "fee-mock-1",
+        match_id: CLOSED_MATCH,
+        group_id: GROUP,
+        total_amount: 150,
+        per_player_amount: 30,
+        due_before: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "open",
+        match_fee_payments: [
+          { id: "mfp-1", match_fee_id: "fee-mock-1", group_id: GROUP, profile_id: pid(1), status: "paid", proof_status: "approved", proof_url: receiptDemo },
+          { id: "mfp-2", match_fee_id: "fee-mock-1", group_id: GROUP, profile_id: pid(2), status: "pending", proof_status: "submitted", proof_url: receiptDemo },
+          { id: "mfp-3", match_fee_id: "fee-mock-1", group_id: GROUP, profile_id: pid(3), status: "pending", proof_status: "submitted", proof_url: receiptDemo },
+          { id: "mfp-4", match_fee_id: "fee-mock-1", group_id: GROUP, profile_id: pid(4), status: "forgiven", proof_status: null, proof_url: null },
+          { id: "mfp-5", match_fee_id: "fee-mock-1", group_id: GROUP, profile_id: pid(5), status: "pending", proof_status: null, proof_url: null },
+        ],
+      },
+    ]);
+
+    // Cobro grupal
+    setCollections([
+      {
+        id: "col-mock-1",
+        group_id: GROUP,
+        title: "Uniformes nuevos",
+        amount_per_player: 50,
+        due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        status: "open",
+        collection_payments: [
+          { id: "cp-1", collection_id: "col-mock-1", group_id: GROUP, profile_id: pid(1), status: "paid", proof_status: "approved", proof_url: receiptDemo },
+          { id: "cp-2", collection_id: "col-mock-1", group_id: GROUP, profile_id: pid(2), status: "pending", proof_status: "submitted", proof_url: receiptDemo },
+          { id: "cp-3", collection_id: "col-mock-1", group_id: GROUP, profile_id: pid(3), status: "pending", proof_status: null, proof_url: null },
+          { id: "cp-4", collection_id: "col-mock-1", group_id: GROUP, profile_id: pid(4), status: "pending", proof_status: null, proof_url: null },
+          { id: "cp-5", collection_id: "col-mock-1", group_id: GROUP, profile_id: pid(5), status: "pending", proof_status: null, proof_url: null },
+          { id: "cp-6", collection_id: "col-mock-1", group_id: GROUP, profile_id: pid(6), status: "pending", proof_status: null, proof_url: null },
+          { id: "cp-7", collection_id: "col-mock-1", group_id: GROUP, profile_id: pid(7), status: "pending", proof_status: null, proof_url: null },
+        ],
+      },
+    ]);
+
+    // Equipos ya generados para el próximo partido
+    const teamA = [pid(1), pid(3), pid(5), pid(7)];
+    const teamB = [pid(2), pid(4), pid(6)];
+    const byId = Object.fromEntries(mockProfiles.map((p) => [p.id, p]));
+    setTeamsByMatch({
+      [NEXT_MATCH]: [
+        { id: "team-mock-a", name: "Equipo Verde", color: "var(--accent)", team_members: teamA.map((id) => ({ profile_id: id, profiles: byId[id] })) },
+        { id: "team-mock-b", name: "Equipo Azul", color: "#3b82f6", team_members: teamB.map((id) => ({ profile_id: id, profiles: byId[id] })) },
+      ],
+    });
+
+    // Gastos de tesorería de ejemplo
+    setGroupExpenses([
+      { id: "exp-1", group_id: GROUP, concept: "Balones nuevos", amount: 200, created_at: new Date().toISOString() },
+      { id: "exp-2", group_id: GROUP, concept: "Petos / chalecos", amount: 120, created_at: new Date().toISOString() },
+    ]);
+  }
+
   const activeMembership =
     memberships.find((m) => m.group_id === activeGroupId) || memberships[0] || null;
   const activeGroup = activeMembership?.groups || null;
-  const myRole = activeMembership?.role || "player";
+  const myRole = devRoleOverride || activeMembership?.role || "player";
   const isSuperAdmin = myRole === "super_admin";
   const isAdmin = myRole === "admin" || isSuperAdmin;
   const isActiveMember = Boolean(activeMembership?.is_active);
@@ -129,6 +382,17 @@ export default function App() {
     if (!profile || votedId === profile.id) return;
     try {
       const existing = userVoteMap.get(votedId);
+      if (isDemoMode) {
+        if (existing === vote) {
+          setVotes((c) => c.filter((v) => !(v.voter_id === profile.id && v.voted_id === votedId)));
+        } else {
+          setVotes((c) => [
+            ...c.filter((v) => !(v.voter_id === profile.id && v.voted_id === votedId)),
+            { id: `vote-demo-${votedId}-${Date.now()}`, voter_id: profile.id, voted_id: votedId, vote },
+          ]);
+        }
+        return;
+      }
       if (existing === vote) {
         await api.removeVote(activeGroupId, profile.id, votedId);
         setVotes((c) => c.filter((v) => !(v.voter_id === profile.id && v.voted_id === votedId)));
@@ -143,28 +407,15 @@ export default function App() {
   }
 
   const navItems = useMemo(() => [
-    { id: "matches", label: "Partidos", mobileLabel: "Partidos" },
-    { id: "team", label: "Equipo", mobileLabel: "Equipo" },
-    { id: "leaderboard", label: "Estadísticas", mobileLabel: "Estad." },
-    { id: "fines", label: "Multas", mobileLabel: "Multas" },
-    { id: "fees", label: "Cobros", mobileLabel: "Cobros" },
-    { id: "treasury", label: "Finanzas", mobileLabel: "Finan." },
-    { id: "profile", label: "Perfil", mobileLabel: "Perfil" },
-    { id: "groups", label: "Grupos", mobileLabel: "Grupos" },
-    ...(canUseReservationAssistant ? [
-      { id: "reservations", label: "Reservas", mobileLabel: "Reservas" },
-    ] : []),
-    ...(isAdmin ? [
-      { id: "admin", label: "Admin", mobileLabel: "Admin" },
-      { id: "players", label: "Jugadores", mobileLabel: "Jugad." },
-      { id: "venues", label: "Canchas", mobileLabel: "Canchas" },
-      { id: "sim", label: "Simular", mobileLabel: "Simular" },
-    ] : []),
+    { id: "matches", label: "Partidos", mobileLabel: "Partidos", icon: <Home size={20} /> },
+    { id: "reservations", label: "Reservas", mobileLabel: "Reservas", icon: <CalendarDays size={20} /> },
+    { id: "cashier", label: "Cobros & Caja", mobileLabel: "Cobros", icon: <CreditCard size={20} /> },
+    { id: "players", label: "Jugadores", mobileLabel: "Jugad.", icon: <Users size={20} /> },
+    { id: "profile", label: "Mi FIFA Card", mobileLabel: "Mi FIFA", icon: <UserCircle size={20} /> },
     ...(isSuperAdmin ? [
-      { id: "tournaments", label: "Torneos", mobileLabel: "Torneos" },
-      { id: "superadmin", label: "Super Admin", mobileLabel: "Super" },
+      { id: "tournaments", label: "Torneos", mobileLabel: "Torneos", icon: <Trophy size={20} /> },
     ] : []),
-  ], [isAdmin, isSuperAdmin]);
+  ], [isSuperAdmin]);
 
   const sortedMatches = useMemo(
     () => [...matches]
@@ -266,11 +517,44 @@ export default function App() {
     return () => { mounted = false; subscription.unsubscribe(); };
   }, []);
 
-  useEffect(() => { if (session?.user) bootstrap(session.user); }, [session?.user?.id]);
+  useEffect(() => {
+    if (session?.user) {
+      bootstrap(session.user);
+    }
+  }, [session?.user?.id]);
 
   useEffect(() => {
     if (!navItems.some((i) => i.id === page) && page !== "match") setPage("matches");
   }, [navItems, page]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    function handlePopState() {
+      const route = routeFromLocation();
+      setPage(route.page);
+      setSelectedMatchId(route.matchId);
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (["/proof", "/guest", "/reserve"].some((prefix) => window.location.pathname.startsWith(prefix))) return;
+
+    const currentParams = new URLSearchParams(window.location.search);
+    if ((currentParams.has("group") && !activeGroupId) || (currentParams.has("match") && !selectedMatchId)) {
+      return;
+    }
+
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    const nextUrl = urlForPage(page, selectedMatchId, activeGroupId);
+    if (currentUrl !== nextUrl) {
+      window.history.pushState({}, "", nextUrl);
+    }
+  }, [activeGroupId, page, selectedMatchId]);
 
   useEffect(() => {
     const node = mobileNavRefs.current[page];
@@ -282,10 +566,11 @@ export default function App() {
     if (matches.length === 0 || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const sharedMatchId = params.get("match");
-    if (!sharedMatchId || !matches.some((m) => m.id === sharedMatchId)) return;
-    setSelectedMatchId(sharedMatchId);
+    const pathMatchId = routeFromLocation().matchId;
+    const targetMatchId = pathMatchId || sharedMatchId;
+    if (!targetMatchId || !matches.some((m) => m.id === targetMatchId)) return;
+    setSelectedMatchId(targetMatchId);
     setPage("match");
-    window.history.replaceState({}, "", window.location.pathname);
   }, [matches]);
 
   useEffect(() => {
@@ -319,6 +604,7 @@ export default function App() {
     setProfiles([]); setRatings([]); setMatches([]); setAttendances([]);
     setTeamsByMatch({}); setFines([]); setSettings(null);
     setVenues([]); setMatchFees([]); setCollections([]); setGroupTagRows([]);
+    setReservations([]);
     setPage("matches");
   }
 
@@ -332,6 +618,10 @@ export default function App() {
   }
   function myAttendance(matchId) {
     return attendances.find((a) => a.match_id === matchId && a.profile_id === profile?.id);
+  }
+  function goToPage(nextPage) {
+    setSelectedMatchId(null);
+    setPage(nextPage);
   }
   function openMatch(matchId) { setSelectedMatchId(matchId); setPage("match"); }
 
@@ -367,6 +657,7 @@ export default function App() {
       setActiveGroupId(""); setProfiles([]); setRatings([]); setMatches([]);
       setAttendances([]); setTeamsByMatch({}); setFines([]); setSettings(null);
       setVenues([]); setMatchFees([]); setCollections([]);
+      setReservations([]);
       setSelectedMatchId(null); setPage("groups"); return null;
     }
     const stored = typeof window === "undefined"
@@ -387,7 +678,7 @@ export default function App() {
     if (!currentProfile || !groupId) return;
     const [matchRows, attendanceRows, fineRows, ratingRows, settingRows,
            profileRows, venueRows, collectionRows, tagRows, guestRows,
-           statsRows, expensesRows] = await Promise.all([
+           statsRows, expensesRows, reservationRows] = await Promise.all([
       api.listMatches(groupId), api.listAttendances(groupId),
       api.listFines(groupId), api.listRatings(groupId),
       api.listSettings(groupId), api.listGroupProfiles(groupId),
@@ -395,6 +686,7 @@ export default function App() {
       api.listGroupGuestPlayers(groupId).catch(() => []),
       api.listGroupMatchPlayerStats(groupId).catch(() => []),
       api.listGroupExpenses(groupId).catch(() => []),
+      api.listReservations(groupId).catch(() => []),
     ]);
     let voteRows = [];
     try { voteRows = await api.getPlayerVotes(groupId); } catch (e) { console.warn("Votes not available:", e.message); }
@@ -409,6 +701,7 @@ export default function App() {
     setVotes(voteRows || []);
     setProfiles(profileRows || []); setTeamsByMatch(teamsMap || {});
     setGroupTagRows(tagRows || []);
+    setReservations(reservationRows || []);
     loadSkills(groupId);
     setVenues(venueRows || []); setCollections(collectionRows || []);
     setMatchFees((feePairs || []).filter(Boolean));
@@ -466,6 +759,12 @@ export default function App() {
 
   async function refresh() {
     setNotice(""); setError(""); setLoading(true);
+    if (isDemoMode) {
+      loadMockData();
+      setLoading(false);
+      setNotice("Modo Demo Actualizado.");
+      return;
+    }
     try {
       const fp = profile ? await api.getProfile(profile.id) : profile;
       if (fp) setProfile(fp);
@@ -480,6 +779,7 @@ export default function App() {
     setNotice(""); setError(""); setActiveGroupId(groupId); setSelectedMatchId(null);
     if (typeof window !== "undefined")
       window.localStorage.setItem("fut5_active_group_id", groupId);
+    if (isDemoMode) { setPage("matches"); return; }
     setLoading(true);
     try { await loadData(profile, groupId); setPage("matches"); }
     catch (err) { setError(err.message); }
@@ -489,6 +789,10 @@ export default function App() {
   async function createGroup(name) {
     setNotice(""); setError(""); setLoading(true);
     try {
+      if (isDemoMode) {
+        setNotice("En modo demo trabajás sobre un grupo de prueba; crear grupos nuevos requiere iniciar sesión.");
+        return;
+      }
       const membership = await api.createGroup(profile.id, name);
       const rows = await api.listMyGroups(profile.id);
       setMemberships(rows); setActiveGroupId(membership.group_id);
@@ -499,6 +803,34 @@ export default function App() {
       setPage("admin");
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
+  }
+
+  async function requestJoinGroup(groupId) {
+    if (!profile || !groupId) return;
+    setNotice(""); setError(""); setLoading(true);
+    try {
+      if (isDemoMode) {
+        setNotice("En modo demo ya estás dentro de un grupo de prueba.");
+        return;
+      }
+      await api.joinGroup(groupId, profile.id);
+      const rows = await api.listMyGroups(profile.id);
+      setMemberships(rows);
+      const membership = rows.find((m) => m.group_id === groupId) || rows[0];
+      if (membership?.group_id) {
+        setActiveGroupId(membership.group_id);
+        if (typeof window !== "undefined")
+          window.localStorage.setItem("fut5_active_group_id", membership.group_id);
+        await loadData(profile, membership.group_id);
+      }
+      setNotice("Solicitud enviada. Un admin del grupo debe activarte para jugar.");
+      setPage("matches");
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function confirmMatch(match) {
@@ -516,6 +848,12 @@ export default function App() {
       const isMember = memberships.some((m) => m.group_id === activeGroupId);
       if (!isMember && activeGroupId) {
         try {
+          if (isDemoMode) {
+            const mockMembership = { group_id: activeGroupId, role: "player", is_active: true };
+            setMemberships((c) => [...c, mockMembership]);
+            setNotice("Te uniste al grupo (Simulación Local).");
+            return;
+          }
           const membership = await api.joinGroup(activeGroupId, profile.id);
           setMemberships((c) => [...c, membership]);
           const updatedProfiles = await api.listGroupProfiles(activeGroupId);
@@ -530,6 +868,19 @@ export default function App() {
       return;
     }
     try {
+      if (isDemoMode) {
+        const row = {
+          id: `att-mock-${Date.now()}`,
+          match_id: match.id,
+          profile_id: profile.id,
+          status: "confirmed",
+          checked_in: false,
+          created_at: new Date().toISOString()
+        };
+        setAttendances((c) => [...c.filter((a) => a.match_id !== match.id || a.profile_id !== profile.id), row]);
+        setNotice("Asistencia confirmada (Simulación Local).");
+        return;
+      }
       const row = await api.confirmAttendance(match.id, profile.id);
       setAttendances((c) => [...c.filter((a) => a.id !== row.id), row]);
 
@@ -575,6 +926,12 @@ export default function App() {
       const isMember = memberships.some((m) => m.group_id === activeGroupId);
       if (!isMember && activeGroupId) {
         try {
+          if (isDemoMode) {
+            const mockMembership = { group_id: activeGroupId, role: "player", is_active: true };
+            setMemberships((c) => [...c, mockMembership]);
+            setNotice("Te uniste al grupo (Simulación Local).");
+            return;
+          }
           const membership = await api.joinGroup(activeGroupId, profile.id);
           setMemberships((c) => [...c, membership]);
           setNotice("Te uniste al grupo. Un admin debe activarte para unirte a la lista de espera.");
@@ -587,6 +944,19 @@ export default function App() {
       return;
     }
     try {
+      if (isDemoMode) {
+        const row = {
+          id: `att-mock-${Date.now()}`,
+          match_id: match.id,
+          profile_id: profile.id,
+          status: "waitlist",
+          checked_in: false,
+          created_at: new Date().toISOString()
+        };
+        setAttendances((c) => [...c.filter((a) => a.match_id !== match.id || a.profile_id !== profile.id), row]);
+        setNotice("Te agregaste a la lista de espera (Simulación Local).");
+        return;
+      }
       const row = await api.joinWaitlist(match.id, profile.id, activeGroupId);
       setAttendances((c) => [...c.filter((a) => a.id !== row.id), row]);
       setNotice("Te agregaste a la lista de espera.");
@@ -610,6 +980,42 @@ export default function App() {
       const now = new Date();
       const hoursUntilMatch = (matchDateTime - now) / (1000 * 60 * 60);
       const isLateCancel = hoursUntilMatch < 4;
+
+      if (isDemoMode) {
+        const updated = { ...attendance, status: "canceled", checked_in: false };
+        setAttendances((c) => c.map((a) => (a.id === attendance.id ? updated : a)));
+
+        if (isLateCancel) {
+          const fine = {
+            id: `fine-mock-${Date.now()}`,
+            group_id: activeGroupId,
+            profile_id: profile.id,
+            match_id: match.id,
+            reason: "late_cancel",
+            amount: lateCancelFineAmount,
+            status: "open",
+            created_at: new Date().toISOString()
+          };
+          setFines((c) => [fine, ...c]);
+        }
+
+        const nextInWaitlist = attendances
+          .filter((a) => a.match_id === match.id && a.status === "waitlist")
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))[0];
+
+        if (nextInWaitlist) {
+          const promoted = { ...nextInWaitlist, status: "confirmed" };
+          setAttendances((c) => c.map((a) => a.id === nextInWaitlist.id ? promoted : a));
+          setNotice(isLateCancel
+            ? `Cancelación tardía. Multa de Q${lateCancelFineAmount}. Alguien de la lista de espera fue promovido (Simulación Local).`
+            : `Asistencia cancelada. Alguien de la lista de espera fue promovido (Simulación Local).`);
+        } else {
+          setNotice(isLateCancel
+            ? `Cancelación tardía. Multa de Q${lateCancelFineAmount} generada (Simulación Local).`
+            : `Asistencia cancelada (Simulación Local).`);
+        }
+        return;
+      }
 
       const updated = await api.updateAttendance(attendance.id, { status: "canceled", checked_in: false });
       setAttendances((c) => c.map((a) => (a.id === updated.id ? updated : a)));
@@ -640,6 +1046,26 @@ export default function App() {
   async function saveProfile(payload, avatarFile) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        let localAvatarUrl = profile.avatar_url;
+        if (avatarFile) {
+          localAvatarUrl = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(avatarFile);
+          });
+        }
+        const updated = {
+          ...profile,
+          ...payload,
+          avatar_url: localAvatarUrl,
+        };
+        setProfile(updated);
+        setProfiles((c) => c.map((p) => (p.id === updated.id ? updated : p)));
+        setNotice("Perfil guardado (Simulación Local).");
+        setPage("matches");
+        return;
+      }
       let updated = await api.updateMyProfile(profile.id, payload);
       if (avatarFile) updated = await api.uploadAvatar(profile.id, avatarFile);
       setProfile(updated);
@@ -652,13 +1078,33 @@ export default function App() {
   }
 
   async function signOut() {
-    await supabase.auth.signOut(); setSession(null); resetState();
+    if (isDemoMode) {
+      setIsDemoMode(false);
+      resetState();
+    } else {
+      await supabase.auth.signOut();
+      setSession(null);
+      resetState();
+    }
   }
 
   async function createMatch(payload) {
     setNotice(""); setError("");
     if (!activeGroupId) { setError("Primero creá o seleccioná un grupo."); return null; }
     try {
+      if (isDemoMode) {
+        const mockMatch = {
+          id: `m-mock-${Date.now()}`,
+          group_id: activeGroupId,
+          ...payload,
+          status: payload.status || "upcoming",
+          created_at: new Date().toISOString()
+        };
+        setMatches((c) => [...c, mockMatch]);
+        setSelectedMatchId(mockMatch.id);
+        setNotice("Partido creado (Simulación Local).");
+        return mockMatch;
+      }
       let created = await api.createMatch({ ...payload, group_id: activeGroupId });
       setMatches((c) => [...c, created]);
       setSelectedMatchId(created.id);
@@ -678,6 +1124,16 @@ export default function App() {
   async function editMatch(matchId, payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setMatches((c) => c.map((m) => {
+          if (m.id === matchId) {
+            return { ...m, ...payload };
+          }
+          return m;
+        }));
+        setNotice("Partido actualizado (Simulación Local).");
+        return;
+      }
       const updated = await api.updateMatch(matchId, payload);
       setMatches((c) => c.map((m) => (m.id === updated.id ? updated : m)));
       setNotice("Partido actualizado.");
@@ -687,6 +1143,14 @@ export default function App() {
   async function deleteMatch(matchId) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setMatches((c) => c.filter((m) => m.id !== matchId));
+        setTeamsByMatch((c) => { const n = { ...c }; delete n[matchId]; return n; });
+        setMatchFees((c) => c.filter((f) => f.match_id !== matchId));
+        if (selectedMatchId === matchId) { setSelectedMatchId(null); setPage("matches"); }
+        setNotice("Partido eliminado (Simulación Local).");
+        return;
+      }
       await api.deleteMatch(matchId);
       setMatches((c) => c.filter((m) => m.id !== matchId));
       setTeamsByMatch((c) => { const n = { ...c }; delete n[matchId]; return n; });
@@ -699,6 +1163,18 @@ export default function App() {
   async function updateProfileAdmin(profileId, payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setProfiles((c) => c.map((p) => {
+          if (p.id === profileId) {
+            const updated = { ...p, ...payload };
+            if (profileId === profile.id) setProfile(updated);
+            return updated;
+          }
+          return p;
+        }));
+        setNotice("Jugador actualizado (Simulación Local).");
+        return;
+      }
       const updated = await api.updateProfileAdmin(profileId, payload);
       setProfiles((c) => c.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
       if (updated.id === profile.id) setProfile(updated);
@@ -709,6 +1185,18 @@ export default function App() {
   async function createGroupTag(name) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        const mockTag = {
+          id: `tag-mock-${Date.now()}`,
+          name: name.trim().toLowerCase().replace(/\s+/g, "-"),
+          group_id: activeGroupId,
+          created_by: profile?.id || "admin"
+        };
+        setGroupTagRows((rows) => [...rows.filter((row) => row.id !== mockTag.id && row.name !== mockTag.name), mockTag]
+          .sort((a, b) => a.name.localeCompare(b.name)));
+        setNotice("Tag guardado (Simulación Local).");
+        return mockTag.name;
+      }
       const tag = await api.createGroupTag(activeGroupId, name, profile?.id);
       setGroupTagRows((rows) => [...rows.filter((row) => row.id !== tag.id && row.name !== tag.name), tag]
         .sort((a, b) => a.name.localeCompare(b.name)));
@@ -723,6 +1211,16 @@ export default function App() {
   async function updateGroupMember(profileId, payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setProfiles((c) => c.map((p) => {
+          if (p.id === profileId) {
+            return { ...p, ...payload };
+          }
+          return p;
+        }));
+        setNotice("Membresía actualizada (Simulación Local).");
+        return;
+      }
       await api.updateGroupMember(activeGroupId, profileId, payload);
       const rows = await api.listMyGroups(profile.id);
       setMemberships(rows); await loadData(profile, activeGroupId);
@@ -733,6 +1231,19 @@ export default function App() {
   async function updateMemberRole(profileId, role) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setMemberships((c) => c.map((m) => {
+          if (m.group_id === activeGroupId) {
+            return { ...m, role };
+          }
+          return m;
+        }));
+        if (profileId === profile.id) {
+          setDevRoleOverride(role);
+        }
+        setNotice("Rol actualizado (Simulación Local).");
+        return;
+      }
       await api.updateMemberRole(activeGroupId, profileId, role);
       const rows = await api.listMyGroups(profile.id);
       setMemberships(rows); await loadData(profile, activeGroupId);
@@ -758,6 +1269,21 @@ export default function App() {
         positionRatings.goalkeeper_rating,
       ];
       const overallRating = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+
+      if (isDemoMode) {
+        const mockRating = {
+          id: `rating-mock-${profileId}-${Date.now()}`,
+          profile_id: profileId,
+          rating: overallRating,
+          ...positionRatings,
+          assigned_by: profile.id,
+          created_at: new Date().toISOString()
+        };
+        setRatings((c) => [mockRating, ...c.filter((r) => r.profile_id !== profileId)]);
+        setNotice("Estrellas asignadas (Simulación Local).");
+        return;
+      }
+
       const created = await api.assignRating(
         activeGroupId,
         profileId,
@@ -773,6 +1299,61 @@ export default function App() {
   async function generateTeams(match, options = {}) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        const matchAttendances = attendances.filter(
+          (a) => a.match_id === match.id && ["confirmed", "checked_in"].includes(a.status),
+        );
+        const confirmedIds = matchAttendances.map((a) => a.profile_id);
+        const playersList = profiles
+          .filter((p) => confirmedIds.includes(p.id))
+          .map((p) => {
+            const r = ratingMap.get(p.id) || { rating: 70 };
+            return {
+              ...p,
+              rating: r.rating || 70,
+            };
+          });
+
+        const matchGuests = guests[match.id] || [];
+        matchGuests.forEach((g) => {
+          playersList.push({
+            id: g.id,
+            full_name: g.name,
+            nickname: g.name,
+            preferred_position: "Flexible",
+            rating: g.rating || 70,
+            is_guest: true
+          });
+        });
+
+        playersList.sort((a, b) => b.rating - a.rating);
+        const team1 = [];
+        const team2 = [];
+        playersList.forEach((p, idx) => {
+          if (idx % 2 === 0) team1.push(p);
+          else team2.push(p);
+        });
+
+        const mockTeamsResult = [
+          {
+            id: `team-mock-1-${Date.now()}`,
+            name: "Equipo 1",
+            color: "var(--primary)",
+            team_members: team1.map((p) => ({ profile_id: p.id, profiles: p }))
+          },
+          {
+            id: `team-mock-2-${Date.now()}`,
+            name: "Equipo 2",
+            color: "#3b82f6",
+            team_members: team2.map((p) => ({ profile_id: p.id, profiles: p }))
+          }
+        ];
+
+        setTeamsByMatch((c) => ({ ...c, [match.id]: mockTeamsResult }));
+        setNotice("Equipos generados (Simulación Local).");
+        return;
+      }
+
       const freshProfiles = await api.listGroupProfiles(activeGroupId);
       setProfiles(freshProfiles);
 
@@ -789,6 +1370,7 @@ export default function App() {
   }
 
   async function loadGuests(matchId) {
+    if (isDemoMode) return;
     try {
       const rows = await api.listGuestPlayers(matchId);
       setGuests((c) => ({ ...c, [matchId]: rows }));
@@ -801,6 +1383,20 @@ export default function App() {
   async function addGuestPlayer(matchId, name, rating) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        const guest = {
+          id: `guest-mock-${Date.now()}`,
+          match_id: matchId,
+          group_id: activeGroupId,
+          name,
+          rating: rating || 70,
+          created_by: profile.id,
+          created_at: new Date().toISOString()
+        };
+        setGuests((c) => ({ ...c, [matchId]: [...(c[matchId] || []), guest] }));
+        setNotice(`${name} agregado como invitado (Simulación Local).`);
+        return;
+      }
       const guest = await api.addGuestPlayer(matchId, activeGroupId, name, rating, profile.id);
       setGuests((c) => ({ ...c, [matchId]: [...(c[matchId] || []), guest] }));
       setNotice(`${name} agregado como invitado.`);
@@ -810,6 +1406,11 @@ export default function App() {
   async function deleteGuestPlayer(matchId, guestId) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setGuests((c) => ({ ...c, [matchId]: (c[matchId] || []).filter((g) => g.id !== guestId) }));
+        setNotice("Invitado eliminado (Simulación Local).");
+        return;
+      }
       await api.deleteGuestPlayer(guestId);
       setGuests((c) => ({ ...c, [matchId]: (c[matchId] || []).filter((g) => g.id !== guestId) }));
       setNotice("Invitado eliminado.");
@@ -818,6 +1419,13 @@ export default function App() {
 
   async function updateGuestRating(matchId, guestId, rating) {
     try {
+      if (isDemoMode) {
+        setGuests((c) => ({
+          ...c,
+          [matchId]: (c[matchId] || []).map((g) => (g.id === guestId ? { ...g, rating } : g))
+        }));
+        return;
+      }
       const updated = await api.updateGuestPlayer(guestId, { rating });
       setGuests((c) => ({ ...c, [matchId]: (c[matchId] || []).map((g) => g.id === guestId ? updated : g) }));
     } catch (err) { setError(err.message); }
@@ -827,6 +1435,16 @@ export default function App() {
     if (!profile) return;
     try {
       setError(null);
+      if (isDemoMode) {
+        const savedRows = statsArray.map((s, i) => ({
+          id: `stat-demo-${matchId}-${i}-${Date.now()}`, match_id: matchId, group_id: activeGroupId,
+          player_id: s.player_id ?? null, guest_player_id: s.guest_player_id ?? null,
+          goals: s.goals || 0, assists: s.assists || 0, mvp: !!s.mvp, clean_sheet: !!s.clean_sheet,
+        }));
+        setMatchStats((prev) => [...prev.filter((s) => s.match_id !== matchId), ...savedRows]);
+        setMatches((c) => c.map((m) => (m.id === matchId ? { ...m, status: "closed" } : m)));
+        return;
+      }
       const savedRows = await api.saveMatchPlayerStats(matchId, activeGroupId, statsArray, profile.id);
       setMatchStats((prev) => [
         ...prev.filter((s) => s.match_id !== matchId),
@@ -848,6 +1466,13 @@ export default function App() {
     if (!profile) return;
     try {
       setError(null);
+      if (isDemoMode) {
+        setGroupExpenses((prev) => [{
+          id: `exp-demo-${Date.now()}`, group_id: activeGroupId, concept: description, description,
+          amount: Number(amount) || 0, category, date, created_at: new Date().toISOString(),
+        }, ...prev]);
+        return;
+      }
       const newExpense = await api.addGroupExpense(activeGroupId, description, amount, category, date, profile.id);
       setGroupExpenses((prev) => [newExpense, ...prev]);
     } catch (err) {
@@ -860,7 +1485,7 @@ export default function App() {
   async function deleteExpense(expenseId) {
     try {
       setError(null);
-      await api.deleteGroupExpense(expenseId);
+      if (!isDemoMode) await api.deleteGroupExpense(expenseId);
       setGroupExpenses((prev) => prev.filter((exp) => exp.id !== expenseId));
     } catch (err) {
       console.error("Error deleting expense:", err);
@@ -872,6 +1497,7 @@ export default function App() {
   async function loadSkills(gId) {
     const targetGroupId = gId || activeGroupId;
     if (!targetGroupId) return;
+    if (isDemoMode) return; // en demo los skills ya están sembrados en memoria
     try {
       const rows = await api.listPlayerSkills(targetGroupId);
       setSkills(rows || []);
@@ -884,6 +1510,11 @@ export default function App() {
   async function addSkill(playerId, skill) {
     if (!profile) return;
     try {
+      if (isDemoMode) {
+        setSkills((c) => [...c.filter((s) => !(s.player_id === playerId && s.skill === skill)),
+          { id: `skill-demo-${playerId}-${skill}-${Date.now()}`, group_id: activeGroupId, player_id: playerId, skill }]);
+        return;
+      }
       const row = await api.addPlayerSkill(activeGroupId, playerId, skill, profile.id);
       setSkills((c) => [...c.filter((s) => !(s.player_id === playerId && s.skill === skill)), row]);
     } catch (err) {
@@ -895,7 +1526,7 @@ export default function App() {
 
   async function removeSkill(skillId) {
     try {
-      await api.removePlayerSkill(skillId);
+      if (!isDemoMode) await api.removePlayerSkill(skillId);
       setSkills((c) => c.filter((s) => s.id !== skillId));
     } catch (err) {
       console.error("Error removing skill:", err);
@@ -905,6 +1536,14 @@ export default function App() {
   }
 
   async function updateAttendance(attendanceId, payload) {
+    if (isDemoMode) {
+      let updated = null;
+      setAttendances((c) => c.map((a) => {
+        if (a.id === attendanceId) { updated = { ...a, ...payload }; return updated; }
+        return a;
+      }));
+      return updated || { id: attendanceId, ...payload };
+    }
     const updated = await api.updateAttendance(attendanceId, payload);
     setAttendances((c) => c.map((a) => (a.id === updated.id ? updated : a)));
     return updated;
@@ -921,11 +1560,14 @@ export default function App() {
         return;
       }
       const updated = await updateAttendance(attendance.id, { status: "no_show", checked_in: false });
-      const fine = await api.createFine({
+      const finePayload = {
         group_id: activeGroupId, profile_id: attendance.profile_id,
         match_id: attendance.match_id, reason: "no_show",
         amount: settings?.fine_amount || 50, status: "open",
-      });
+      };
+      const fine = isDemoMode
+        ? { id: `fine-demo-${Date.now()}`, ...finePayload }
+        : await api.createFine(finePayload);
       setFines((c) => [fine, ...c]);
       setNotice(`${displayName(profileById.get(updated.profile_id))} marcado como no llegó.`);
     } catch (err) { setError(err.message); }
@@ -934,6 +1576,11 @@ export default function App() {
   async function updateFine(fineId, payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setFines((c) => c.map((f) => (f.id === fineId ? { ...f, ...payload } : f)));
+        setNotice("Multa actualizada (Simulación Local).");
+        return;
+      }
       const updated = await api.updateFine(fineId, payload);
       setFines((c) => c.map((f) => (f.id === updated.id ? updated : f)));
       setNotice("Multa actualizada.");
@@ -943,6 +1590,12 @@ export default function App() {
   async function createFine(payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        const fine = { id: `fine-demo-${Date.now()}`, ...payload };
+        setFines((c) => [fine, ...c]);
+        setNotice("Multa creada (Simulación Local).");
+        return fine;
+      }
       const fine = await api.createFine(payload);
       setFines((c) => [fine, ...c]);
       setNotice("Multa creada.");
@@ -953,6 +1606,12 @@ export default function App() {
   async function createVenue(payload, photoFile) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        const venue = { id: `venue-demo-${Date.now()}`, ...payload, photo_url: photoFile ? URL.createObjectURL(photoFile) : null };
+        setVenues((c) => [...c, venue]);
+        setNotice("Cancha agregada (Simulación Local).");
+        return;
+      }
       let venue = await api.createVenue(payload);
       if (photoFile) venue = await api.uploadVenuePhoto(venue.id, photoFile);
       setVenues((c) => [...c, venue]);
@@ -963,6 +1622,13 @@ export default function App() {
   async function updateVenue(venueId, payload, photoFile) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setVenues((c) => c.map((v) => (v.id === venueId
+          ? { ...v, ...payload, photo_url: photoFile ? URL.createObjectURL(photoFile) : v.photo_url }
+          : v)));
+        setNotice("Cancha actualizada (Simulación Local).");
+        return;
+      }
       let venue = await api.updateVenue(venueId, payload);
       if (photoFile) venue = await api.uploadVenuePhoto(venueId, photoFile);
       setVenues((c) => c.map((v) => (v.id === venue.id ? venue : v)));
@@ -974,6 +1640,19 @@ export default function App() {
     setNotice(""); setError("");
     try {
       const activeIds = profiles.filter((p) => p.membership_is_active).map((p) => p.id);
+      if (isDemoMode) {
+        const cid = `col-demo-${Date.now()}`;
+        const col = {
+          id: cid, group_id: activeGroupId, created_by: profile?.id, ...payload, status: "open",
+          collection_payments: activeIds.map((pv, i) => ({
+            id: `cp-demo-${cid}-${i}`, collection_id: cid, group_id: activeGroupId,
+            profile_id: pv, status: "pending", proof_status: null, proof_url: null,
+          })),
+        };
+        setCollections((c) => [col, ...c]);
+        setNotice("Colaboración creada (Simulación Local).");
+        return;
+      }
       const col = await api.createCollection(
         { ...payload, group_id: activeGroupId, created_by: profile.id }, activeIds
       );
@@ -985,6 +1664,18 @@ export default function App() {
   async function updateCollectionPayment(paymentId, payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setCollections((c) => c.map((col) => ({
+          ...col,
+          collection_payments: (col.collection_payments || []).map(
+            (p) => (p.id === paymentId
+              ? { ...p, ...payload, paid_at: payload.status === "paid" ? new Date().toISOString() : p.paid_at }
+              : p)
+          ),
+        })));
+        setNotice("Pago actualizado (Simulación Local).");
+        return;
+      }
       const updated = await api.updateCollectionPayment(paymentId, payload);
       setCollections((c) => c.map((col) => ({
         ...col,
@@ -999,26 +1690,31 @@ export default function App() {
   async function closeCollection(collectionId) {
     setNotice(""); setError("");
     try {
-      await api.updateCollection(collectionId, { status: "closed" });
+      if (!isDemoMode) await api.updateCollection(collectionId, { status: "closed" });
       setCollections((c) => c.map((col) =>
         col.id === collectionId ? { ...col, status: "closed" } : col
       ));
-      setNotice("Colaboración cerrada.");
+      setNotice(isDemoMode ? "Colaboración cerrada (Simulación Local)." : "Colaboración cerrada.");
     } catch (err) { setError(err.message); }
   }
 
   async function deleteCollection(collectionId) {
     setNotice(""); setError("");
     try {
-      await api.deleteCollection(collectionId);
+      if (!isDemoMode) await api.deleteCollection(collectionId);
       setCollections((c) => c.filter((col) => col.id !== collectionId));
-      setNotice("Colaboración eliminada.");
+      setNotice(isDemoMode ? "Colaboración eliminada (Simulación Local)." : "Colaboración eliminada.");
     } catch (err) { setError(err.message); }
   }
 
   async function updateCollection(collectionId, payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setCollections((c) => c.map((col) => (col.id === collectionId ? { ...col, ...payload } : col)));
+        setNotice("Colaboración actualizada (Simulación Local).");
+        return;
+      }
       const updated = await api.updateCollection(collectionId, payload);
       setCollections((c) => c.map((col) =>
         col.id === collectionId ? { ...col, ...updated } : col
@@ -1030,6 +1726,11 @@ export default function App() {
   async function updateMatchFee(feeId, payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setMatchFees((c) => c.map((fee) => (fee.id === feeId ? { ...fee, ...payload } : fee)));
+        setNotice("Cobro de cancha actualizado (Simulación Local).");
+        return;
+      }
       const updated = await api.updateMatchFee(feeId, payload);
       setMatchFees((c) => c.map((fee) =>
         fee.id === feeId ? { ...fee, ...updated } : fee
@@ -1041,6 +1742,18 @@ export default function App() {
   async function updateMatchFeePayment(paymentId, payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setMatchFees((c) => c.map((fee) => ({
+          ...fee,
+          match_fee_payments: (fee.match_fee_payments || []).map(
+            (p) => (p.id === paymentId
+              ? { ...p, ...payload, paid_at: payload.status === "paid" ? new Date().toISOString() : p.paid_at }
+              : p)
+          ),
+        })));
+        setNotice("Pago actualizado (Simulación Local).");
+        return;
+      }
       const updated = await api.updateMatchFeePayment(paymentId, payload);
       setMatchFees((c) => c.map((fee) => ({
         ...fee,
@@ -1055,6 +1768,27 @@ export default function App() {
   async function reviewProof(paymentId, paymentType, status, rejectionReason = null) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        const patch = (p) => ({
+          ...p, proof_status: status, proof_reviewed_at: new Date().toISOString(),
+          proof_rejection_reason: rejectionReason,
+          status: status === "approved" ? "paid" : p.status,
+          paid_at: status === "approved" ? new Date().toISOString() : p.paid_at,
+        });
+        if (paymentType === "match_fee") {
+          setMatchFees((c) => c.map((fee) => ({
+            ...fee,
+            match_fee_payments: (fee.match_fee_payments || []).map((p) => (p.id === paymentId ? patch(p) : p)),
+          })));
+        } else {
+          setCollections((c) => c.map((col) => ({
+            ...col,
+            collection_payments: (col.collection_payments || []).map((p) => (p.id === paymentId ? patch(p) : p)),
+          })));
+        }
+        setNotice(status === "approved" ? "Comprobante aprobado (Simulación Local)." : "Comprobante rechazado (Simulación Local).");
+        return;
+      }
       await api.reviewPaymentProof(paymentId, paymentType, status, rejectionReason);
 
       // Update local state
@@ -1091,6 +1825,11 @@ export default function App() {
   async function updateSettings(payload) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setSettings((s) => ({ ...(s || { group_id: activeGroupId }), ...payload }));
+        setNotice("Configuración guardada (Simulación Local).");
+        return;
+      }
       const updated = await api.updateSettings(activeGroupId, payload);
       setSettings(updated);
       setNotice("Configuración guardada.");
@@ -1100,6 +1839,11 @@ export default function App() {
   async function removeGroupMember(profileId) {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setProfiles((c) => c.map((p) => (p.id === profileId ? { ...p, membership_is_active: false } : p)));
+        setNotice("Jugador removido (Simulación Local).");
+        return;
+      }
       await api.removeGroupMember(activeGroupId, profileId);
       // Reload profiles and memberships
       const rows = await api.listMyGroups(profile.id);
@@ -1112,6 +1856,12 @@ export default function App() {
   async function deleteMyAccount() {
     setNotice(""); setError("");
     try {
+      if (isDemoMode) {
+        setIsDemoMode(false);
+        resetState();
+        setNotice("Saliste del modo demo.");
+        return;
+      }
       await api.deleteMyAccount(profile.id);
       // api.deleteMyAccount signs out — auth state change will reset state
       resetState();
@@ -1146,17 +1896,63 @@ export default function App() {
   }
 
   // Render guards
-  if (!hasSupabaseConfig) return <ConfigMissing />;
-  if (!sessionReady) return <ShellMessage title="Cargando" message="Revisando tu sesión..." />;
+  if (!sessionReady && !isDemoMode) return <ShellMessage title="Cargando" message="Revisando tu sesión..." />;
 
   // Render proof upload page (requires auth, so we prompt login first if no session)
-  if (proofToken && !session) {
-    return <AuthScreen />;
+  if (proofToken && !session && !isDemoMode) {
+    return (
+      <AuthScreen
+        onMockLogin={() => {
+          setIsDemoMode(true);
+          loadMockData();
+        }}
+      />
+    );
   }
   if (proofToken) {
     return <ProofUploadPage token={proofToken} session={session} />;
   }
-  if (!session) return <AuthScreen />;
+
+  const isPublicRoute = ["landing", "blog", "privacy", "terms", "contact", "auth"].includes(page);
+
+  // Auto-redirect logged-in users away from auth/landing to the app
+  if (session && !isDemoMode && (page === "landing" || page === "auth")) {
+    window.history.replaceState({}, "", "/partidos");
+    setPage("matches");
+  }
+
+  if (!session && !isDemoMode) {
+    if (page === "blog") return <BlogPage />;
+    if (page === "privacy") return <PrivacyPage />;
+    if (page === "terms") return <TermsPage />;
+    if (page === "contact") return <ContactPage />;
+    if (page === "auth") {
+      return (
+        <AuthScreen
+          onMockLogin={() => {
+            setIsDemoMode(true);
+            loadMockData();
+          }}
+        />
+      );
+    }
+    // Default to LandingPage for unauthenticated users on any other route
+    return (
+      <LandingPage 
+        onLogin={() => { 
+          setPage("auth"); 
+          window.history.pushState({}, "", "/login"); 
+        }} 
+      />
+    );
+  }
+
+  // If a logged-in user explicitly visits a public page, show it
+  if (page === "blog") return <BlogPage />;
+  if (page === "privacy") return <PrivacyPage />;
+  if (page === "terms") return <TermsPage />;
+  if (page === "contact") return <ContactPage />;
+
   if (loading && !profile) return <ShellMessage title="Cargando" message="Preparando tu perfil..." />;
   if (profile && !profileComplete(profile)) {
     return (
@@ -1165,23 +1961,113 @@ export default function App() {
       </div>
     );
   }
+  if (profile && loading && memberships.length === 0 && !activeGroupId) {
+    return <ShellMessage title="Cargando" message="Buscando tus grupos..." />;
+  }
+  if (profile && memberships.length === 0 && !activeGroupId) {
+    return (
+      <>
+        <GroupOnboardingPage onCreateGroup={createGroup} onJoinGroup={requestJoinGroup} />
+        {loading && <div className="app"><div className="empty-state compact">Cargando...</div></div>}
+        {notice && <div className="app"><div className="alert success">{notice}</div></div>}
+        {error && <div className="app"><div className="alert error">{error}</div></div>}
+      </>
+    );
+  }
 
-  const myRoleDisplay = isSuperAdmin ? "Super Admin" : isAdmin ? "Admin" : "Jugador activo";
+  const preferredPositionShort = currentPlayer?.preferred_position
+    ? currentPlayer.preferred_position.substring(0, 3).toUpperCase()
+    : "JUG";
+  const userRating = ratingMap.get(currentPlayer?.id)?.rating || 70;
 
   return (
     <div className="app">
+      {/* ── SIMULADOR DE ROLES BANNER ── */}
+      {isDemoMode && (
+        <div style={{
+          background: "linear-gradient(90deg, #064e3b, #047857)",
+          color: "#ffffff",
+          padding: "0.5rem 1rem",
+          fontSize: "0.85rem",
+          fontWeight: "bold",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "0.5rem",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#10b981" }} />
+            <span>SIMULADOR DE ROLES: Estás probando como:</span>
+            <span style={{
+              background: "#ef4444",
+              color: "#ffffff",
+              padding: "2px 8px",
+              borderRadius: "12px",
+              fontSize: "0.75rem",
+              textTransform: "uppercase"
+            }}>
+              {myRole === "super_admin" ? "👑 SUPER ADMIN" : myRole === "admin" ? "📋 ADMIN" : "🏃 JUGADOR"}
+            </span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span>Cambiar a:</span>
+            <select
+              aria-label="Simular Rol"
+              value={myRole}
+              onChange={(e) => {
+                const chosenRole = e.target.value;
+                setDevRoleOverride(chosenRole);
+                const roleProfileMap = {
+                  super_admin: "e62c1146-24be-47a3-83f1-778848d7d001",
+                  admin: "e62c1146-24be-47a3-83f1-778848d7d002",
+                  player: "e62c1146-24be-47a3-83f1-778848d7d003"
+                };
+                const profileId = roleProfileMap[chosenRole];
+                const matched = profiles.find((p) => p.id === profileId);
+                if (matched) setProfile(matched);
+              }}
+              style={{
+                background: "rgba(0,0,0,0.3)",
+                color: "#ffffff",
+                border: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: "6px",
+                padding: "2px 8px",
+                fontSize: "0.8rem",
+                fontWeight: "bold",
+                outline: "none"
+              }}
+            >
+              <option value="super_admin">Guille de León (Super Admin)</option>
+              <option value="admin">Ale (Admin)</option>
+              <option value="player">Javi B (Jugador)</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       <header className="topbar">
         <div className="identity-block">
           <img className="topbar-logo" src="/brand/f5manager-logo.jpg" alt="F5Manager" />
-          <div>
-            <h1>{displayName(profile)}</h1>
-            <small>
-              {activeGroup
-                ? `${activeGroup.name} · ${isActiveMember ? myRoleDisplay : "Pendiente"}`
-                : "Sin grupo"}
-            </small>
+          <div className="brand-text">
+            <span className="brand-title" style={{ fontSize: "1.25rem", fontWeight: "800", color: "#ffffff", display: "block", lineHeight: "1.1" }}>F5Manager</span>
+            <span className="brand-subtitle" style={{ fontSize: "0.65rem", fontWeight: "bold", color: "var(--primary)", display: "block", textTransform: "uppercase", letterSpacing: "0.08em" }}>Chamuscas Inteligentes</span>
           </div>
         </div>
+
+        {/* Navigation tabs inside header (desktop) */}
+        <nav className="tabs top-tabs" aria-label="Principal" style={{ margin: 0, border: "none", gap: "1rem" }}>
+          {navItems.map((item) => (
+            <button className={classNames("tab", page === item.id && "is-active")}
+              key={item.id} type="button" onClick={() => goToPage(item.id)}
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              {item.icon && <span style={{ display: "flex", opacity: 0.8 }}>{item.icon}</span>}
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
         <div className="topbar-actions">
           {memberships.length > 0 && (
             <select aria-label="Grupo activo" className="group-select"
@@ -1197,23 +2083,30 @@ export default function App() {
           <PushNotifications profile={profile} />
           <button className="ghost-button" type="button" onClick={refresh}>Actualizar</button>
           <button className="secondary-button" type="button" onClick={signOut}>Salir</button>
+          
+          {/* User profile details on far right */}
+          {profile && (
+            <div className="user-profile-widget" style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginLeft: "0.5rem" }}>
+              <div style={{ textAlign: "right" }} className="desktop-only-user-text">
+                <span style={{ fontWeight: "bold", color: "#ffffff", display: "block", fontSize: "0.85rem", lineHeight: "1.2" }}>{displayName(profile)}</span>
+                <span style={{ color: "var(--muted)", fontSize: "0.7rem", display: "block" }}>
+                  {preferredPositionShort} · OVR {userRating}
+                </span>
+              </div>
+              <Avatar profile={profile} size={36} />
+            </div>
+          )}
         </div>
       </header>
 
-      <nav className="tabs top-tabs" aria-label="Principal">
-        {navItems.map((item) => (
-          <button className={classNames("tab", page === item.id && "is-active")}
-            key={item.id} type="button" onClick={() => setPage(item.id)}>
-            {item.label}
-          </button>
-        ))}
-      </nav>
+      {/* Navigation tabs bottom (mobile) */}
       <nav className="bottom-nav" aria-label="Principal móvil">
         {navItems.map((item) => (
           <button className={classNames("bottom-nav-item", page === item.id && "is-active")}
             key={item.id} type="button" ref={(node) => { mobileNavRefs.current[item.id] = node; }}
-            onClick={() => setPage(item.id)} title={item.label}>
-            {item.mobileLabel || item.label}
+            onClick={() => goToPage(item.id)} title={item.label}>
+            <span className="tab-icon">{item.icon}</span>
+            <span className="tab-label">{item.mobileLabel || item.label}</span>
           </button>
         ))}
       </nav>
@@ -1234,25 +2127,51 @@ export default function App() {
       {myPendingAssistedReservations.length > 0 && page !== "reservations" && (
         <div className="alert success reservation-alert">
           <span>Tienes reservas pendientes para este período</span>
-          <button type="button" onClick={() => setPage("reservations")}>Ir a reservas</button>
+          <button type="button" onClick={() => goToPage("reservations")}>Ir a reservas</button>
         </div>
       )}
       {loading && <div className="empty-state compact">Cargando...</div>}
 
       <main>
         {page === "matches" && (
-          <MatchesPage attendances={attendances} fineAmount={lateCancelFineAmount}
-            isAdmin={isAdmin} matchAttendances={matchAttendances} matches={upcomingMatches}
-            pastMatches={pastMatches}
-            myAttendance={myAttendance} nextMatch={nextMatch}
-            onCancel={cancelMatch} onConfirm={confirmMatch} onJoinWaitlist={joinWaitlist}
-            onCreateMatch={createMatch} onDeleteMatch={deleteMatch}
-            onOpenMatch={openMatch} profile={currentPlayer} teamsByMatch={teamsByMatch}
-            venues={venues} profiles={profiles} groupTags={groupTags}
-            onCreateGroupTag={createGroupTag}
-            onNotice={setNotice}
-            clearance={clearance}
-            guests={guests} />
+          isSimulating ? (
+            <SimPage
+              profiles={profiles}
+              ratingMap={ratingMap}
+              isAdmin={isAdmin}
+              isSuperAdmin={isSuperAdmin}
+              skills={skills}
+              onResultChange={setSimHasGeneratedTeams}
+              onBack={() => setIsSimulating(false)}
+            />
+          ) : (
+            <MatchesPage
+              attendances={attendances}
+              fineAmount={lateCancelFineAmount}
+              isAdmin={isAdmin}
+              matchAttendances={matchAttendances}
+              matches={upcomingMatches}
+              pastMatches={pastMatches}
+              myAttendance={myAttendance}
+              nextMatch={nextMatch}
+              onCancel={cancelMatch}
+              onConfirm={confirmMatch}
+              onJoinWaitlist={joinWaitlist}
+              onCreateMatch={createMatch}
+              onDeleteMatch={deleteMatch}
+              onOpenMatch={openMatch}
+              profile={currentPlayer}
+              teamsByMatch={teamsByMatch}
+              venues={venues}
+              profiles={profiles}
+              groupTags={groupTags}
+              onCreateGroupTag={createGroupTag}
+              onNotice={setNotice}
+              clearance={clearance}
+              guests={guests}
+              onOpenPizarra={() => setIsSimulating(true)}
+            />
+          )
         )}
         {page === "match" && selectedMatch && (
           <MatchDetail attendances={matchAttendances(selectedMatch.id)}
@@ -1276,7 +2195,8 @@ export default function App() {
             teams={teamsByMatch[selectedMatch.id] || []}
             venues={venues}
             matchStats={matchStats}
-            onSaveStats={saveMatchStats} />
+            onSaveStats={saveMatchStats}
+            onBack={() => setPage("matches")} />
         )}
         {page === "team" && (
           <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} isAdmin={isAdmin} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
@@ -1291,29 +2211,10 @@ export default function App() {
             skills={skills}
           />
         )}
-        {page === "fines" && (
-          <FinesPage fines={fines} isAdmin={isAdmin} matches={matches}
-            onForgive={(f) => updateFine(f.id, { status: "forgiven" })}
-            onPay={(f) => updateFine(f.id, { status: "paid" })}
-            onCreateFine={createFine}
-            profileById={profileById} profile={currentPlayer}
-            profiles={profiles} activeGroupId={activeGroupId} />
-        )}
-        {page === "fees" && (
-          <FeesPage collections={collections} isAdmin={isAdmin} matchFees={matchFees}
-            matches={matches} profile={currentPlayer} profileById={profileById}
-            onCreateCollection={createCollection}
-            onUpdateCollection={updateCollection}
-            onUpdateCollectionPayment={updateCollectionPayment}
-            onCloseCollection={closeCollection}
-            onDeleteCollection={deleteCollection}
-            onUpdateMatchFee={updateMatchFee}
-            onUpdateMatchFeePayment={updateMatchFeePayment}
-            onReviewProof={reviewProof} />
-        )}
-        {page === "treasury" && (
-          <TreasuryPage
+        {page === "cashier" && (
+          <CashierPage
             isAdmin={isAdmin}
+            isSuperAdmin={isSuperAdmin}
             activeGroupId={activeGroupId}
             matches={matches}
             attendances={attendances}
@@ -1325,18 +2226,39 @@ export default function App() {
             onAddExpense={addExpense}
             onDeleteExpense={deleteExpense}
             profile={currentPlayer}
+            profileById={profileById}
+            profiles={profiles}
+            onCreateCollection={createCollection}
+            onUpdateCollection={updateCollection}
+            onUpdateCollectionPayment={updateCollectionPayment}
+            onCloseCollection={closeCollection}
+            onDeleteCollection={deleteCollection}
+            onUpdateMatchFee={updateMatchFee}
+            onUpdateMatchFeePayment={updateMatchFeePayment}
+            onReviewProof={reviewProof}
+            onForgiveFine={(f) => updateFine(f.id, { status: "forgiven" })}
+            onPayFine={(f) => updateFine(f.id, { status: "paid" })}
+            onCreateFine={createFine}
           />
         )}
         {page === "profile" && (
-          <div className="page-grid">
-            <ProfileForm
-              initialProfile={profile}
-              mode="edit"
-              onSave={saveProfile}
-              onDeleteAccount={deleteMyAccount}
-              ratingMap={ratingMap}
-            />
-          </div>
+          <MyFifaCardPage
+            profile={currentPlayer}
+            profiles={profiles}
+            ratingMap={ratingMap}
+            skills={skills}
+            matchStats={matchStats}
+            isAdmin={isAdmin}
+            isSuperAdmin={isSuperAdmin}
+            activeGroupId={activeGroupId}
+            onSaveProfile={saveProfile}
+            onAddSkill={addSkill}
+            onRemoveSkill={removeSkill}
+            onUpdateRole={updateMemberRole}
+            onCreateGroup={() => setPage("groups")}
+            onDeleteAccount={deleteMyAccount}
+            onSignOut={signOut}
+          />
         )}
         {page === "groups" && (
           <GroupsPage activeGroupId={activeGroupId} memberships={memberships}
@@ -1348,52 +2270,55 @@ export default function App() {
               setNotice("Descripción actualizada.");
             }} />
         )}
-        {page === "admin" && isAdmin && (
-          <AdminPanel matches={sortedMatches} venues={venues}
-            profiles={profiles} attendances={attendances}
-            onCreateMatch={createMatch} onDeleteMatch={deleteMatch}
-            onEditMatch={editMatch} onGenerateTeams={generateTeams}
-            teamsByMatch={teamsByMatch} groupTags={groupTags}
+        {page === "players" && (
+          <PlayersPage
+            activeGroupId={activeGroupId}
+            attendances={attendances}
+            fines={fines}
+            isSuperAdmin={isSuperAdmin}
+            isAdmin={isAdmin}
+            matches={matches}
+            onAssignRating={assignRating}
             onCreateGroupTag={createGroupTag}
-            onNotice={setNotice} />
-        )}
-        {page === "players" && isAdmin && (
-          <PlayersAdmin activeGroupId={activeGroupId} attendances={attendances} fines={fines} matches={matches}
-            onAssignRating={isSuperAdmin ? assignRating : undefined}
-            onUpdateMember={updateGroupMember} onUpdateProfile={updateProfileAdmin}
-            onCreateGroupTag={createGroupTag}
-            profiles={profiles} ratingMap={ratingMap} isSuperAdmin={isSuperAdmin}
-            voteScoreMap={voteScoreMap} userVoteMap={userVoteMap} onVote={votePlayer}
+            onUpdateMember={updateGroupMember}
+            onUpdateProfile={updateProfileAdmin}
+            profiles={profiles}
+            ratingMap={ratingMap}
+            voteScoreMap={voteScoreMap}
+            userVoteMap={userVoteMap}
+            onVote={votePlayer}
             currentProfileId={profile?.id}
-            skills={skills} onAddSkill={addSkill} onRemoveSkill={removeSkill}
-            matchStats={matchStats} />
+            skills={skills}
+            onAddSkill={addSkill}
+            onRemoveSkill={removeSkill}
+            matchStats={matchStats}
+            onUpdateRole={updateMemberRole}
+            onNotice={setNotice}
+          />
         )}
-        {page === "venues" && isAdmin && (
-          <VenuesPage groupId={activeGroupId} profileId={profile?.id} venues={venues} matches={matches}
-            onCreateVenue={createVenue} onUpdateVenue={updateVenue} />
-        )}
-        {page === "reservations" && canUseReservationAssistant && (
-          <CourtReservationPage activeGroupId={activeGroupId} profiles={profiles}
-            venues={venues} matches={sortedMatches} attendances={attendances}
-            isAdmin={isAdmin} isSuperAdmin={isSuperAdmin}
+        {page === "reservations" && (
+          <CourtReservationPage
+            activeGroupId={activeGroupId}
+            profiles={profiles}
+            venues={venues}
+            matches={sortedMatches}
+            attendances={attendances}
+            isAdmin={isAdmin}
+            isSuperAdmin={isSuperAdmin}
             currentUserId={profile?.id}
             onUpdateMatch={editMatch}
             onNotice={setNotice}
-            onCreateMatch={(m) => { setMatches((c) => [...c, m]); }} />
-        )}
-        {page === "sim" && isAdmin && (
-          <SimPage
-            profiles={profiles}
-            ratingMap={ratingMap}
-            isAdmin={isAdmin}
-            isSuperAdmin={isSuperAdmin}
-            skills={skills}
-            onResultChange={setSimHasGeneratedTeams}
+            onCreateMatch={(m) => { setMatches((c) => [...c, m]); }}
+            onCreateVenue={createVenue}
+            onUpdateVenue={updateVenue}
+            isDemoMode={isDemoMode}
+            reservations={reservations}
+            setReservations={setReservations}
           />
         )}
         {page === "tournaments" && isSuperAdmin && (
           <TournamentPage activeGroupId={activeGroupId} profiles={profiles} ratingMap={ratingMap}
-            isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
+            isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} isDemoMode={isDemoMode} />
         )}
         {page === "superadmin" && isSuperAdmin && (
           <SuperAdminPage fines={fines} profiles={profiles} ratingMap={ratingMap}

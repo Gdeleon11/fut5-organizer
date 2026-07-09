@@ -126,7 +126,7 @@ function VenueForm({ initial, onSave, onCancel }) {
   );
 }
 
-export default function VenuesPage({ groupId, profileId, venues, matches = [], onCreateVenue, onUpdateVenue }) {
+export default function VenuesPage({ groupId, profileId, venues, matches = [], onCreateVenue, onUpdateVenue, isAdmin }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
@@ -252,13 +252,15 @@ export default function VenuesPage({ groupId, profileId, venues, matches = [], o
                   >
                     {copiedId === venue.id ? "Copiado" : "Copiar datos"}
                   </button>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => setEditingId(venue.id)}
-                  >
-                    Editar
-                  </button>
+                  {isAdmin && (
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => setEditingId(venue.id)}
+                    >
+                      Editar
+                    </button>
+                  )}
                 </div>
               )}
                   </>
@@ -268,12 +270,14 @@ export default function VenuesPage({ groupId, profileId, venues, matches = [], o
           ))}
         </div>
 
-        {showForm ? (
-          <VenueForm onSave={handleCreate} onCancel={() => setShowForm(false)} />
-        ) : (
-          <button type="button" onClick={() => setShowForm(true)}>
-            + Agregar cancha
-          </button>
+        {isAdmin && (
+          showForm ? (
+            <VenueForm onSave={handleCreate} onCancel={() => setShowForm(false)} />
+          ) : (
+            <button type="button" onClick={() => setShowForm(true)}>
+              + Agregar cancha
+            </button>
+          )
         )}
       </section>
     </div>

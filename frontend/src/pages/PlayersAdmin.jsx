@@ -8,12 +8,14 @@ import StarRatingControl, {
   PositionRatingDisplay,
 } from "../components/StarRatingControl.jsx";
 import Stars from "../components/Stars.jsx";
+import CapacityControl from "../components/CapacityControl.jsx";
 import { FILTER_LABELS, POSITION_OPTIONS, SKILL_OPTIONS } from "../constants.js";
 import { formatTag, parseTags } from "../tags.js";
 import {
   appShareUrl,
   attendanceLabel,
   classNames,
+  copyToClipboard,
   displayName,
   fineLabel,
   fineReasonLabel,
@@ -95,11 +97,11 @@ export default function PlayersAdmin({
                 onClick={async () => {
                   const url = appShareUrl(null, activeGroupId);
                   try {
-                    await navigator.clipboard.writeText(url);
+                    await copyToClipboard(url);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
-                  } catch {
-                    prompt("Copiá este link:", url);
+                  } catch (err) {
+                    console.error("Error copying player invitation link:", err);
                   }
                 }}
               >
@@ -443,6 +445,15 @@ export default function PlayersAdmin({
                       onAssignRating(selected.id, key, level)
                     }
                   />
+                  <div className="capacity-section">
+                    <div className="section-heading" style={{ marginTop: "1.25rem" }}>
+                      <div>
+                        <h3 style={{ margin: 0 }}>Capacidades (1–100)</h3>
+                        <small>Puntúa cada capacidad manualmente. Se refleja en el radar, la carta y el balanceo de equipos.</small>
+                      </div>
+                    </div>
+                    <CapacityControl profileId={selected.id} />
+                  </div>
                 </div>
               )}
               {!isSuperAdmin && (

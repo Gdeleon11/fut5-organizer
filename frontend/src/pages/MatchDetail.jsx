@@ -1,4 +1,6 @@
 import AttendanceAction from "../components/AttendanceAction.jsx";
+import { Check, X, Clock, UserPlus, Link2 } from "lucide-react";
+import Avatar from "../components/Avatar.jsx";
 import CourtPhoto from "../components/CourtPhoto.jsx";
 import CopyReservationTextButton from "../components/CopyReservationTextButton.jsx";
 import ExportCard from "../components/ExportCard.jsx";
@@ -12,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatTag } from "../tags.js";
 import {
   attendanceLabel,
+  copyToClipboard,
   displayName,
   formatMatchDate,
   isFullMatch,
@@ -41,11 +44,11 @@ function GuestPlayersSection({ match, guests = [], onAdd, onDelete, onUpdateRati
   async function copyGuestLink() {
     const link = api.generateGuestLink(match?.id);
     try {
-      await navigator.clipboard.writeText(link);
+      await copyToClipboard(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      prompt("Copiá este link:", link);
+    } catch (err) {
+      console.error("Error copying guest link:", err);
     }
   }
 
@@ -159,6 +162,7 @@ export default function MatchDetail({
   venues = [],
   matchStats = [],
   onSaveStats,
+  onBack,
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [teamInstructions, setTeamInstructions] = useState("");
@@ -300,9 +304,28 @@ export default function MatchDetail({
         midfield_rating: g.rating || 2,
         goalkeeper_rating: g.rating || 2,
       }));
-      const players = [...registeredPlayers, ...guestPlayers];
+      const confirmationTimes = new Map();
+      confirmedAttendances.forEach((a) => {
+        confirmationTimes.set(a.profile_id, new Date(a.updated_at || a.created_at || Date.now()).getTime());
+      });
+      (guests || []).forEach((g) => {
+        confirmationTimes.set(g.id, new Date(g.updated_at || g.created_at || Date.now()).getTime());
+      });
+      let players = [...registeredPlayers, ...guestPlayers].map((p) => ({
+        ...p,
+        confirmed_at: confirmationTimes.get(p.id) || Date.now(),
+      }));
+
       const playerSkills = (skills || []).filter((s) => confirmedIds.includes(s.player_id));
-      const teamCount = Math.ceil(players.length / 5);
+      let teamCount = players.length >= 10 && players.length <= 13 ? 2 : (players.length >= 14 && players.length <= 18 ? 3 : Math.ceil(players.length / 5));
+
+      let penaltyTeam = null;
+      if (players.length === 14) {
+        const sortedByTime = [...players].sort((a, b) => a.confirmed_at - b.confirmed_at);
+        players = sortedByTime.slice(0, 10);
+        penaltyTeam = sortedByTime.slice(10);
+        teamCount = 2; // Pass only 2 teams to AI
+      }
 
       const aiTeams = await distributeTeamsWithAI({
         players,
@@ -310,6 +333,15 @@ export default function MatchDetail({
         instructions: teamInstructions,
         teamCount,
       });
+
+      if (penaltyTeam) {
+        aiTeams.push({
+          name: "Equipo C",
+          playerIds: penaltyTeam.map((p) => p.id),
+        });
+        teamCount = 3;
+        players = [...players, ...penaltyTeam];
+      }
 
       const flatAssignedIds = aiTeams.flatMap((team) => team.playerIds || team.player_ids || []);
       const assignedIds = new Set(flatAssignedIds);
@@ -343,39 +375,337 @@ export default function MatchDetail({
     || null;
 
   return (
-    <div className="page-grid">
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Detalle del partido</p>
-            <h2>{match.title || "Chamuscón"}</h2>
-          </div>
-          <span className="count-pill">{confirmedCount} confirmados</span>
+    <div style={{ maxWidth: "800px", margin: "0 auto", width: "100%", display: "flex", flexDirection: "column", gap: "1.5rem", paddingBottom: "3rem", position: "relative" }}>
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="ghost-button"
+          style={{
+            alignSelf: "flex-start",
+            marginBottom: "0.5rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            color: "var(--text-muted)",
+            fontSize: "0.85rem",
+            fontWeight: "500",
+            padding: 0,
+            background: "transparent",
+            border: "none",
+            cursor: "pointer"
+          }}
+        >
+          ← Volver al Cartelero General
+        </button>
+      )}
+
+      {/* ── TARJETA PREMIUM DE DETALLES ── */}
+      <section className="match-premium-card" style={{
+        background: "linear-gradient(135deg, #0b1320, #04080f)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
+        borderRadius: "16px",
+        padding: "1.5rem",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+        position: "relative",
+        overflow: "hidden"
+      }}>
+        {/* Top Label & Badge */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          <span style={{
+            fontSize: "0.68rem",
+            fontWeight: "600",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "var(--primary)"
+          }}>
+            Detalle de Convocatoria
+          </span>
+          <span style={{
+            border: "1px solid rgba(16, 185, 129, 0.3)",
+            padding: "0.15rem 0.5rem",
+            borderRadius: "20px",
+            fontWeight: "600",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.3rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            background: "rgba(16, 185, 129, 0.05)"
+          }}>
+            <Check size={12} /> {match.status === "upcoming" ? "Abierto a confirmaciones" : "Finalizado"}
+          </span>
         </div>
-        <p className="muted">
-          {formatMatchDate(match)}
-          {(isAdmin || isPlayerConfirmed) && match.venue
-            ? ` · ${match.venue}`
-            : " · Cancha oculta (confirmá para ver)"}
-        </p>
-        {match && (match.allowed_tags || []).length > 0 && (
-          <div className="tag-list">
-            {(match.allowed_tags || []).map((tag) => (
-              <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
-            ))}
+
+        {/* Main Title */}
+        <h1 style={{
+          fontSize: "1.45rem",
+          fontWeight: "500",
+          color: "#ffffff",
+          margin: "0 0 1.25rem 0",
+          letterSpacing: "-0.01em"
+        }}>
+          {match.title || "Plaza 1 - Sintética"}
+        </h1>
+
+        {/* Grid Row for Details */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: "1rem",
+          marginBottom: "1.5rem"
+        }}>
+          {/* Fecha */}
+          <div style={{
+            background: "rgba(255, 255, 255, 0.02)",
+            border: "1px solid rgba(255, 255, 255, 0.04)",
+            borderRadius: "12px",
+            padding: "0.7rem 0.9rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.6rem"
+          }}>
+            <span style={{ fontSize: "1.2rem" }}>📅</span>
+            <div>
+              <span style={{ display: "block", fontSize: "0.62rem", color: "var(--muted)", fontWeight: "600", letterSpacing: "0.08em" }}>FECHA</span>
+              <span style={{ fontSize: "0.85rem", color: "#ffffff", fontWeight: "500" }}>{formatMatchDate(match)}</span>
+            </div>
           </div>
-        )}
-        {match.requires_reservation && (
-          <div className="reservation-copy-inline">
-            <CopyReservationTextButton
-              match={match}
-              attendances={attendances}
-              profiles={profiles}
-            />
+
+          {/* Hora */}
+          <div style={{
+            background: "rgba(255, 255, 255, 0.02)",
+            border: "1px solid rgba(255, 255, 255, 0.04)",
+            borderRadius: "12px",
+            padding: "0.7rem 0.9rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.6rem"
+          }}>
+            <span style={{ fontSize: "1.2rem" }}>⏰</span>
+            <div>
+              <span style={{ display: "block", fontSize: "0.62rem", color: "var(--muted)", fontWeight: "600", letterSpacing: "0.08em" }}>HORA DE KICKOFF</span>
+              <span style={{ fontSize: "0.85rem", color: "#ffffff", fontWeight: "500" }}>{match.start_time || "19:00 PM"}</span>
+            </div>
           </div>
+
+          {/* Quórum */}
+          <div style={{
+            background: "rgba(255, 255, 255, 0.02)",
+            border: "1px solid rgba(255, 255, 255, 0.04)",
+            borderRadius: "12px",
+            padding: "0.7rem 0.9rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.6rem"
+          }}>
+            <span style={{ fontSize: "1.2rem" }}>👥</span>
+            <div>
+              <span style={{ display: "block", fontSize: "0.62rem", color: "var(--muted)", fontWeight: "600", letterSpacing: "0.08em" }}>QUÓRUM DEL PARTIDO</span>
+              <span style={{ fontSize: "0.85rem", color: "#ffffff", fontWeight: "500" }}>{confirmedCount} / {match.max_players || 15}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "1.25rem 0" }} />
+
+        {/* Call to action & button */}
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1rem"
+        }}>
+          <div>
+            <span style={{ fontWeight: "500", color: "#ffffff", display: "block", fontSize: "0.9rem" }}>
+              ¿Estás listo para jugar?
+            </span>
+            <span style={{ color: "var(--muted)", fontSize: "0.72rem" }}>
+              La cancelación tardía genera multa automática.
+            </span>
+          </div>
+
+          {/* Confirmation Actions */}
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            {myAttendance?.status === "confirmed" || myAttendance?.status === "checked_in" ? (
+              <button
+                onClick={onCancel}
+                style={{
+                  background: "#ef4444",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "24px",
+                  padding: "0.5rem 1.25rem",
+                  fontWeight: "600",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem"
+                }}
+              >
+                <X size={16} /> Cancelar Asistencia
+              </button>
+            ) : myAttendance?.status === "waitlist" ? (
+              <button
+                onClick={onCancel}
+                style={{
+                  background: "#ef4444",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "24px",
+                  padding: "0.5rem 1.25rem",
+                  fontWeight: "600",
+                  fontSize: "0.8rem",
+                  gap: "0.4rem"
+                }}
+              >
+                <Clock size={16} /> Salir de Lista de Espera
+              </button>
+            ) : isFullMatch(match, attendances) ? (
+              <button
+                onClick={onJoinWaitlist}
+                style={{
+                  background: "#f59e0b",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "24px",
+                  padding: "0.5rem 1.25rem",
+                  fontWeight: "600",
+                  fontSize: "0.8rem",
+                  gap: "0.4rem"
+                }}
+              >
+                <Clock size={16} /> Unirse a Lista de Espera
+              </button>
+            ) : (
+              <button
+                onClick={onConfirm}
+                style={{
+                  background: "#10b981",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "24px",
+                  padding: "0.5rem 1.25rem",
+                  fontWeight: "600",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem"
+                }}
+              >
+                <Check size={16} /> Confirmar Asistencia
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Admin Actions */}
+        {isAdmin && (
+          <>
+            <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", margin: "1.25rem 0" }} />
+            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+              <button
+                onClick={handleAIDistribute}
+                disabled={aiLoading}
+                style={{
+                  background: "#3b82f6",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "24px",
+                  padding: "0.6rem 1.25rem",
+                  fontWeight: "600",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.3rem",
+                  flex: 1,
+                  minWidth: "200px"
+                }}
+              >
+                {aiLoading ? "🤖 Pensando..." : "🤖 Generar equipos balanceados"}
+              </button>
+              <button
+                onClick={() => setIsEditingStats((prev) => !prev)}
+                style={{
+                  background: "#10b981",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "24px",
+                  padding: "0.6rem 1.25rem",
+                  fontWeight: "600",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.3rem",
+                  flex: 1,
+                  minWidth: "200px"
+                }}
+              >
+                📝 Finalizar & Cargar stats
+              </button>
+            </div>
+            {aiError && <p className="form-message" style={{ marginTop: "1rem" }}>{aiError}</p>}
+          </>
         )}
-        {(isAdmin || isPlayerConfirmed) && <CourtPhoto match={match} />}
-        {match.match_date && (
+      </section>
+
+      {/* ── ACCIONES ADICIONALES DE ADMIN Y COMPARTIR ── */}
+      {isAdmin && (
+        <section className="panel" style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center", padding: "1rem" }}>
+          {match.requires_reservation && (
+            <div style={{ flex: "1", minWidth: "250px" }}>
+              <CopyReservationTextButton
+                match={match}
+                attendances={attendances}
+                profiles={profiles}
+              />
+            </div>
+          )}
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", flex: "1", justifyContent: "flex-end" }}>
+            {confirmingDelete ? (
+              <>
+                <button className="danger-button" type="button" onClick={() => onDeleteMatch(match?.id)}>
+                  Confirmar eliminar
+                </button>
+                <button className="secondary-button" type="button" onClick={() => setConfirmingDelete(false)}>
+                  Cancelar
+                </button>
+              </>
+            ) : (
+              <button className="danger-button" type="button" onClick={() => setConfirmingDelete(true)}>
+                Eliminar partido
+              </button>
+            )}
+          </div>
+          {confirmingDelete && (
+            <p className="confirm-delete-msg" style={{ width: "100%", margin: "0.5rem 0 0", color: "#ef4444" }}>
+              ¿Eliminar "{match.title || "Chamuscón"}"? Se borran equipos, asistencias y cobros asociados.
+            </p>
+          )}
+        </section>
+      )}
+
+      {/* ── PRONÓSTICO DEL CLIMA ── */}
+      {match.match_date && (
+        <section className="panel" style={{ marginTop: "0" }}>
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow" style={{ color: "#10b981", fontSize: "0.65rem", letterSpacing: "0.08em" }}>PRONÓSTICO DEL CLIMA EXACTO</p>
+              <h3 style={{ fontSize: "0.78rem", fontWeight: "normal", color: "var(--muted)", margin: "0.1rem 0 0" }}>
+                {selectedVenue?.address || selectedVenue?.name || match.venue || "Guatemala"}
+              </h3>
+            </div>
+            <span className="status-pill" style={{ background: "rgba(16, 185, 129, 0.05)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.15)", fontSize: "0.7rem", padding: "0.15rem 0.5rem", borderRadius: "15px" }}>
+              ⛅ Clima Real
+            </span>
+          </div>
           <WeatherWidget
             venue={selectedVenue?.name || match.venue || "Guatemala"}
             date={match.match_date}
@@ -383,105 +713,61 @@ export default function MatchDetail({
             lat={selectedVenue?.lat}
             lng={selectedVenue?.lng}
           />
-        )}
-        <AttendanceAction
-          attendance={myAttendance}
-          fineAmount={fineAmount}
-          match={match}
-          isFull={isFullMatch(match, attendances)}
-          waitlistPos={waitlistPosition(match?.id, profile?.id, attendances)}
-          onConfirm={onConfirm}
-          onJoinWaitlist={onJoinWaitlist}
-          onCancel={onCancel}
-          profile={profile}
-          clearance={clearance}
-        />
-        <div className="rules-card">
+        </section>
+      )}
+
+      {/* ── LISTA DE JUGADORES CONFIRMADOS ── */}
+      <section className="panel">
+        <div className="section-heading">
           <div>
-            <strong>Reglas de asistencia</strong>
-            <small>Cancelar a menos de 4 horas genera multa de Q{fineAmount || 0}. Si el admin marca “No llegó”, se genera multa por ausencia.</small>
+            <p className="eyebrow" style={{ color: "var(--primary)", fontSize: "0.65rem", letterSpacing: "0.08em" }}>Lista de Jugadores Confirmados</p>
+            <h2 style={{ fontSize: "1rem", fontWeight: "500", margin: "0.1rem 0 0", color: "#ffffff" }}>
+              {confirmedPlayers.length} Jugadores Confirmados ({confirmedPlayers.length} / {match.max_players || 15})
+            </h2>
           </div>
-          <span className="status-pill">Claro antes de tocar</span>
         </div>
-        {isAdmin && (
-          <>
-            <div className="team-instructions-box">
-              <label>
-                <small>Instrucciones para generar equipos (opcional)</small>
-                <textarea
-                  rows={3}
-                  placeholder="Ej: Juan con Pedro juntos, Luis portero en equipo de Guillermo, Carlos y Diego separados..."
-                  value={teamInstructions}
-                  onChange={(e) => setTeamInstructions(e.target.value)}
-                />
-              </label>
-            </div>
-            <div className="button-row">
-              <button type="button" onClick={() => onGenerateTeams({ instructions: teamInstructions })} disabled={aiLoading}>
-                Generar equipos
-              </button>
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={handleAIDistribute}
-                disabled={aiLoading}
-                title="Usa Groq AI para distribuir equipos considerando skills e instrucciones"
-              >
-                {aiLoading ? "🤖 Pensando..." : "🤖 Distribuir con IA"}
-              </button>
-              {canPenaltyTeam && (
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => onGenerateTeams({ penaltyTeam: true, instructions: teamInstructions })}
-                  title="Crea un equipo pequeño con los últimos 3 en confirmar"
-                >
-                  Con equipo de castigo
-                </button>
-              )}
-            {aiError && <p className="form-message">{aiError}</p>}
-            {confirmingDelete ? (
-              <>
-                <button
-                  className="danger-button"
-                  type="button"
-                  onClick={() => onDeleteMatch(match?.id)}
-                >
-                  Confirmar eliminar
-                </button>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => setConfirmingDelete(false)}
-                >
-                  Cancelar
-                </button>
-              </>
-            ) : (
-              <button
-                className="danger-button"
-                type="button"
-                onClick={() => setConfirmingDelete(true)}
-              >
-                Eliminar partido
-              </button>
-            )}
-            {aiError && <p className="form-message">{aiError}</p>}
-          </div>
-          </>
-        )}
-        {confirmingDelete && (
-          <p className="confirm-delete-msg">
-            ¿Eliminar "{match.title || "Chamuscón"}"? Se borran equipos,
-            asistencias y cobros asociados.
-          </p>
-        )}
-        <ExportCard
-          label="Invitación para WhatsApp"
-          text={matchInvitationText(match, confirmedCount)}
-        />
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+          gap: "0.75rem",
+          marginTop: "1rem"
+        }}>
+          {confirmedPlayers.map((cp, idx) => {
+            const prefPos = cp.profile?.preferred_position ? (
+              cp.profile.preferred_position.substring(0, 3).toUpperCase()
+            ) : "JUG";
+            const rating = ratingMap.get(cp.id)?.rating || 70;
+            return (
+              <div key={cp.id} style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                background: "var(--surface-2)",
+                padding: "0.65rem 0.9rem",
+                borderRadius: "10px",
+                border: "1px solid var(--border-light)"
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
+                  <Avatar profile={cp.is_guest ? null : cp.profile} size={32} />
+                  <div>
+                    <span style={{ fontWeight: "500", fontSize: "0.85rem", color: "#ffffff", display: "block", lineHeight: "1.2" }}>
+                      {cp.name}
+                    </span>
+                    <span style={{ fontSize: "0.72rem", color: "var(--muted)" }}>
+                      {prefPos} · OVR {rating}
+                    </span>
+                  </div>
+                </div>
+                <span style={{ fontSize: "0.78rem", color: "var(--primary)", fontWeight: "600" }}>
+                  #{idx + 1}
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </section>
 
+      {/* ── EQUIPOS ── */}
       <section className="panel">
         <div className="section-heading">
           <h2>Equipos</h2>
@@ -501,7 +787,7 @@ export default function MatchDetail({
               matchStats={matchStats}
             />
             {isAdmin && (
-              <div className="export-cards-grid">
+              <div className="export-cards-grid" style={{ marginTop: "1rem" }}>
                 <ExportCard
                   label="Equipos para WhatsApp"
                   text={teamAnnouncementText(match, teams)}
@@ -747,6 +1033,36 @@ export default function MatchDetail({
           </section>
         ) : null;
       })()}
+      {/* Floating Action Button for sharing guest link */}
+      <button
+        onClick={async () => {
+          const link = api.generateGuestLink(match?.id);
+          try {
+            await copyToClipboard(link);
+            alert("Enlace de invitado copiado al portapapeles ✓");
+          } catch (err) {}
+        }}
+        title="Copiar enlace para invitados"
+        style={{
+          position: "fixed",
+          bottom: "80px", // above mobile bottom nav
+          right: "20px",
+          width: "56px",
+          height: "56px",
+          borderRadius: "28px",
+          background: "var(--primary)",
+          color: "#fff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 4px 15px rgba(16,185,129,0.4)",
+          border: "none",
+          cursor: "pointer",
+          zIndex: 999
+        }}
+      >
+        <Link2 size={24} />
+      </button>
     </div>
   );
 }

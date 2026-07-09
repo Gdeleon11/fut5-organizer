@@ -1,4 +1,4 @@
-const CACHE_NAME = "f5manager-v2";
+const CACHE_NAME = "f5manager-v4";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",

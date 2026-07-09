@@ -171,7 +171,7 @@ export default function GroupsPage({
         </form>
       </section>
 
-      {activeMembership?.role === "admin" && activeMembership.groups && (
+      {["admin", "super_admin"].includes(activeMembership?.role) && activeMembership.groups && (
         <section className="panel">
           <ExportCard
             label="Invitación del grupo"

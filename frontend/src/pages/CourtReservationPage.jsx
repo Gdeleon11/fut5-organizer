@@ -3,16 +3,21 @@ import Avatar from "../components/Avatar.jsx";
 import CopyReservationTextButton from "../components/CopyReservationTextButton.jsx";
 import { api } from "../api.js";
 import { activeReservationStatus, reservationStatusLabel } from "../reservationAssistant.js";
-import { classNames, displayName } from "../utils.js";
+import { appOrigin, classNames, copyToClipboard, displayName } from "../utils.js";
+import { collectGroupTags } from "../tags.js";
+import VenuesPage from "./VenuesPage.jsx";
 
-function ReservationRow({ index, venues, profiles, onChange, onRemove }) {
+function ReservationRow({ index, venues, profiles, groupTags = [], onChange, onRemove }) {
   const [form, setForm] = useState({
     venue: "",
     reservation_date: "",
     reservation_time: "19:00",
     assigned_to: "",
     notes: "",
+    allowed_tags: [],
   });
+
+  const [selectedTags, setSelectedTags] = useState([]);
 
   function update(patch) {
     const next = { ...form, ...patch };
@@ -60,6 +65,40 @@ function ReservationRow({ index, venues, profiles, onChange, onRemove }) {
         <label>
           Notas (opcional)
           <input placeholder="Ej. Reservar cancha 2" value={form.notes} onChange={(e) => update({ notes: e.target.value })} />
+        </label>
+        <label style={{ gridColumn: "1 / -1" }}>
+          Restringir acceso por Tags (opcional)
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", margin: "0.25rem 0" }}>
+            {groupTags.map((tag) => {
+              const isSelected = selectedTags.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => {
+                    const next = isSelected
+                      ? selectedTags.filter((t) => t !== tag)
+                      : [...selectedTags, tag];
+                    setSelectedTags(next);
+                    update({ allowed_tags: next });
+                  }}
+                  className={`tag-chip ${isSelected ? "is-active" : ""}`}
+                  style={{
+                    padding: "0.2rem 0.6rem",
+                    borderRadius: "15px",
+                    fontSize: "0.75rem",
+                    border: isSelected ? "1px solid var(--primary)" : "1px solid rgba(255,255,255,0.1)",
+                    background: isSelected ? "rgba(16, 185, 129, 0.15)" : "transparent",
+                    color: isSelected ? "var(--primary)" : "var(--text-muted)",
+                    cursor: "pointer"
+                  }}
+                >
+                  #{tag}
+                </button>
+              );
+            })}
+          </div>
+          {selectedTags.length === 0 && <small className="muted">Público para todo el grupo.</small>}
         </label>
       </div>
     </div>
@@ -214,20 +253,24 @@ export default function CourtReservationPage({
   onUpdateMatch,
   onNotice,
   onCreateMatch,
+  onCreateVenue,
+  onUpdateVenue,
+  isDemoMode = false,
+  reservations = [],
+  setReservations,
 }) {
-  const [reservations, setReservations] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [rows, setRows] = useState([0]);
   const [formData, setFormData] = useState({});
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [copiedId, setCopiedId] = useState(null);
   const [view, setView] = useState("cards"); // "cards" | "list"
 
   async function loadReservations() {
-    if (!activeGroupId || !isAdmin) return;
+    if (!activeGroupId || !isAdmin || isDemoMode) return;
     try {
       const rows = await api.listReservations(activeGroupId);
       setReservations(rows);
@@ -237,9 +280,13 @@ export default function CourtReservationPage({
   }
 
   useEffect(() => {
-    setLoading(true);
-    loadReservations().finally(() => setLoading(false));
-  }, [activeGroupId, isAdmin]);
+    if (!isDemoMode && isAdmin) {
+      setLoading(true);
+      loadReservations().finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [activeGroupId, isDemoMode, isAdmin]);
 
   // Auto-refresh when tab becomes visible again
   useEffect(() => {
@@ -288,16 +335,33 @@ export default function CourtReservationPage({
     const errors = [];
     for (let i = 0; i < validEntries.length; i++) {
       try {
+        const formRow = validEntries[i];
+        const notesWithTags = formRow.allowed_tags && formRow.allowed_tags.length > 0
+          ? `[Tags: ${formRow.allowed_tags.join(",")}] ${formRow.notes || ""}`
+          : formRow.notes || null;
+
         const payload = {
-          venue: validEntries[i].venue,
-          reservation_date: validEntries[i].reservation_date,
-          reservation_time: validEntries[i].reservation_time || "19:00",
-          assigned_to: validEntries[i].assigned_to,
-          notes: validEntries[i].notes || null,
+          venue: formRow.venue,
+          reservation_date: formRow.reservation_date,
+          reservation_time: formRow.reservation_time || "19:00",
+          assigned_to: formRow.assigned_to,
+          notes: notesWithTags,
           group_id: activeGroupId,
           assigned_by: currentUserId,
         };
-        const res = await api.createReservation(payload);
+
+        let res;
+        if (isDemoMode) {
+          res = {
+            id: `res-mock-${Date.now()}-${i}`,
+            ...payload,
+            status: "pending",
+            proof_url: null,
+            created_at: new Date().toISOString()
+          };
+        } else {
+          res = await api.createReservation(payload);
+        }
         created.push(res);
       } catch (err) {
         errors.push(`Reserva ${i + 1} (${validEntries[i].venue}): ${err.message}`);
@@ -321,8 +385,13 @@ export default function CourtReservationPage({
 
   async function handleUploadProof(reservationId, file) {
     try {
-      const url = await api.uploadReservationProof(reservationId, file);
-      await api.updateReservation(reservationId, { proof_url: url });
+      let url;
+      if (isDemoMode) {
+        url = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=300";
+      } else {
+        url = await api.uploadReservationProof(reservationId, file);
+        await api.updateReservation(reservationId, { proof_url: url });
+      }
       setReservations((c) => c.map((r) => r.id === reservationId ? { ...r, proof_url: url } : r));
     } catch (err) { setError(err.message); }
   }
@@ -330,34 +399,64 @@ export default function CourtReservationPage({
   async function handleConfirm(reservation) {
     setError("");
     try {
-      const match = await api.confirmReservation(
-        reservation.id, activeGroupId, reservation.venue,
-        reservation.reservation_date, reservation.reservation_time,
-        `Partido en ${reservation.venue}`,
-      );
+      let match;
+      if (isDemoMode) {
+        let allowedTags = [];
+        let cleanTitle = `Partido en ${reservation.venue}`;
+
+        if (reservation.notes) {
+          const matchTags = reservation.notes.match(/^\[Tags:\s*([^\]]*)\]\s*(.*)/);
+          if (matchTags) {
+            const tagStr = matchTags[1];
+            allowedTags = tagStr.split(",").map((t) => t.trim()).filter(Boolean);
+            const restNotes = matchTags[2];
+            if (restNotes) {
+              cleanTitle = restNotes;
+            }
+          }
+        }
+
+        match = {
+          id: `m-mock-${Date.now()}`,
+          group_id: activeGroupId,
+          title: cleanTitle,
+          match_date: reservation.reservation_date,
+          start_time: reservation.reservation_time || "19:00",
+          venue: reservation.venue,
+          status: "upcoming",
+          allowed_tags: allowedTags
+        };
+      } else {
+        match = await api.confirmReservation(
+          reservation.id, activeGroupId, reservation.venue,
+          reservation.reservation_date, reservation.reservation_time,
+          `Partido en ${reservation.venue}`,
+        );
+      }
       setReservations((c) => c.map((r) => r.id === reservation.id ? { ...r, status: "confirmed", match_id: match.id } : r));
       if (onCreateMatch) onCreateMatch(match);
-      setNotice("Partido creado desde la reserva.");
+      setNotice("Partido creado desde la reserva (Simulación Local).");
     } catch (err) { setError(err.message); }
   }
 
   async function handleDelete(reservationId) {
     try {
-      await api.deleteReservation(reservationId);
+      if (!isDemoMode) {
+        await api.deleteReservation(reservationId);
+      }
       setReservations((c) => c.filter((r) => r.id !== reservationId));
     } catch (err) { setError(err.message); }
   }
 
   async function copyLink(reservationId) {
-    const origin = typeof window === "undefined" ? "" : window.location.origin;
     const token = reservationId.replace(/-/g, "");
-    const link = `${origin}/reserve/${token}`;
+    const link = `${appOrigin()}/reserve/${token}`;
     try {
-      await navigator.clipboard.writeText(link);
+      await copyToClipboard(link);
       setCopiedId(reservationId);
       setTimeout(() => setCopiedId(null), 2000);
-    } catch {
-      prompt("Copiá este link:", link);
+    } catch (err) {
+      console.error("Error copying reservation link:", err);
     }
   }
 
@@ -452,6 +551,7 @@ export default function CourtReservationPage({
                 index={i}
                 venues={venues}
                 profiles={profiles}
+                groupTags={groupTags}
                 onChange={handleRowChange}
                 onRemove={removeRow}
               />
@@ -556,6 +656,19 @@ export default function CourtReservationPage({
           <div className="empty-state compact">No hay reservas. Creá una para delegar la cancha.</div>
         </section>
       )}
+
+      {/* Catálogo de Canchas Consolidado */}
+      <div style={{ gridColumn: "1 / -1", marginTop: "2rem" }}>
+        <VenuesPage
+          groupId={activeGroupId}
+          profileId={currentUserId}
+          venues={venues}
+          matches={matches}
+          onCreateVenue={onCreateVenue}
+          onUpdateVenue={onUpdateVenue}
+          isAdmin={isAdmin}
+        />
+      </div>
     </div>
   );
 }

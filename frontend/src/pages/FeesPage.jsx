@@ -3,7 +3,7 @@ import { Check, X, Link as LinkIcon, FileText } from "lucide-react";
 import ExportCard from "../components/ExportCard.jsx";
 import Stat from "../components/Stat.jsx";
 import { api } from "../api.js";
-import { classNames, displayName, formatMatchDate, formatMoney } from "../utils.js";
+import { classNames, copyToClipboard, displayName, formatMatchDate, formatMoney, proofUploadUrl } from "../utils.js";
 
 // ---------------------------------------------------------------------------
 // Proof status badge
@@ -32,7 +32,7 @@ function ProofStatusBadge({ status }) {
 function CopyProofLinkButton({ payment, paymentType, disabled }) {
   const [copied, setCopied] = useState(false);
 
-  function handleCopy() {
+  async function handleCopy() {
     try {
       const tokenData = {
         pid: payment.id,
@@ -41,20 +41,14 @@ function CopyProofLinkButton({ payment, paymentType, disabled }) {
         gid: payment.group_id,
       };
       const token = btoa(JSON.stringify(tokenData));
-      const proofUrl = `${window.location.origin}/proof/${token}`;
+      const proofUrl = proofUploadUrl(token);
 
-      navigator.clipboard.writeText(proofUrl)
-        .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        })
-        .catch((err) => {
-          console.error("Clipboard write failed:", err);
-          alert("Error al generar el enlace. Intentá de nuevo.");
-        });
+      await copyToClipboard(proofUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Error generating proof link:", err);
-      alert("Error al generar el enlace. Intentá de nuevo.");
+      alert("No se pudo copiar el enlace. Revisá permisos del navegador e intentá de nuevo.");
     }
   }
 
@@ -75,7 +69,7 @@ function CopyProofLinkButton({ payment, paymentType, disabled }) {
 function CopyCollectionGroupLinkButton({ collection }) {
   const [copied, setCopied] = useState(false);
 
-  function handleCopy() {
+  async function handleCopy() {
     try {
       const tokenData = {
         cid: collection.id,
@@ -83,7 +77,7 @@ function CopyCollectionGroupLinkButton({ collection }) {
         type: "collection_group",
       };
       const token = btoa(JSON.stringify(tokenData));
-      const proofUrl = `${window.location.origin}/proof/${token}`;
+      const proofUrl = proofUploadUrl(token);
       const text = [
         "COBRO F5MANAGER",
         "",
@@ -97,18 +91,12 @@ function CopyCollectionGroupLinkButton({ collection }) {
         proofUrl,
       ].filter(Boolean).join("\n");
 
-      navigator.clipboard.writeText(text)
-        .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        })
-        .catch((err) => {
-          console.error("Clipboard write failed:", err);
-          alert("Error al generar el enlace. Intentá de nuevo.");
-        });
+      await copyToClipboard(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Error generating collection link:", err);
-      alert("Error al generar el enlace. Intentá de nuevo.");
+      alert("No se pudo copiar el enlace. Revisá permisos del navegador e intentá de nuevo.");
     }
   }
 
@@ -338,31 +326,37 @@ function MatchFeePanel({
                 {isAdmin && payment.status === "pending" && (
                   <>
                     <button
-                      className="fee-btn-icon is-primary"
+                      className="fee-btn-circle is-approve"
                       type="button"
+                      title="Marcar como pagado"
+                      aria-label="Marcar como pagado"
                       onClick={() => onUpdatePayment(payment.id, { status: "paid" })}
                     >
-                      <Check /> Pagó
+                      <Check />
                     </button>
                     <button
-                      className="fee-btn-icon is-danger"
+                      className="fee-btn-circle is-reject"
                       type="button"
+                      title="Perdonar cuota"
+                      aria-label="Perdonar cuota"
                       onClick={() =>
                         onUpdatePayment(payment.id, { status: "forgiven" })
                       }
                     >
-                      <X /> Perdonar
+                      <X />
                     </button>
                   </>
                 )}
 
                 {isAdmin && hasProof && proofStatus === "submitted" && (
                   <button
-                    className="fee-btn-icon"
+                    className="fee-btn-circle is-view"
                     type="button"
+                    title="Ver comprobante"
+                    aria-label="Ver comprobante"
                     onClick={() => setModalPayment(payment)}
                   >
-                    <FileText /> Ver comp.
+                    <FileText />
                   </button>
                 )}
 
@@ -772,33 +766,39 @@ function CollectionsPanel({
                         {payment.status === "pending" && (
                           <>
                             <button
-                              className="fee-btn-icon is-primary"
+                              className="fee-btn-circle is-approve"
                               type="button"
+                              title="Marcar como pagado"
+                              aria-label="Marcar como pagado"
                               onClick={() =>
                                 onUpdatePayment(payment.id, { status: "paid" })
                               }
                             >
-                              <Check /> Pagó
+                              <Check />
                             </button>
                             <button
-                              className="fee-btn-icon is-danger"
+                              className="fee-btn-circle is-reject"
                               type="button"
+                              title="Perdonar cuota"
+                              aria-label="Perdonar cuota"
                               onClick={() =>
                                 onUpdatePayment(payment.id, { status: "forgiven" })
                               }
                             >
-                              <X /> Perdonar
+                              <X />
                             </button>
                           </>
                         )}
 
                         {hasProof && proofStatus === "submitted" && (
                           <button
-                            className="fee-btn-icon"
+                            className="fee-btn-circle is-view"
                             type="button"
+                            title="Ver comprobante"
+                            aria-label="Ver comprobante"
                             onClick={() => setModalPayment(payment)}
                           >
-                            <FileText /> Ver comp.
+                            <FileText />
                           </button>
                         )}
 

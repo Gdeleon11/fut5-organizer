@@ -342,7 +342,7 @@ function StandingsTable({ standings }) {
   );
 }
 
-export default function TournamentPage({ activeGroupId, profiles, ratingMap, isAdmin, isSuperAdmin }) {
+export default function TournamentPage({ activeGroupId, profiles, ratingMap, isAdmin, isSuperAdmin, isDemoMode = false }) {
   const [tournaments, setTournaments] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [teams, setTeams] = useState([]);
@@ -357,12 +357,12 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
   const selected = tournaments.find((t) => t.id === selectedId);
 
   useEffect(() => {
-    if (!activeGroupId) return;
-    api.listTournaments(activeGroupId).then(setTournaments);
-  }, [activeGroupId]);
+    if (!activeGroupId || isDemoMode) return;
+    api.listTournaments(activeGroupId).then(setTournaments).catch(() => setTournaments([]));
+  }, [activeGroupId, isDemoMode]);
 
   useEffect(() => {
-    if (!selectedId) { setTeams([]); setMatches([]); setStandings([]); setTeamMembers([]); return; }
+    if (!selectedId || isDemoMode) { setTeams([]); setMatches([]); setStandings([]); setTeamMembers([]); return; }
     setLoading(true);
     Promise.all([
       api.listTournamentTeams(selectedId),
@@ -370,8 +370,9 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
       api.listStandings(selectedId),
       api.listAllTournamentTeamMembers(selectedId),
     ]).then(([t, m, s, tm]) => { setTeams(t); setMatches(m); setStandings(s); setTeamMembers(tm); })
+      .catch(() => { setTeams([]); setMatches([]); setStandings([]); setTeamMembers([]); })
       .finally(() => setLoading(false));
-  }, [selectedId]);
+  }, [selectedId, isDemoMode]);
 
   async function createTournament(form) {
     const { team_count, ...rest } = form;

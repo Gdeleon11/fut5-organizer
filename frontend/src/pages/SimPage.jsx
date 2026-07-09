@@ -8,7 +8,7 @@ import { displayName, positionLabel } from "../utils.js";
 
 const TEAM_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#f97316", "#a855f7", "#1f2937", "#ffffff"];
 
-export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, skills, onResultChange }) {
+export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, skills, onResultChange, onBack }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -165,10 +165,20 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
 
   return (
     <div className="page-grid">
+      {/* Header back button */}
+      <div className="section-heading" style={{ gridColumn: "1 / -1", marginBottom: "1rem" }}>
+        <div>
+          <p className="eyebrow" style={{ color: "var(--primary)" }}>EXCLUSIVO PARA ADMINISTRADORES</p>
+          <h2 style={{ fontSize: "1.6rem", fontWeight: "700" }}>Simulador Táctico de Equipos</h2>
+        </div>
+        <button className="secondary-button" type="button" onClick={onBack} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+          ← Volver a Partidos
+        </button>
+      </div>
+
       <section className="panel">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Simulación</p>
             <h2>Seleccionar jugadores</h2>
             <small>Elegí los jugadores para simular un partido.</small>
           </div>

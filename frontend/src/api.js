@@ -686,6 +686,19 @@ export const api = {
     }));
     players = [...players, ...guestPlayers];
 
+    const confirmationTimes = new Map();
+    matchAttendances.forEach((a) => {
+      confirmationTimes.set(a.profile_id, new Date(a.updated_at || a.created_at || Date.now()).getTime());
+    });
+    guests.forEach((g) => {
+      confirmationTimes.set(g.id, new Date(g.updated_at || g.created_at || Date.now()).getTime());
+    });
+
+    players = players.map((p) => ({
+      ...p,
+      confirmed_at: confirmationTimes.get(p.id) || Date.now(),
+    }));
+
     let playerSkills = [];
     try {
       playerSkills = await readMany(
@@ -706,7 +719,14 @@ export const api = {
 
     let penaltyTeam = null;
 
-    if (options.penaltyTeam && players.length >= 13 && players.length <= 14) {
+    if (players.length === 14) {
+      // 14 players: force last 4 confirmed to be the 3rd team
+      const sortedByTime = [...players].sort((a, b) => a.confirmed_at - b.confirmed_at);
+      const topTen = sortedByTime.slice(0, 10);
+      const lastFour = sortedByTime.slice(10);
+      penaltyTeam = lastFour;
+      players = topTen;
+    } else if (options.penaltyTeam && players.length === 13) {
       const sortedByRating = [...players].sort((a, b) => b.rating - a.rating);
       const topTen = sortedByRating.slice(0, 10);
       const rest = sortedByRating.slice(10);

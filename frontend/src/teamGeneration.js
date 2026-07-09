@@ -1,7 +1,22 @@
+import { getCapacities, CAPACITY_KEYS } from "./capacityStore.js";
+
+// Convierte las capacidades manuales (1-100) de un jugador a la escala de
+// estrellas (1-5) promediando las 6. Devuelve null si no hay capacidades.
+function capacityRatingOnStarScale(player) {
+  const caps = getCapacities(player?.id || player?.profile_id);
+  if (!caps) return null;
+  const values = CAPACITY_KEYS.map(({ key }) => caps[key]).filter(
+    (v) => v != null,
+  );
+  if (!values.length) return null;
+  const avg = values.reduce((a, b) => a + b, 0) / values.length;
+  return avg / 20; // 1-100 -> 1-5
+}
+
 function teamCountForPlayers(playerCount) {
-  if (playerCount >= 10 && playerCount <= 22) {
-    return Math.ceil(playerCount / 5);
-  }
+  if (playerCount >= 10 && playerCount <= 13) return 2;
+  if (playerCount >= 14 && playerCount <= 18) return 3;
+  if (playerCount >= 19 && playerCount <= 22) return 4;
   throw new Error(`Se necesitan entre 10 y 22 jugadores. Hay ${playerCount}.`);
 }
 
@@ -30,7 +45,7 @@ function countSkillInTeam(team, skill) {
   return team.players.filter((p) => hasSkill(p, skill)).length;
 }
 
-function playerEffectiveRating(player) {
+function starEffectiveRating(player) {
   const position = player.preferred_position;
   switch (position) {
     case "Forward":
@@ -54,6 +69,16 @@ function playerEffectiveRating(player) {
         : player.rating || 2;
     }
   }
+}
+
+// Fuerza efectiva del jugador para el balanceo. Mezcla las estrellas por
+// posición con las capacidades manuales 1-100 (si el jugador las tiene).
+// Así estrellas + capacidades cuentan; las skills se balancean aparte.
+function playerEffectiveRating(player) {
+  const starRating = starEffectiveRating(player);
+  const capRating = capacityRatingOnStarScale(player);
+  if (capRating == null) return starRating;
+  return starRating * 0.5 + capRating * 0.5;
 }
 
 function totalRating(team) {

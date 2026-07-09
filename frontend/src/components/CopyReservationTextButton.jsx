@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { generateReservationText } from "../reservationAssistant.js";
+import { copyToClipboard } from "../utils.js";
 
 export default function CopyReservationTextButton({
   match,
@@ -13,12 +14,12 @@ export default function CopyReservationTextButton({
   async function copyText() {
     const text = generateReservationText({ match, attendances, profiles });
     try {
-      await navigator.clipboard.writeText(text);
+      await copyToClipboard(text);
       setCopied(true);
       onCopied?.("Texto copiado al portapapeles");
       setTimeout(() => setCopied(false), 1800);
-    } catch {
-      prompt("Copiá este texto:", text);
+    } catch (err) {
+      console.error("Error copying reservation text:", err);
     }
   }
 

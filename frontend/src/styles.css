@@ -43,6 +43,18 @@
 
   --yellow:    #f5c842;
   --yellow-bg: #2a2000;
+
+  /* Alias de compatibilidad: variables legadas que algunos componentes usan
+     pero no estaban definidas. Se resuelven según el tema activo (data-theme). */
+  --primary: var(--accent);
+  --primary-light: rgba(var(--accent-rgb), 0.15);
+  --background: var(--surface-0);
+  --background-alt: var(--surface-1);
+  --surface-4: var(--surface-3);
+  --muted: var(--text-muted);
+  --foreground: var(--text-primary);
+  --danger: var(--red);
+
   --radius: 8px;
   --radius-sm: 6px;
   --radius-lg: 10px;
@@ -422,6 +434,94 @@ a { color: var(--accent); }
   filter: drop-shadow(0 8px 24px rgba(var(--accent-rgb), 0.18));
 }
 
+.onboarding-shell {
+  display: grid;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.onboarding-hero {
+  position: relative;
+  min-height: 340px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(6, 18, 9, 0.16), rgba(6, 18, 9, 0.94)),
+    url("/images/banners/partidos.webp") center / cover;
+  isolation: isolate;
+}
+
+.onboarding-hero::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background: linear-gradient(90deg, rgba(6, 18, 9, 0.98), rgba(6, 18, 9, 0.62) 48%, rgba(6, 18, 9, 0.12));
+}
+
+.onboarding-copy {
+  width: min(640px, 100%);
+  padding: 2rem;
+}
+
+.onboarding-copy .auth-brand-mark {
+  margin: 0 0 0.8rem;
+}
+
+.onboarding-copy h1 {
+  margin: 0;
+  max-width: 12ch;
+  font-family: 'Oswald', sans-serif;
+  font-size: clamp(2.45rem, 7vw, 5rem);
+  line-height: 0.92;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.onboarding-copy p:last-child {
+  max-width: 54ch;
+  margin: 1rem 0 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.onboarding-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.onboarding-panel {
+  align-content: start;
+  gap: 1rem;
+}
+
+.onboarding-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.onboarding-panel-title svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.onboarding-panel-title h2 {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.onboarding-results {
+  margin-top: 0.25rem;
+}
+
 /* ============================================================
    Page grid
    ============================================================ */
@@ -601,24 +701,40 @@ small, .muted {
   flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  gap: 0.6rem;
+  padding: 0.7rem 0.85rem;
   background: var(--surface-2);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 12px;
   min-width: 0;
   overflow: hidden;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.fee-player-row:hover {
+  border-color: var(--border-light);
 }
 
 .fee-player-row > div:first-child {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.15rem;
   min-width: 0;
   flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.fee-player-row > div:first-child strong {
+  font-size: 0.95rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.fee-player-row > div:first-child small {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
 }
 
 .fee-actions {
@@ -685,18 +801,19 @@ small, .muted {
 .count-pill,
 .status-pill {
   display: inline-grid;
-  min-height: 26px;
+  min-height: 24px;
   place-items: center;
-  border-radius: 4px;
+  border-radius: 999px;
   background: var(--surface-3);
   color: var(--text-secondary);
   font-family: 'Oswald', sans-serif;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 0.15rem 0.6rem;
+  padding: 0.2rem 0.7rem;
   white-space: nowrap;
+  border: 1px solid transparent;
 }
 
 .status-pill {
@@ -852,6 +969,31 @@ small, .muted {
 }
 
 @media (max-width: 600px) {
+  .onboarding-shell {
+    padding-top: 0.75rem;
+  }
+
+  .onboarding-hero {
+    min-height: 410px;
+    align-items: flex-end;
+  }
+
+  .onboarding-hero::after {
+    background: linear-gradient(180deg, rgba(6, 18, 9, 0.2), rgba(6, 18, 9, 0.98));
+  }
+
+  .onboarding-copy {
+    padding: 1.25rem;
+  }
+
+  .onboarding-copy h1 {
+    max-width: 10ch;
+  }
+
+  .onboarding-actions {
+    grid-template-columns: 1fr;
+  }
+
   .venue-form-grid {
     grid-template-columns: 1fr;
   }
@@ -3190,48 +3332,62 @@ small, .muted {
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 20;
-    display: grid;
-    grid-auto-columns: minmax(72px, max-content);
-    grid-auto-flow: column;
-    overflow-x: auto;
-    gap: 0.25rem;
-    border-top: 1px solid var(--border);
-    background: var(--surface-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    padding: 0.4rem 0.5rem calc(0.4rem + env(safe-area-inset-bottom));
-    scrollbar-width: none;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: #090e17; /* Solid premium dark background matching screenshot */
+    padding: 0.6rem 0.5rem calc(0.6rem + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0; /* Rounded top corners */
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.55);
   }
 
   .bottom-nav::-webkit-scrollbar { display: none; }
 
   .bottom-nav-item {
-    display: grid;
-    place-items: center;
-    min-height: 52px;
-    min-width: 72px;
-    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-height: auto;
     background: transparent;
-    border: 1px solid transparent;
-    color: var(--text-muted);
-    font-size: 0.68rem;
-    letter-spacing: 0.04em;
-    line-height: 1;
-    overflow: hidden;
-    padding: 0.4rem 0.35rem;
-    text-overflow: ellipsis;
-    transform: none;
-    white-space: nowrap;
+    border: none;
+    color: #94a3b8; /* Muted text */
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    transition: color 0.2s, transform 0.2s;
   }
 
   .bottom-nav-item:hover:not(:disabled) { transform: none; }
 
   .bottom-nav-item.is-active {
-    background: rgba(var(--accent-rgb), 0.08);
-    border-color: rgba(var(--accent-rgb), 0.25);
-    color: var(--accent);
-    transform: none;
+    background: transparent;
+    border: none;
+    color: var(--primary); /* Bright green text/icon */
+  }
+
+  .bottom-nav-item .tab-icon {
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 32px;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+  }
+
+  .bottom-nav-item.is-active .tab-icon {
+    background-color: rgba(16, 185, 129, 0.15); /* var(--primary) with opacity */
+    transform: scale(1.1); /* Active icon animation */
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+  }
+
+  .desktop-only-user-text {
+    display: none;
   }
 }
 
@@ -3659,11 +3815,11 @@ small, .muted {
    ============================================================ */
 
 .squad-card {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--background-alt) 100%);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-lg, 12px);
-  padding: 0.75rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 1.25rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -3737,19 +3893,25 @@ small, .muted {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  min-height: 44px;
-  padding: 0.35rem 0.45rem;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
   color: inherit;
   font-family: 'Inter', sans-serif;
   letter-spacing: 0;
   text-align: left;
   text-transform: none;
-  transition: background-color 0.15s ease;
+  transition: all 0.2s ease;
   transform: none;
   min-width: 0;
+}
+
+.squad-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .squad-row:hover:not(:disabled) {
@@ -3945,36 +4107,37 @@ small, .muted {
 
 /* Avatar Wrapper */
 .fifa-avatar-wrap {
-  width: 110px;
-  height: 110px;
-  margin-top: 0.5rem;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 70%;
+  height: 190px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-end;
+  justify-content: flex-end;
   z-index: 2;
-  position: relative;
 }
 
-.fifa-avatar-wrap .avatar {
-  width: 105px !important;
-  height: 105px !important;
-  border-width: 3px !important;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-  border-color: currentColor !important;
+.fifa-player-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%);
 }
 
 .fifa-placeholder-avatar {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   background: rgba(0,0,0,0.1);
-  border: 3px solid currentColor;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
+  font-size: 3.5rem;
   font-weight: 800;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%);
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 100%);
 }
 
 .fifa-card-container.special .fifa-placeholder-avatar {
@@ -3983,7 +4146,7 @@ small, .muted {
 
 /* Player Name */
 .fifa-name-wrap {
-  margin-top: 0.85rem;
+  margin-top: 155px; /* Leave space for absolute positioned top section */
   width: 100%;
   text-align: center;
   z-index: 3;
@@ -4590,3 +4753,777 @@ small, .muted {
 .edit-due-date-form input[type="datetime-local"]:focus {
   border-color: var(--accent);
 }
+
+/* ============================================================
+   Rediseño del Próximo Partido (Tarjeta Premium)
+   ============================================================ */
+.next-match-card-premium {
+  background: radial-gradient(circle at 10% 20%, rgb(4, 21, 37) 0%, rgb(9, 38, 57) 90.2%);
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.next-match-card-premium::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.next-match-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.next-match-premium-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.next-match-premium-header h3 {
+  font-size: 1.6rem;
+  margin: 0;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.next-match-datetime-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.next-match-location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 1.5rem;
+}
+
+.next-match-progress-container {
+  margin-bottom: 1.5rem;
+}
+
+.next-match-progress-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.next-match-progress-bar-bg {
+  background: rgba(255, 255, 255, 0.1);
+  height: 10px;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.next-match-progress-bar-fill {
+  background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #10b981 100%);
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.4s ease-out;
+}
+
+.next-match-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.next-match-info-text {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.65);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.next-match-action-btn {
+  background: #10b981;
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.65rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+
+.next-match-action-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+.next-match-action-btn:active {
+  transform: translateY(0);
+}
+
+@media (min-width: 720px) {
+  .bottom-nav {
+    display: none !important;
+  }
+
+  .topbar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0.75rem 0 !important;
+    gap: 1.5rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .identity-block {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.8rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .topbar-logo {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+  }
+
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .top-tabs {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 0.25rem !important;
+    background: rgba(0, 0, 0, 0.2) !important;
+    padding: 0.3rem !important;
+    border-radius: 10px !important;
+    border: 1px solid rgba(255, 255, 255, 0.04) !important;
+    margin: 0 !important;
+  }
+
+  .top-tabs .tab {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.5rem 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: auto;
+    margin-bottom: 0;
+  }
+
+  .top-tabs .tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .top-tabs .tab.is-active {
+    background: var(--primary) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .topbar-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    flex-shrink: 0 !important;
+    width: auto !important;
+  }
+
+  /* Hide raw action buttons on desktop to keep header clean and prevent overlap */
+  .topbar-actions > select.group-select,
+  .topbar-actions > .theme-switcher,
+  .topbar-actions > .push-notifications,
+  .topbar-actions > .ghost-button,
+  .topbar-actions > .secondary-button {
+    display: none !important;
+  }
+
+  .user-profile-widget {
+    border-left: 1px solid rgba(255, 255, 255, 0.08);
+    padding-left: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .desktop-only-user-text {
+    display: block !important;
+  }
+}
+
+/* ============================================================
+   Botones de acción admin compactos (aprobar / rechazar / ver)
+   Rediseño estilo mockup MATCHDAY
+   ============================================================ */
+
+.fee-btn-circle {
+  --fb-color: var(--text-secondary);
+  --fb-bg: rgba(255, 255, 255, 0.04);
+  --fb-border: var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 11px;
+  background: var(--fb-bg);
+  color: var(--fb-color);
+  border: 1px solid var(--fb-border);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fee-btn-circle svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2.6;
+}
+
+.fee-btn-circle:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.fee-btn-circle:active:not(:disabled) {
+  transform: translateY(0) scale(0.94);
+}
+
+.fee-btn-circle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fee-btn-circle.is-approve {
+  --fb-color: #34d977;
+  --fb-bg: rgba(52, 217, 119, 0.12);
+  --fb-border: rgba(52, 217, 119, 0.30);
+}
+.fee-btn-circle.is-approve:hover:not(:disabled) {
+  --fb-bg: rgba(52, 217, 119, 0.20);
+  box-shadow: 0 4px 14px rgba(52, 217, 119, 0.25);
+}
+
+.fee-btn-circle.is-reject {
+  --fb-color: #ff6b6b;
+  --fb-bg: rgba(255, 90, 90, 0.10);
+  --fb-border: rgba(255, 90, 90, 0.28);
+}
+.fee-btn-circle.is-reject:hover:not(:disabled) {
+  --fb-bg: rgba(255, 90, 90, 0.18);
+  box-shadow: 0 4px 14px rgba(255, 90, 90, 0.22);
+}
+
+.fee-btn-circle.is-view {
+  --fb-color: var(--text-secondary);
+  --fb-bg: rgba(255, 255, 255, 0.05);
+  --fb-border: var(--border);
+}
+.fee-btn-circle.is-view:hover:not(:disabled) {
+  --fb-color: var(--text-primary);
+  --fb-bg: rgba(255, 255, 255, 0.10);
+}
+
+/* En la vista de cobros (grid), las acciones se muestran en fila compacta */
+.collection-player-grid .fee-btn-circle {
+  width: 100%;
+  min-height: 38px;
+  border-radius: 10px;
+}
+
+/* Acciones del modal de revisión de comprobante */
+.proof-review-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+}
+
+.proof-review-actions .approve-btn,
+.proof-review-actions .reject-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.7rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.proof-review-actions .approve-btn:active:not(:disabled),
+.proof-review-actions .reject-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.proof-review-actions .approve-btn {
+  background: linear-gradient(180deg, #3ff074 0%, #23c957 100%);
+  color: #04220f;
+  box-shadow: 0 6px 18px rgba(52, 217, 119, 0.28);
+}
+.proof-review-actions .approve-btn:hover:not(:disabled) {
+  box-shadow: 0 8px 22px rgba(52, 217, 119, 0.38);
+}
+
+.proof-review-actions .reject-btn {
+  background: rgba(255, 90, 90, 0.12);
+  color: #ff6b6b;
+  border-color: rgba(255, 90, 90, 0.30);
+}
+.proof-review-actions .reject-btn:hover:not(:disabled) {
+  background: rgba(255, 90, 90, 0.20);
+}
+
+/* ============================================================
+   Panel "Distribución de Habilidades" (Perfil) — estilo mockup
+   ============================================================ */
+
+.skill-distribution {
+  width: 100%;
+  margin-top: 1rem;
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface-1) 100%);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 1.1rem 1.1rem 1.25rem;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+}
+
+.skill-distribution-head {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.25rem;
+  color: var(--accent);
+}
+
+.skill-distribution-head h3 {
+  margin: 0;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.skill-distribution-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(var(--accent-rgb), 0.14);
+  color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.skill-radar-wrap {
+  width: 100%;
+  height: 230px;
+  margin: 0.25rem 0 0.5rem;
+  filter: drop-shadow(0 0 10px rgba(var(--accent-rgb), 0.18));
+}
+
+.skill-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.skill-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.7rem 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.skill-stat-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.skill-stat-value {
+  font-family: 'Oswald', sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.skill-stat-value.is-accent {
+  color: var(--accent);
+}
+
+.skill-rank-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #04220f;
+  background: var(--accent);
+}
+
+.skill-rank.diamond { color: #7fd7ff; }
+.skill-rank.diamond .skill-rank-badge { background: #7fd7ff; }
+.skill-rank.platinum { color: #d5e7ea; }
+.skill-rank.platinum .skill-rank-badge { background: #d5e7ea; color: #10261b; }
+.skill-rank.gold { color: #f5c842; }
+.skill-rank.gold .skill-rank-badge { background: #f5c842; color: #2a2000; }
+.skill-rank.silver { color: #c5cdd3; }
+.skill-rank.silver .skill-rank-badge { background: #c5cdd3; color: #1a1f22; }
+.skill-rank.bronze { color: #d1975b; }
+.skill-rank.bronze .skill-rank-badge { background: #d1975b; color: #241206; }
+
+/* ============================================================
+   Editor de capacidades 1-100 (panel admin)
+   ============================================================ */
+
+.capacity-control { margin-top: 0.5rem; }
+
+.capacity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.65rem 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .capacity-grid { grid-template-columns: 1fr; }
+}
+
+.capacity-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.6rem 0.7rem 0.7rem;
+}
+
+.capacity-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.capacity-item-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.capacity-number {
+  width: 62px;
+  text-align: center;
+  font-family: 'Oswald', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--surface-0);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 0.2rem 0.35rem;
+  -moz-appearance: textfield;
+}
+.capacity-number::-webkit-outer-spin-button,
+.capacity-number::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.capacity-number:focus { outline: none; border-color: var(--accent); }
+
+/* Slider con relleno verde */
+.capacity-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--accent) 0%,
+    var(--accent) var(--cap-fill, 0%),
+    var(--surface-3) var(--cap-fill, 0%),
+    var(--surface-3) 100%
+  );
+  cursor: pointer;
+}
+.capacity-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface-0);
+  box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.5);
+}
+.capacity-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--surface-0);
+}
+
+.capacity-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+
+.capacity-save-btn {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  font-weight: 700;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #3ff074 0%, #23c957 100%);
+  color: #04220f;
+  border: none;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.capacity-save-btn:hover { box-shadow: 0 6px 18px rgba(52, 217, 119, 0.35); }
+.capacity-save-btn:active { transform: scale(0.98); }
+
+.capacity-clear-btn {
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.capacity-clear-btn:hover { color: var(--text-primary); border-color: var(--border-light); }
+
+.capacity-hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Menú de habilidades especiales — rediseño
+   ============================================================ */
+
+.skills-block { margin: 1.25rem 0; }
+
+.skills-block-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.skills-block-title {
+  font-family: 'Oswald', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.skills-block-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.skills-grid-v2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+
+.skill-chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+.skill-chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: var(--border-light);
+}
+
+.skill-chip-emoji {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  font-size: 1.15rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.skill-chip-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.skill-chip-text strong {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.skill-chip-text small {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.skill-chip-check {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.skill-chip.is-active {
+  background: rgba(var(--accent-rgb), 0.10);
+  border-color: rgba(var(--accent-rgb), 0.45);
+  box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.14);
+}
+.skill-chip.is-active .skill-chip-emoji {
+  background: rgba(var(--accent-rgb), 0.18);
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+.skill-chip.is-active .skill-chip-text strong { color: var(--accent); }
+
+.skill-chip.is-readonly { cursor: default; }
+.skill-chip.is-readonly:not(.is-active) { opacity: 0.5; }
+.skill-chip:disabled { cursor: default; }
+
+/* ============================================================
+   Densidad en escritorio + maqueta de la página Perfil
+   Corrige el "todo se ve gigante" en monitores grandes.
+   ============================================================ */
+
+@media (min-width: 720px) {
+  /* Perfil: carta angosta a la izquierda, contenido ancho a la derecha */
+  .page-grid.my-fifa-card-page {
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  /* Skills en 2 columnas dentro del panel de la derecha */
+  .skills-grid-v2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Panel de distribución un poco más compacto en escritorio */
+@media (min-width: 720px) {
+  .skill-radar-wrap { height: 200px; }
+  .skill-stat-value { font-size: 1.2rem; }
+  .skill-distribution { padding: 1rem; }
+}
+
+/* Reducir densidad global en pantallas grandes: baja ~7% el tamaño base,
+   lo que encoge proporcionalmente fuentes y espaciados basados en rem. */
+@media (min-width: 1024px) {
+  html { font-size: 15px; }
+}
+@media (min-width: 1500px) {
+  html { font-size: 14.5px; }
+  .app { width: min(1120px, 100%); }
+}
+
+/* Chips de skill un poco más compactos */
+.skill-chip { padding: 0.55rem 0.65rem; gap: 0.5rem; }
+.skill-chip-emoji { width: 34px; height: 34px; font-size: 1.05rem; }
+.skill-chip-text strong { font-size: 0.82rem; }
+.skill-chip-text small { font-size: 0.66rem; }

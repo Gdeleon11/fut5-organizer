@@ -96,14 +96,19 @@ export function isConfirmedAttendance(attendance) {
 }
 
 export function appShareUrl(match, groupId = match?.group_id) {
-  const origin =
-    typeof window === "undefined"
-      ? "https://f5manager.lat"
-      : window.location.origin;
+  const origin = appOrigin();
   const params = new URLSearchParams();
   if (groupId) params.set("group", groupId);
-  if (match?.id) params.set("match", match.id);
-  return params.size > 0 ? `${origin}?${params.toString()}` : origin;
+  const path = match?.id ? `/partidos/${encodeURIComponent(match.id)}` : "/grupos";
+  return params.size > 0 ? `${origin}${path}?${params.toString()}` : `${origin}${path}`;
+}
+
+export function appOrigin() {
+  return typeof window === "undefined" ? "https://f5manager.lat" : window.location.origin;
+}
+
+export function proofUploadUrl(token) {
+  return `${appOrigin()}/proof/${encodeURIComponent(token)}`;
 }
 
 export function matchInvitationText(match, confirmedCount) {
@@ -183,9 +188,11 @@ export function waitlistPosition(matchId, profileId, attendances) {
 }
 
 export async function copyToClipboard(text) {
+  let copied = false;
   try {
     if (navigator.clipboard?.writeText && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
+      copied = true;
       return;
     }
   } catch (e) {
@@ -206,10 +213,15 @@ export async function copyToClipboard(text) {
   textarea.focus();
   textarea.select();
   try {
-    const success = document.execCommand("copy");
-    if (!success) throw new Error("execCommand failed");
+    copied = document.execCommand("copy");
+  } catch (e) {
+    console.warn("Clipboard fallback failed", e);
   } finally {
     document.body.removeChild(textarea);
+  }
+
+  if (!copied) {
+    prompt("Copiá este texto:", text);
   }
 }
 
@@ -262,4 +274,3 @@ export function cleanImageUrl(url) {
   if (!url) return "";
   return String(url).replace(/%0A/g, "").replace(/\n/g, "").replace(/%0a/g, "").trim();
 }
-
