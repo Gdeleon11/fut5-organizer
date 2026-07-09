@@ -41,7 +41,6 @@ export default function MatchesPage({
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const [activeTab, setActiveTab] = useState("upcoming"); // "upcoming" or "past"
   const venueById = new Map((venues || []).map((venue) => venue && [venue.id, venue]).filter(Boolean));
 
   function matchConfirmedCount(matchId) {
@@ -90,7 +89,7 @@ export default function MatchesPage({
   }
 
   const upcomingExcludingNext = (matches || []).filter((m) => nextMatch ? m.id !== nextMatch.id : true);
-  const currentList = activeTab === "upcoming" ? upcomingExcludingNext : (pastMatches || []);
+  const currentList = pastMatches || [];
 
   return (
     <div className="page-grid">
@@ -259,23 +258,6 @@ export default function MatchesPage({
           )}
         </div>
 
-        <div className="tab-row">
-          <button
-            className={`tab-button ${activeTab === "upcoming" ? "active" : ""}`}
-            type="button"
-            onClick={() => setActiveTab("upcoming")}
-          >
-            Próximos ({upcomingExcludingNext.length})
-          </button>
-          <button
-            className={`tab-button ${activeTab === "past" ? "active" : ""}`}
-            type="button"
-            onClick={() => setActiveTab("past")}
-          >
-            Pasados ({(pastMatches || []).length})
-          </button>
-        </div>
-
         {showCreate && isAdmin && (
           <MatchForm
             venues={venues}
@@ -292,7 +274,7 @@ export default function MatchesPage({
         <div className="list">
           {currentList.length === 0 ? (
             <div className="empty-state compact">
-              {activeTab === "upcoming" ? "No hay próximos partidos." : "No hay partidos pasados."}
+              No hay partidos pasados.
             </div>
           ) : (
             currentList.map((match) => (

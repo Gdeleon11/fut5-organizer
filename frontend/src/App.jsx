@@ -2327,6 +2327,37 @@ export default function App() {
             onUpdateSettings={updateSettings} onRemoveMember={removeGroupMember} />
         )}
       </main>
+
+      <footer style={{
+        textAlign: "center",
+        padding: "2rem 1rem",
+        paddingBottom: "100px", // space for bottom nav on mobile
+        borderTop: "1px solid var(--border)",
+        marginTop: "3rem",
+        color: "var(--muted)",
+        fontSize: "0.85rem",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "0.5rem"
+      }}>
+        <div>© {new Date().getFullYear()} F5Manager</div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+          <span>Diseñado y creado por</span>
+          <a href="https://innovai.gt" target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "var(--primary)", textDecoration: "none", fontWeight: "bold" }}>
+            <span style={{ 
+              background: "var(--primary)", 
+              color: "white", 
+              padding: "2px 6px", 
+              borderRadius: "4px", 
+              fontSize: "0.75rem",
+              letterSpacing: "1px" 
+            }}>InnovAI</span>
+            Gt
+          </a>
+        </div>
+      </footer>
+
       <AdBanner sticky={true} />
     </div>
   );
