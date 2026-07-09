@@ -699,9 +699,13 @@ export default function MatchDetail({
         <div className="export-cards-grid" style={{ marginBottom: "1.5rem" }}>
           <ExportCard
             label="Invitación para WhatsApp"
-            text={matchInvitationText(match, attendances)}
+            text={matchInvitationText(match, confirmedCount)}
           />
-          <SocialShareCard match={match} attendances={attendances} />
+          <SocialShareCard 
+            match={match} 
+            confirmedCount={confirmedCount} 
+            waitlistCount={(attendances || []).filter(a => a.status === "waitlist").length} 
+          />
         </div>
       )}
 
