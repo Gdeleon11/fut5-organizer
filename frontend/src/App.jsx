@@ -1968,23 +1968,23 @@ export default function App() {
     if (page === "privacy") return <PrivacyPage />;
     if (page === "terms") return <TermsPage />;
     if (page === "contact") return <ContactPage />;
-    if (page === "auth") {
+    if (page === "landing") {
       return (
-        <AuthScreen
-          onMockLogin={() => {
-            setIsDemoMode(true);
-            loadMockData();
-          }}
+        <LandingPage 
+          onLogin={() => { 
+            setPage("auth"); 
+            window.history.pushState({}, "", "/login"); 
+          }} 
         />
       );
     }
-    // Default to LandingPage for unauthenticated users on any other route
+    // Default to AuthScreen for unauthenticated users on any other route
     return (
-      <LandingPage 
-        onLogin={() => { 
-          setPage("auth"); 
-          window.history.pushState({}, "", "/login"); 
-        }} 
+      <AuthScreen
+        onMockLogin={() => {
+          setIsDemoMode(true);
+          loadMockData();
+        }}
       />
     );
   }
