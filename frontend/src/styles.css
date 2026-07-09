@@ -4986,7 +4986,6 @@ small, .muted {
 
   /* Hide raw action buttons on desktop to keep header clean and prevent overlap */
   .topbar-actions > select.group-select,
-  .topbar-actions > .theme-switcher,
   .topbar-actions > .push-notifications,
   .topbar-actions > .ghost-button,
   .topbar-actions > .secondary-button {

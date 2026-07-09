@@ -6,6 +6,7 @@ import PushNotifications from "./components/PushNotifications.jsx";
 import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
 import SectionHero from "./components/SectionHero.jsx";
 import AdBanner from "./components/AdBanner.jsx";
+import PostMatchSurveyModal from "./components/PostMatchSurveyModal.jsx";
 import AuthScreen from "./pages/AuthScreen.jsx";
 import GroupOnboardingPage from "./pages/GroupOnboardingPage.jsx";
 import GroupsPage from "./pages/GroupsPage.jsx";
@@ -424,6 +425,34 @@ export default function App() {
         `${a.match_date} ${a.start_time}`.localeCompare(`${b.match_date} ${b.start_time}`)
       ), [matches, currentPlayer, isAdmin]
   );
+  
+  // Modal encuestas post partido
+  const pendingSurveyMatch = useMemo(() => {
+    if (!profile) return null;
+    const now = new Date();
+    // Find closed matches that the user attended
+    const surveyMatches = matches.filter(m => {
+      if (m.status !== "closed" && new Date(`${m.match_date}T${m.start_time || "19:00"}`) >= now) return false;
+      const attended = attendances.some(a => a.match_id === m.id && a.profile_id === profile.id && ["confirmed", "checked_in"].includes(a.status));
+      if (!attended) return false;
+      const hasStats = matchStats.some(s => s.match_id === m.id && s.player_id === profile.id);
+      if (hasStats) return false;
+      if (localStorage.getItem(`skipped_survey_${m.id}`)) return false;
+      return true;
+    });
+    
+    // Pick the most recent one
+    return surveyMatches.sort((a, b) => new Date(`${b.match_date}T${b.start_time || "19:00"}`) - new Date(`${a.match_date}T${a.start_time || "19:00"}`))[0] || null;
+  }, [matches, attendances, matchStats, profile]);
+  const [showSurveyModal, setShowSurveyModal] = useState(false);
+  
+  // Show modal automatically if pendingSurveyMatch changes to a non-null value
+  useEffect(() => {
+    if (pendingSurveyMatch) {
+      setShowSurveyModal(true);
+    }
+  }, [pendingSurveyMatch]);
+
   const upcomingMatches = useMemo(
     () => {
       const now = new Date();
@@ -2359,6 +2388,24 @@ export default function App() {
       </footer>
 
       <AdBanner sticky={true} />
+
+      {showSurveyModal && pendingSurveyMatch && (
+        <PostMatchSurveyModal 
+          match={pendingSurveyMatch}
+          profile={profile}
+          activeGroupId={activeGroupId}
+          attendances={attendances}
+          profiles={profiles}
+          onClose={() => {
+            localStorage.setItem(`skipped_survey_${pendingSurveyMatch.id}`, 'true');
+            setShowSurveyModal(false);
+          }}
+          onSaveStats={refresh}
+          onNotice={setNotice}
+          onVote={votePlayer}
+          userVoteMap={userVoteMap}
+        />
+      )}
     </div>
   );
 }
