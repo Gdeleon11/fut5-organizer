@@ -9,6 +9,7 @@ import StarRatingControl from "../components/StarRatingControl.jsx";
 import TeamCards from "../components/TeamCards.jsx";
 import TeamShareCard from "../components/TeamShareCard.jsx";
 import SocialShareCard from "../components/SocialShareCard.jsx";
+import SelfStatsCard from "../components/SelfStatsCard.jsx";
 import WeatherWidget from "../components/WeatherWidget.jsx";
 import { distributeTeamsWithAI } from "../groq.js";
 import { useEffect, useMemo, useState } from "react";
@@ -399,6 +400,18 @@ export default function MatchDetail({
         >
           ← Volver al Cartelero General
         </button>
+      )}
+
+      {/* Self Stats Card for finished matches where the current user participated */}
+      {(match.status === "closed" || new Date(`${match.match_date}T${match.start_time || "19:00"}`) < new Date()) && 
+        (attendances || []).some(a => a.profile_id === profile?.id && ["confirmed", "checked_in"].includes(a.status)) && (
+        <SelfStatsCard 
+          match={match} 
+          profile={profile} 
+          matchStats={matchStats} 
+          activeGroupId={match.group_id} 
+          onNotice={onSaveStats ? () => onSaveStats() : undefined} // Or just leave onNotice from parent
+        />
       )}
 
       {/* ── TARJETA PREMIUM DE DETALLES ── */}

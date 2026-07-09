@@ -4,6 +4,7 @@ import Avatar from "../components/Avatar.jsx";
 import { formatTag } from "../tags.js";
 import { displayName } from "../utils.js";
 import { api } from "../api.js";
+import LeaderboardPage from "./LeaderboardPage.jsx";
 
 export default function PlayersPage({
   activeGroupId,
@@ -216,7 +217,14 @@ export default function PlayersPage({
           type="button"
           onClick={() => setActiveTab("stats")}
         >
-          📈 Subir Estadísticas
+          📝 Subir Estadísticas
+        </button>
+        <button
+          className={`tab-button ${activeTab === "leaderboard" ? "active" : ""}`}
+          type="button"
+          onClick={() => setActiveTab("leaderboard")}
+        >
+          🏆 Ranking
         </button>
       </div>
 
@@ -243,6 +251,17 @@ export default function PlayersPage({
           onRemoveSkill={onRemoveSkill}
           matchStats={matchStats}
           onUpdateRole={onUpdateRole}
+        />
+      )}
+
+      {activeTab === "leaderboard" && (
+        <LeaderboardPage
+          profiles={profiles}
+          attendances={attendances}
+          matchStats={matchStats}
+          voteScoreMap={voteScoreMap}
+          ratingMap={ratingMap}
+          skills={skills}
         />
       )}
 

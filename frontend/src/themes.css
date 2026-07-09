@@ -99,3 +99,71 @@
 
   color-scheme: dark;
 }
+
+/* ============================================================
+   Theme: Retro (Synthwave Arcade)
+   ============================================================ */
+[data-theme="retro"] {
+  --accent:    #ff0055;
+  --accent-dim: #cc0044;
+  --accent-rgb: 255, 0, 85;
+
+  --surface-0: #1a0b2e;
+  --surface-1: #2a1147;
+  --surface-2: #381a61;
+  --surface-3: #4a2b7a;
+  --surface-glass: rgba(26, 11, 46, 0.96);
+  --surface-danger-hover: #4a0f2b;
+  --share-bg: #2a0f3d;
+  --share-bg-hover: #3d1a55;
+
+  --border:    #4a2b7a;
+  --border-light: #5f3b9c;
+
+  --text-primary:   #ffe6f2;
+  --text-secondary: #00ffff;
+  --text-muted:     #9a70cc;
+
+  --red:     #ff3366;
+  --red-bg:  #2b0a1a;
+  --red-border: #661133;
+
+  --yellow:    #ffff00;
+  --yellow-bg: #2a2a00;
+
+  color-scheme: dark;
+}
+
+/* ============================================================
+   Theme: Neón (Cyber Glow)
+   ============================================================ */
+[data-theme="neon"] {
+  --accent:    #00ff9d;
+  --accent-dim: #00cc7e;
+  --accent-rgb: 0, 255, 157;
+
+  --surface-0: #050505;
+  --surface-1: #0d0d0d;
+  --surface-2: #161616;
+  --surface-3: #222222;
+  --surface-glass: rgba(5, 5, 5, 0.98);
+  --surface-danger-hover: #220505;
+  --share-bg: #051a13;
+  --share-bg-hover: #0a2b1f;
+
+  --border:    #222222;
+  --border-light: #333333;
+
+  --text-primary:   #ffffff;
+  --text-secondary: #00ff9d;
+  --text-muted:     #666666;
+
+  --red:     #ff003c;
+  --red-bg:  #1a0006;
+  --red-border: #4d0012;
+
+  --yellow:    #ffdd00;
+  --yellow-bg: #1a1600;
+
+  color-scheme: dark;
+}

@@ -4,6 +4,8 @@ const THEMES = [
   { id: "field", label: "Campo", emoji: "⚽" },
   { id: "light", label: "Claro", emoji: "☀️" },
   { id: "night", label: "Noche", emoji: "🌙" },
+  { id: "retro", label: "Retro", emoji: "🕹️" },
+  { id: "neon", label: "Neón", emoji: "💡" },
 ];
 
 export default function ThemeSwitcher() {
