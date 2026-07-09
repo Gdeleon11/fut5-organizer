@@ -5526,3 +5526,23 @@ small, .muted {
 .skill-chip-emoji { width: 34px; height: 34px; font-size: 1.05rem; }
 .skill-chip-text strong { font-size: 0.82rem; }
 .skill-chip-text small { font-size: 0.66rem; }
+
+/* Responsive Dropdown Menu Utilities */
+.desktop-actions-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mobile-only-refresh {
+  display: none !important;
+}
+
+@media (max-width: 719px) {
+  .desktop-actions-inline {
+    display: none !important;
+  }
+  .mobile-only-refresh {
+    display: block !important;
+    width: 100%;
+  }
+}

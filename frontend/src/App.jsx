@@ -138,6 +138,19 @@ export default function App() {
   const [groupExpenses, setGroupExpenses] = useState([]);
   const [simHasGeneratedTeams, setSimHasGeneratedTeams] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  // When clicking outside the profile menu, close it
+  useEffect(() => {
+    if (!showProfileMenu) return;
+    const handleClick = (e) => {
+      if (!e.target.closest('.user-profile-dropdown-container')) {
+        setShowProfileMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showProfileMenu]);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
@@ -2108,21 +2121,87 @@ export default function App() {
               ))}
             </select>
           )}
-          <ThemeSwitcher />
-          <PushNotifications profile={profile} />
-          <button className="ghost-button" type="button" onClick={refresh}>Actualizar</button>
-          <button className="secondary-button" type="button" onClick={signOut}>Salir</button>
+          
+          <div className="desktop-actions-inline">
+            <PushNotifications profile={profile} />
+            <button className="ghost-button" type="button" onClick={refresh}>Actualizar</button>
+          </div>
           
           {/* User profile details on far right */}
           {profile && (
-            <div className="user-profile-widget" style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginLeft: "0.5rem" }}>
-              <div style={{ textAlign: "right" }} className="desktop-only-user-text">
-                <span style={{ fontWeight: "bold", color: "#ffffff", display: "block", fontSize: "0.85rem", lineHeight: "1.2" }}>{displayName(profile)}</span>
-                <span style={{ color: "var(--muted)", fontSize: "0.7rem", display: "block" }}>
-                  {preferredPositionShort} · OVR {userRating}
-                </span>
+            <div className="user-profile-dropdown-container" style={{ position: "relative", marginLeft: "0.5rem" }}>
+              <div 
+                className="user-profile-widget" 
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.6rem", 
+                  cursor: "pointer",
+                  padding: "0.25rem",
+                  borderRadius: "var(--radius)",
+                  background: showProfileMenu ? "rgba(255,255,255,0.1)" : "transparent",
+                  transition: "background 0.2s"
+                }}
+              >
+                <div style={{ textAlign: "right" }} className="desktop-only-user-text">
+                  <span style={{ fontWeight: "bold", color: "#ffffff", display: "block", fontSize: "0.85rem", lineHeight: "1.2" }}>{displayName(profile)}</span>
+                  <span style={{ color: "var(--muted)", fontSize: "0.7rem", display: "block" }}>
+                    {preferredPositionShort} · OVR {userRating}
+                  </span>
+                </div>
+                <Avatar profile={profile} size={36} />
               </div>
-              <Avatar profile={profile} size={36} />
+
+              {/* Dropdown Menu */}
+              {showProfileMenu && (
+                <div 
+                  className="profile-dropdown-menu"
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 0.5rem)",
+                    right: 0,
+                    background: "var(--surface-1)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "var(--radius)",
+                    padding: "0.5rem",
+                    minWidth: "200px",
+                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                    zIndex: 100,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.25rem"
+                  }}
+                >
+                  <div style={{ padding: "0.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: "0.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Tema</span>
+                    <ThemeSwitcher />
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      refresh();
+                    }}
+                    style={{ background: "transparent", border: "none", color: "var(--text)", padding: "0.5rem", textAlign: "left", cursor: "pointer", borderRadius: "0.25rem" }}
+                    onMouseOver={(e) => e.currentTarget.style.background = "var(--surface-0)"}
+                    onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+                    className="mobile-only-refresh"
+                  >
+                    Actualizar Datos
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      signOut();
+                    }}
+                    style={{ background: "transparent", border: "none", color: "var(--danger)", padding: "0.5rem", textAlign: "left", cursor: "pointer", borderRadius: "0.25rem" }}
+                    onMouseOver={(e) => e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)"}
+                    onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
+                  >
+                    Cerrar Sesión
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

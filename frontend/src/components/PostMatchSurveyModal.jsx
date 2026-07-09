@@ -106,14 +106,15 @@ export default function PostMatchSurveyModal({
     }}>
       <div className="panel" style={{
         width: "100%",
-        maxWidth: "500px",
+        maxWidth: "460px",
         background: "var(--surface-1)",
         position: "relative",
         boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
         maxHeight: "90vh",
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden"
+        overflow: "hidden",
+        padding: 0
       }}>
         {/* Close Button */}
         <button 
@@ -132,69 +133,91 @@ export default function PostMatchSurveyModal({
           <X size={20} />
         </button>
 
-        <div style={{ padding: "1.5rem", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
-          <p className="eyebrow" style={{ color: "var(--accent)" }}>ENCUESTA POST-PARTIDO</p>
-          <h2 style={{ margin: "0.25rem 0 0.5rem 0" }}>{match.title || "Partido"}</h2>
+        <div style={{ padding: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
+          <p className="eyebrow" style={{ color: "var(--primary)", margin: "0 0 0.5rem 0" }}>ENCUESTA POST-PARTIDO</p>
+          <h2 style={{ margin: "0 0 0.25rem 0", fontSize: "1.2rem", fontWeight: "600" }}>{match.title || "Partido"}</h2>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: 0 }}>
-            {step === 1 ? "Sube tus estadísticas del partido." : "Califica el desempeño de tus compañeros."}
+            {step === 1 ? "Registra tu desempeño para el ranking global." : "Califica a tus compañeros de partido."}
           </p>
         </div>
 
         <div style={{ padding: "1.5rem", overflowY: "auto", flexGrow: 1 }}>
           {step === 1 && (
-            <form onSubmit={handleSaveStats} className="grid" style={{ gap: "1rem", gridTemplateColumns: "1fr 1fr" }}>
-              <div className="field">
-                <label>⚽ Goles</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  value={goals} 
-                  onChange={(e) => setGoals(parseInt(e.target.value) || 0)} 
-                />
-              </div>
-              
-              <div className="field">
-                <label>👟 Asistencias</label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  value={assists} 
-                  onChange={(e) => setAssists(parseInt(e.target.value) || 0)} 
-                />
+            <form onSubmit={handleSaveStats} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+              <div style={{ display: "flex", gap: "1rem" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>⚽ Goles</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    value={goals} 
+                    onChange={(e) => setGoals(parseInt(e.target.value) || 0)}
+                    style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: "1px solid rgba(255,255,255,0.1)",
+                      color: "white",
+                      fontSize: "1.5rem",
+                      padding: "0.25rem 0",
+                      textAlign: "center"
+                    }}
+                  />
+                </div>
+                
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>👟 Asistencias</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    value={assists} 
+                    onChange={(e) => setAssists(parseInt(e.target.value) || 0)}
+                    style={{
+                      width: "100%",
+                      background: "transparent",
+                      border: "none",
+                      borderBottom: "1px solid rgba(255,255,255,0.1)",
+                      color: "white",
+                      fontSize: "1.5rem",
+                      padding: "0.25rem 0",
+                      textAlign: "center"
+                    }}
+                  />
+                </div>
               </div>
 
-              <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <label className="checkbox-label" style={{ padding: "0.75rem", background: "var(--surface-0)", borderRadius: "var(--radius)", display: "flex", gap: "0.75rem", alignItems: "center" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1rem" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}>
                   <input 
                     type="checkbox" 
                     checked={cleanSheet} 
-                    onChange={(e) => setCleanSheet(e.target.checked)} 
+                    onChange={(e) => setCleanSheet(e.target.checked)}
+                    style={{ width: "1.2rem", height: "1.2rem", accentColor: "var(--primary)" }}
                   />
-                  🛡️ Valla Invicta (Porteros o defensas)
+                  <span style={{ fontSize: "0.9rem" }}>🛡️ Mantuve la valla invicta</span>
                 </label>
-              </div>
 
-              <div className="field" style={{ gridColumn: "1 / -1" }}>
-                <label className="checkbox-label" style={{ padding: "0.75rem", background: "var(--surface-0)", borderRadius: "var(--radius)", display: "flex", gap: "0.75rem", alignItems: "center" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}>
                   <input 
                     type="checkbox" 
                     checked={mvp} 
-                    onChange={(e) => setMvp(e.target.checked)} 
+                    onChange={(e) => setMvp(e.target.checked)}
+                    style={{ width: "1.2rem", height: "1.2rem", accentColor: "var(--primary)" }}
                   />
-                  ⭐ Fui elegido MVP del partido
+                  <span style={{ fontSize: "0.9rem" }}>⭐ Fui elegido MVP del partido</span>
                 </label>
               </div>
 
-              <div className="field" style={{ gridColumn: "1 / -1", marginTop: "1rem" }}>
-                <button type="submit" disabled={saving}>
-                  {saving ? "Guardando..." : "Guardar mis estadísticas y Continuar"}
+              <div style={{ marginTop: "1.5rem" }}>
+                <button type="submit" disabled={saving} style={{ width: "100%" }}>
+                  {saving ? "Guardando..." : "Siguiente →"}
                 </button>
               </div>
             </form>
           )}
 
           {step === 2 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {teammates.length === 0 ? (
                 <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "1rem 0" }}>No hay otros jugadores registrados en este partido.</p>
               ) : (
@@ -205,15 +228,14 @@ export default function PostMatchSurveyModal({
                       display: "flex", 
                       alignItems: "center", 
                       justifyContent: "space-between",
-                      padding: "0.75rem",
-                      background: "var(--surface-0)",
-                      borderRadius: "var(--radius)"
+                      padding: "0.5rem 0",
+                      borderBottom: "1px solid rgba(255,255,255,0.03)"
                     }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                        <Avatar profile={p} size={36} />
+                        <Avatar profile={p} size={32} />
                         <div>
-                          <span style={{ fontWeight: "600", fontSize: "0.9rem", display: "block" }}>{displayName(p)}</span>
-                          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>{p.preferred_position}</span>
+                          <span style={{ fontWeight: "500", fontSize: "0.9rem", display: "block" }}>{displayName(p)}</span>
+                          <span style={{ color: "var(--text-muted)", fontSize: "0.7rem", display: "block" }}>{p.preferred_position || "Jugador"}</span>
                         </div>
                       </div>
                       <ModalStarRating 
@@ -225,7 +247,7 @@ export default function PostMatchSurveyModal({
                 })
               )}
               
-              <div style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}>
+              <div style={{ marginTop: "1.5rem", display: "flex", gap: "1rem" }}>
                 <button className="ghost-button" onClick={() => setStep(1)} style={{ flex: 1 }}>Atrás</button>
                 <button onClick={handleFinish} style={{ flex: 2 }}>Finalizar Encuesta</button>
               </div>
