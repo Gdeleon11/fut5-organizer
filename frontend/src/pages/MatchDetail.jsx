@@ -8,6 +8,7 @@ import PostMatchSummaryCard from "../components/PostMatchSummaryCard.jsx";
 import StarRatingControl from "../components/StarRatingControl.jsx";
 import TeamCards from "../components/TeamCards.jsx";
 import TeamShareCard from "../components/TeamShareCard.jsx";
+import SocialShareCard from "../components/SocialShareCard.jsx";
 import WeatherWidget from "../components/WeatherWidget.jsx";
 import { distributeTeamsWithAI } from "../groq.js";
 import { useEffect, useMemo, useState } from "react";
@@ -183,6 +184,7 @@ export default function MatchDetail({
           id: a.profile_id,
           name: p ? displayName(p) : "Jugador",
           is_guest: false,
+          profile: p,
         };
       });
 
@@ -690,6 +692,17 @@ export default function MatchDetail({
             </p>
           )}
         </section>
+      )}
+
+      {/* ── COMPARTIR INVITACIÓN ── */}
+      {isAdmin && (
+        <div className="export-cards-grid" style={{ marginBottom: "1.5rem" }}>
+          <ExportCard
+            label="Invitación para WhatsApp"
+            text={matchInvitationText(match, attendances)}
+          />
+          <SocialShareCard match={match} attendances={attendances} />
+        </div>
       )}
 
       {/* ── PRONÓSTICO DEL CLIMA ── */}
