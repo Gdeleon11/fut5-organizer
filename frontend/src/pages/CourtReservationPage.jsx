@@ -504,7 +504,6 @@ export default function CourtReservationPage({
     .filter((match) => match.requires_reservation)
     .filter((match) => isAdmin || match.reservation_owner_user_id === currentUserId);
   const assistedPending = assistedReservations.filter((m) => activeReservationStatus(m) === "pending");
-  const assistedConfirmed = assistedReservations.filter((m) => activeReservationStatus(m) === "confirmed");
   const assistedFailed = assistedReservations.filter((m) => activeReservationStatus(m) === "failed");
 
   // Group by date for list view
@@ -525,7 +524,7 @@ export default function CourtReservationPage({
             <h2>Reservas asistidas</h2>
             <small>Copiá el texto para administración y actualizá el estado.</small>
           </div>
-          <span className="count-pill">{assistedReservations.length}</span>
+          <span className="count-pill">{assistedPending.length}</span>
         </div>
         {assistedPending.length === 0 ? (
           <div className="empty-state compact">No hay reservas asistidas pendientes.</div>
@@ -540,24 +539,6 @@ export default function CourtReservationPage({
                 canEdit={isAdmin || match.reservation_owner_user_id === currentUserId}
                 onUpdateMatch={onUpdateMatch}
                 onNotice={onNotice}
-              />
-            ))}
-          </div>
-        )}
-
-        {assistedConfirmed.length > 0 && (
-          <div className="assisted-history-block">
-            <div className="assisted-history-heading">
-              <h3>Confirmadas</h3>
-              <span className="count-pill">{assistedConfirmed.length}</span>
-            </div>
-            {assistedConfirmed.map((match) => (
-              <AssistedHistoryRow
-                key={match.id}
-                match={match}
-                profiles={profiles}
-                canEdit={isAdmin || match.reservation_owner_user_id === currentUserId}
-                onUpdateMatch={onUpdateMatch}
               />
             ))}
           </div>

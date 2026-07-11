@@ -5814,6 +5814,29 @@ small, .muted {
   border-radius: 8px;
 }
 
+/* Botón "Ver más / Ver menos" para historiales largos */
+.show-more-btn {
+  width: 100%;
+  margin-top: 0.75rem;
+  min-height: 42px;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: transparent;
+  border: 1px dashed var(--border-light);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.show-more-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--primary);
+  background: rgba(16, 185, 129, 0.06);
+  transform: none;
+}
+
 @media (max-width: 719px) {
   .toolbar-row {
     justify-content: stretch;

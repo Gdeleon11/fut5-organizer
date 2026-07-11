@@ -31,6 +31,7 @@ export default function TreasuryPage({
     new Date().toISOString().split("T")[0]
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visibleLedgerCount, setVisibleLedgerCount] = useState(8);
 
   // 1. Calculate Incomes
   const finesIncome = useMemo(() => {
@@ -396,7 +397,7 @@ export default function TreasuryPage({
           {ledgerHistory.length === 0 ? (
             <div className="empty-state compact">Aún no hay transacciones registradas.</div>
           ) : (
-            ledgerHistory.map((item) => {
+            ledgerHistory.slice(0, visibleLedgerCount).map((item) => {
               const isIncome = item.type === "income";
               return (
                 <div
@@ -479,6 +480,25 @@ export default function TreasuryPage({
             })
           )}
         </div>
+
+        {ledgerHistory.length > visibleLedgerCount && (
+          <button
+            className="show-more-btn"
+            type="button"
+            onClick={() => setVisibleLedgerCount((c) => c + 10)}
+          >
+            Ver más ({ledgerHistory.length - visibleLedgerCount} restantes)
+          </button>
+        )}
+        {visibleLedgerCount > 8 && ledgerHistory.length <= visibleLedgerCount && (
+          <button
+            className="show-more-btn"
+            type="button"
+            onClick={() => setVisibleLedgerCount(8)}
+          >
+            Ver menos
+          </button>
+        )}
       </section>
     </div>
   );

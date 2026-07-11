@@ -41,6 +41,7 @@ export default function MatchesPage({
 }) {
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const [visiblePastCount, setVisiblePastCount] = useState(6);
   const venueById = new Map((venues || []).map((venue) => venue && [venue.id, venue]).filter(Boolean));
 
   function matchConfirmedCount(matchId) {
@@ -277,7 +278,7 @@ export default function MatchesPage({
               No hay partidos pasados.
             </div>
           ) : (
-            currentList.map((match) => (
+            currentList.slice(0, visiblePastCount).map((match) => (
               <div className="match-row-wrapper" key={match.id}>
                 <button
                   className="match-row"
@@ -339,6 +340,25 @@ export default function MatchesPage({
             ))
           )}
         </div>
+
+        {currentList.length > visiblePastCount && (
+          <button
+            className="show-more-btn"
+            type="button"
+            onClick={() => setVisiblePastCount((c) => c + 10)}
+          >
+            Ver más ({currentList.length - visiblePastCount} restantes)
+          </button>
+        )}
+        {visiblePastCount > 6 && currentList.length <= visiblePastCount && (
+          <button
+            className="show-more-btn"
+            type="button"
+            onClick={() => setVisiblePastCount(6)}
+          >
+            Ver menos
+          </button>
+        )}
       </section>
     </div>
   );
