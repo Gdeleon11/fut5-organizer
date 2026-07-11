@@ -5546,3 +5546,124 @@ small, .muted {
     width: 100%;
   }
 }
+
+/* ============================================================
+   Mobile polish — refinamiento UX móvil
+   ============================================================ */
+
+.page-lede {
+  font-size: 1.3rem;
+}
+
+@media (max-width: 719px) {
+  /* — Header compacto: selector de grupo y avatar en una sola fila — */
+  .topbar { gap: 0.6rem; }
+
+  .topbar-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+  }
+
+  .topbar-actions .group-select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .user-profile-dropdown-container {
+    flex: 0 0 auto;
+    margin-left: 0 !important;
+  }
+
+  /* — Subtítulo de sección más liviano — */
+  .page-lede {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.03em;
+    line-height: 1.45;
+  }
+
+  /* — Botones de encabezado lado a lado en vez de apilados — */
+  .section-heading .button-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+  }
+
+  /* — Tarjeta de próximo partido más compacta, CTA a lo ancho — */
+  .next-match-card-premium {
+    padding: 1.1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .next-match-premium-header {
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .next-match-premium-header h3 { font-size: 1.3rem; }
+
+  .next-match-datetime-pill { width: 100%; }
+
+  .next-match-location { margin-bottom: 1.1rem; }
+
+  .next-match-progress-container { margin-bottom: 1.1rem; }
+
+  .next-match-action-btn {
+    width: 100%;
+    justify-content: center;
+    min-height: 50px;
+  }
+
+  /* — Historial: filas horizontales, acciones destructivas discretas — */
+  .match-row {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .match-row > span:first-child {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .match-row > .count-pill {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  .match-row-wrapper .match-row-actions {
+    display: flex;
+    grid-template-columns: none;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .match-row-wrapper .match-row-actions button {
+    width: auto;
+    min-height: 40px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.8rem;
+  }
+
+  /* — Bottom nav: etiquetas completas sin truncar — */
+  .bottom-nav { padding-inline: 0.25rem; }
+
+  .bottom-nav-item {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.25rem 0.15rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.01em;
+  }
+
+  .bottom-nav-item .tab-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

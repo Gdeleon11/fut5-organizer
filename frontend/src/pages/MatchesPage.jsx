@@ -97,7 +97,7 @@ export default function MatchesPage({
       <div className="section-heading" style={{ gridColumn: "1 / -1", marginBottom: "1rem" }}>
         <div>
           <p className="eyebrow" style={{ color: "var(--primary)" }}>Cartelera de Partidos</p>
-          <h2 style={{ fontSize: "1.3rem", fontWeight: "normal", margin: "0.25rem 0 0" }}>
+          <h2 className="page-lede" style={{ fontWeight: "normal", margin: "0.25rem 0 0" }}>
             Explorá partidos, registrate, convocá, convocados e historial del grupo
           </h2>
         </div>
@@ -146,7 +146,7 @@ export default function MatchesPage({
           <div className="next-match-premium-header">
             <h3>{nextMatch.title || nextMatch.venue || "Chamuscón"}</h3>
             <div className="next-match-datetime-pill">
-              📅 {formatMatchDate(nextMatch)} a las {nextMatch.start_time || "19:00"}
+              📅 {formatMatchDate(nextMatch)}
             </div>
           </div>
           
@@ -220,7 +220,7 @@ export default function MatchesPage({
                   <span className="status-pill is-pending" style={{ marginBottom: "0.5rem" }}>PRÓXIMO</span>
                   <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{match.title || match.venue || "Chamuscón"}</h4>
                   <small style={{ color: "var(--muted)", display: "block", marginTop: "0.2rem" }}>
-                    📅 {formatMatchDate(match)} · ⏰ {match.start_time || "19:00"}
+                    📅 {formatMatchDate(match)}
                   </small>
                   <small style={{ color: "var(--text-secondary)", display: "block", marginTop: "0.4rem" }}>
                     📍 {match.venue || "Lugar pendiente"}
