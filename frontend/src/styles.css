@@ -5667,3 +5667,182 @@ small, .muted {
     white-space: nowrap;
   }
 }
+
+/* ============================================================
+   Toolbar compacta + control segmentado (Reservas)
+   ============================================================ */
+
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.toolbar-btn {
+  min-height: 40px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.8rem;
+  border-radius: 8px;
+  width: auto;
+}
+
+.seg-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.seg-btn {
+  min-height: 34px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: background 0.15s, color 0.15s;
+}
+
+.seg-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  transform: none;
+}
+
+.seg-btn.is-active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+/* Acciones dentro de tarjetas de reserva más livianas */
+.reservation-actions button,
+.reservation-actions .secondary-button,
+.reservation-actions select {
+  min-height: 38px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  width: auto;
+}
+
+/* ============================================================
+   Historial de reservas asistidas (confirmadas / fallidas)
+   ============================================================ */
+
+.assisted-history-block {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.assisted-history-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.assisted-history-heading h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.assisted-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.assisted-history-block.is-failed .assisted-history-row {
+  border-color: var(--red-border);
+}
+
+.assisted-history-info {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.assisted-history-info strong {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assisted-history-info small {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assisted-history-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+}
+
+.status-pill.is-failed {
+  background: var(--red-bg);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+}
+
+.compact-select {
+  min-height: 34px;
+  width: auto;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+  border-radius: 8px;
+}
+
+@media (max-width: 719px) {
+  .toolbar-row {
+    justify-content: stretch;
+  }
+
+  .toolbar-row .seg-control {
+    flex: 1 1 auto;
+  }
+
+  .toolbar-row .seg-btn {
+    flex: 1 1 0;
+  }
+
+  .toolbar-btn,
+  .seg-btn,
+  .compact-select {
+    min-height: 40px;
+  }
+
+  .assisted-history-row {
+    flex-wrap: wrap;
+  }
+
+  .assisted-history-info {
+    flex: 1 1 100%;
+  }
+
+  .assisted-history-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

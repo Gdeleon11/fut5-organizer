@@ -241,6 +241,44 @@ function AssistedReservationCard({ match, profiles, attendances, canEdit, onUpda
   );
 }
 
+function AssistedHistoryRow({ match, profiles, canEdit, onUpdateMatch }) {
+  const status = activeReservationStatus(match);
+  const owner = profiles.find((profile) => profile.id === match.reservation_owner_user_id);
+  const isFailed = status === "failed";
+
+  return (
+    <div className="assisted-history-row">
+      <div className="assisted-history-info">
+        <strong>{match.title || "Chamuscón"}</strong>
+        <small>
+          {match.venue || "Cancha pendiente"} · {match.preferred_time_range || match.start_time || "Horario pendiente"}
+          {owner ? ` · ${displayName(owner)}` : ""}
+        </small>
+      </div>
+      <div className="assisted-history-actions">
+        <span className={classNames("status-pill", isFailed ? "is-failed" : "is-paid")}>
+          {reservationStatusLabel(status)}
+        </span>
+        {canEdit && (
+          <select
+            className="compact-select"
+            aria-label="Cambiar estado de la reserva"
+            value={status}
+            onChange={(e) => onUpdateMatch(match.id, {
+              reservation_status: e.target.value,
+              requires_reservation: true,
+            })}
+          >
+            <option value="pending">Pendiente</option>
+            <option value="confirmed">Confirmada</option>
+            <option value="failed">Fallida</option>
+          </select>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function CourtReservationPage({
   activeGroupId,
   profiles,
@@ -465,6 +503,9 @@ export default function CourtReservationPage({
   const assistedReservations = matches
     .filter((match) => match.requires_reservation)
     .filter((match) => isAdmin || match.reservation_owner_user_id === currentUserId);
+  const assistedPending = assistedReservations.filter((m) => activeReservationStatus(m) === "pending");
+  const assistedConfirmed = assistedReservations.filter((m) => activeReservationStatus(m) === "confirmed");
+  const assistedFailed = assistedReservations.filter((m) => activeReservationStatus(m) === "failed");
 
   // Group by date for list view
   const groupedByDate = {};
@@ -486,11 +527,11 @@ export default function CourtReservationPage({
           </div>
           <span className="count-pill">{assistedReservations.length}</span>
         </div>
-        {assistedReservations.length === 0 ? (
+        {assistedPending.length === 0 ? (
           <div className="empty-state compact">No hay reservas asistidas pendientes.</div>
         ) : (
           <div className="reservation-card-grid">
-            {assistedReservations.map((match) => (
+            {assistedPending.map((match) => (
               <AssistedReservationCard
                 key={match.id}
                 match={match}
@@ -499,6 +540,42 @@ export default function CourtReservationPage({
                 canEdit={isAdmin || match.reservation_owner_user_id === currentUserId}
                 onUpdateMatch={onUpdateMatch}
                 onNotice={onNotice}
+              />
+            ))}
+          </div>
+        )}
+
+        {assistedConfirmed.length > 0 && (
+          <div className="assisted-history-block">
+            <div className="assisted-history-heading">
+              <h3>Confirmadas</h3>
+              <span className="count-pill">{assistedConfirmed.length}</span>
+            </div>
+            {assistedConfirmed.map((match) => (
+              <AssistedHistoryRow
+                key={match.id}
+                match={match}
+                profiles={profiles}
+                canEdit={isAdmin || match.reservation_owner_user_id === currentUserId}
+                onUpdateMatch={onUpdateMatch}
+              />
+            ))}
+          </div>
+        )}
+
+        {assistedFailed.length > 0 && (
+          <div className="assisted-history-block is-failed">
+            <div className="assisted-history-heading">
+              <h3>Fallidas</h3>
+              <span className="count-pill">{assistedFailed.length}</span>
+            </div>
+            {assistedFailed.map((match) => (
+              <AssistedHistoryRow
+                key={match.id}
+                match={match}
+                profiles={profiles}
+                canEdit={isAdmin || match.reservation_owner_user_id === currentUserId}
+                onUpdateMatch={onUpdateMatch}
               />
             ))}
           </div>
@@ -513,28 +590,40 @@ export default function CourtReservationPage({
             <h2>Delegación de cancha</h2>
             <small>Delegá la reserva a un jugador. Subí el comprobante y confirmá.</small>
           </div>
-          <div className="button-row">
-            <button className="ghost-button" type="button" onClick={loadReservations}>Actualizar</button>
+          <div className="toolbar-row">
+            <button
+              className="toolbar-btn ghost-button"
+              type="button"
+              onClick={loadReservations}
+              title="Actualizar"
+              aria-label="Actualizar"
+            >
+              ↻
+            </button>
             {reservations.length > 0 && (
-              <>
+              <div className="seg-control" role="group" aria-label="Vista de reservas">
                 <button
-                  className={view === "cards" ? "" : "secondary-button"}
+                  className={classNames("seg-btn", view === "cards" && "is-active")}
                   type="button"
                   onClick={() => setView("cards")}
                 >
                   Tarjetas
                 </button>
                 <button
-                  className={view === "list" ? "" : "secondary-button"}
+                  className={classNames("seg-btn", view === "list" && "is-active")}
                   type="button"
                   onClick={() => setView("list")}
                 >
                   Lista
                 </button>
-              </>
+              </div>
             )}
             {isAdmin && (
-              <button className="secondary-button" type="button" onClick={() => setShowForm((v) => !v)}>
+              <button
+                className={classNames("toolbar-btn", showForm && "secondary-button")}
+                type="button"
+                onClick={() => setShowForm((v) => !v)}
+              >
                 {showForm ? "Cancelar" : "+ Nueva"}
               </button>
             )}
