@@ -42,6 +42,8 @@ export default function MatchesPage({
   const [showCreate, setShowCreate] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [visiblePastCount, setVisiblePastCount] = useState(6);
+  const [historyFrom, setHistoryFrom] = useState("");
+  const [historyTo, setHistoryTo] = useState("");
   const venueById = new Map((venues || []).map((venue) => venue && [venue.id, venue]).filter(Boolean));
 
   function matchConfirmedCount(matchId) {
@@ -91,6 +93,17 @@ export default function MatchesPage({
 
   const upcomingExcludingNext = (matches || []).filter((m) => nextMatch ? m.id !== nextMatch.id : true);
   const currentList = pastMatches || [];
+  const filteredPast = currentList.filter((m) => {
+    if (!m.match_date) return !historyFrom && !historyTo;
+    if (historyFrom && m.match_date < historyFrom) return false;
+    if (historyTo && m.match_date > historyTo) return false;
+    return true;
+  });
+
+  function updateHistoryFilter(setter, value) {
+    setter(value);
+    setVisiblePastCount(6);
+  }
 
   return (
     <div className="page-grid">
@@ -244,9 +257,12 @@ export default function MatchesPage({
         </section>
       )}
 
-      <section className="panel">
+      <section className="panel" style={{ gridColumn: "1 / -1" }}>
         <div className="section-heading" style={{ marginBottom: "0.5rem" }}>
-          <h2>Historial de Partidos</h2>
+          <div>
+            <h2>Historial de Partidos</h2>
+            <small>{filteredPast.length} partido{filteredPast.length === 1 ? "" : "s"}{(historyFrom || historyTo) ? " en el rango" : ""}</small>
+          </div>
           {isAdmin && (
             <button
               className={showCreate ? "secondary-button" : ""}
@@ -255,6 +271,36 @@ export default function MatchesPage({
               style={{ minHeight: "auto", padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
             >
               {showCreate ? "Cancelar" : "+ Nuevo partido"}
+            </button>
+          )}
+        </div>
+
+        <div className="history-filter">
+          <label>
+            <span>Desde</span>
+            <input
+              type="date"
+              value={historyFrom}
+              max={historyTo || undefined}
+              onChange={(e) => updateHistoryFilter(setHistoryFrom, e.target.value)}
+            />
+          </label>
+          <label>
+            <span>Hasta</span>
+            <input
+              type="date"
+              value={historyTo}
+              min={historyFrom || undefined}
+              onChange={(e) => updateHistoryFilter(setHistoryTo, e.target.value)}
+            />
+          </label>
+          {(historyFrom || historyTo) && (
+            <button
+              className="ghost-button history-filter-clear"
+              type="button"
+              onClick={() => { setHistoryFrom(""); setHistoryTo(""); setVisiblePastCount(6); }}
+            >
+              ✕ Limpiar
             </button>
           )}
         </div>
@@ -272,85 +318,109 @@ export default function MatchesPage({
           />
         )}
 
-        <div className="list">
-          {currentList.length === 0 ? (
-            <div className="empty-state compact">
-              No hay partidos pasados.
-            </div>
-          ) : (
-            currentList.slice(0, visiblePastCount).map((match) => (
-              <div className="match-row-wrapper" key={match.id}>
-                <button
-                  className="match-row"
-                  type="button"
-                  onClick={() => onOpenMatch(match.id)}
-                >
-                  <span>
-                    <strong>{match.title || "Chamuscón"}</strong>
-                    <small>{formatMatchDate(match)}</small>
-                    {match && (match.allowed_tags || []).length > 0 && (
-                      <span className="tag-list compact">
-                        {(match.allowed_tags || []).map((tag) => (
-                          <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
-                        ))}
-                      </span>
-                    )}
-                  </span>
-                  <span className="count-pill">
-                    {matchConfirmedCount(match.id)}
-                  </span>
-                </button>
-                {isAdmin && (
-                  <div className="match-row-actions">
-                    {deletingId === match.id ? (
-                      <>
-                        <button
-                          className="danger-button"
-                          type="button"
-                          onClick={() => handleDelete(match.id)}
-                        >
-                          Confirmar
-                        </button>
-                        <button
-                          className="secondary-button"
-                          type="button"
-                          onClick={() => setDeletingId(null)}
-                        >
-                          Cancelar
-                        </button>
-                      </>
-                    ) : (
+        {filteredPast.length === 0 ? (
+          <div className="empty-state compact">
+            {(historyFrom || historyTo) ? "No hay partidos en ese rango de fechas." : "No hay partidos pasados."}
+          </div>
+        ) : (
+          <div className="list" style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+            {filteredPast.slice(0, visiblePastCount).map((match) => (
+              <article
+                key={match.id}
+                className="panel"
+                style={{
+                  background: "var(--background-alt)",
+                  border: "1px solid var(--border)",
+                  padding: "1rem",
+                  borderRadius: "8px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between",
+                  gap: "1rem"
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                    <span className="status-pill is-paid">Jugado</span>
+                    <span className="count-pill">{matchConfirmedCount(match.id)} jugadores</span>
+                  </div>
+                  <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{match.title || "Chamuscón"}</h4>
+                  <small style={{ color: "var(--muted)", display: "block", marginTop: "0.2rem" }}>
+                    📅 {formatMatchDate(match)}
+                  </small>
+                  {match.venue && (
+                    <small style={{ color: "var(--text-secondary)", display: "block", marginTop: "0.4rem" }}>
+                      📍 {match.venue}
+                    </small>
+                  )}
+                  {(match.allowed_tags || []).length > 0 && (
+                    <span className="tag-list compact" style={{ marginTop: "0.4rem" }}>
+                      {(match.allowed_tags || []).map((tag) => (
+                        <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
+                      ))}
+                    </span>
+                  )}
+                </div>
+                {deletingId === match.id ? (
+                  <div style={{ display: "grid", gap: "0.5rem" }}>
+                    <p className="confirm-delete-msg" style={{ margin: 0 }}>
+                      ¿Eliminar "{match.title || "Chamuscón"}"? Se borran equipos,
+                      asistencias y cobros asociados.
+                    </p>
+                    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
                       <button
-                        className="danger-button"
+                        className="danger-button history-card-btn"
                         type="button"
+                        onClick={() => handleDelete(match.id)}
+                      >
+                        Confirmar
+                      </button>
+                      <button
+                        className="secondary-button history-card-btn"
+                        type="button"
+                        onClick={() => setDeletingId(null)}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+                    <button
+                      className="secondary-button history-card-btn"
+                      type="button"
+                      onClick={() => onOpenMatch(match.id)}
+                    >
+                      Ver Detalles
+                    </button>
+                    {isAdmin && (
+                      <button
+                        className="danger-button history-card-btn"
+                        type="button"
+                        title="Eliminar partido"
+                        aria-label={`Eliminar ${match.title || "Chamuscón"}`}
                         onClick={() => setDeletingId(match.id)}
                       >
-                        Eliminar
+                        🗑
                       </button>
                     )}
                   </div>
                 )}
-                {deletingId === match.id && (
-                  <p className="confirm-delete-msg">
-                    ¿Eliminar "{match.title || "Chamuscón"}"? Se borran equipos,
-                    asistencias y cobros asociados.
-                  </p>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+              </article>
+            ))}
+          </div>
+        )}
 
-        {currentList.length > visiblePastCount && (
+        {filteredPast.length > visiblePastCount && (
           <button
             className="show-more-btn"
             type="button"
-            onClick={() => setVisiblePastCount((c) => c + 10)}
+            onClick={() => setVisiblePastCount((c) => c + 9)}
           >
-            Ver más ({currentList.length - visiblePastCount} restantes)
+            Ver más ({filteredPast.length - visiblePastCount} restantes)
           </button>
         )}
-        {visiblePastCount > 6 && currentList.length <= visiblePastCount && (
+        {visiblePastCount > 6 && filteredPast.length <= visiblePastCount && filteredPast.length > 6 && (
           <button
             className="show-more-btn"
             type="button"

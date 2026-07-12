@@ -5814,6 +5814,65 @@ small, .muted {
   border-radius: 8px;
 }
 
+/* Filtro por rango de fechas del historial de partidos */
+.history-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.history-filter label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.history-filter input[type="date"] {
+  min-height: 42px;
+  width: auto;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  color-scheme: dark;
+}
+
+.history-filter-clear {
+  min-height: 42px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.8rem;
+  width: auto;
+}
+
+/* Botones dentro de cards del historial */
+.history-card-btn {
+  min-height: 38px;
+  padding: 0.3rem 0.8rem;
+  font-size: 0.82rem;
+  border-radius: 8px;
+  width: auto;
+}
+
+@media (max-width: 719px) {
+  .history-filter {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .history-filter input[type="date"] {
+    width: 100%;
+  }
+
+  .history-filter-clear {
+    grid-column: 1 / -1;
+  }
+}
+
 /* Botón "Ver más / Ver menos" para historiales largos */
 .show-more-btn {
   width: 100%;
