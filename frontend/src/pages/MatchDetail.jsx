@@ -27,7 +27,7 @@ import {
 } from "../utils.js";
 
 import { api } from "../api.js";
-import { generateBalancedTeams } from "../teamGeneration.js";
+import { generateBalancedTeams, fairnessScore } from "../teamGeneration.js";
 
 function GuestPlayersSection({ match, guests = [], onAdd, onDelete, onUpdateRating }) {
   const [showForm, setShowForm] = useState(false);
@@ -360,6 +360,21 @@ export default function MatchDetail({
           playerIds: team.players.map((player) => player.id),
         })), team_count: fallback.team_count }, aiFallback: true });
         setAiError("La IA devolvió equipos incompletos; usé distribución automática con todos los confirmados.");
+        return;
+      }
+
+      const playerMap = new Map(players.map((p) => [p.id, p]));
+      const aiTeamObjs = aiTeams.map((t) => ({
+        players: (t.playerIds || t.player_ids || []).map((id) => playerMap.get(id)).filter(Boolean),
+      }));
+      const aiFairness = fairnessScore(aiTeamObjs);
+      if (aiFairness > 1.5) {
+        const fallback = generateBalancedTeams(players);
+        onGenerateTeams({ aiTeams: { teams: fallback.teams.map((team) => ({
+          name: team.name,
+          playerIds: team.players.map((player) => player.id),
+        })), team_count: fallback.team_count }, aiFallback: true });
+        setAiError(`La IA generó equipos muy dispares (diferencia de ${aiFairness.toFixed(1)} pts); usé distribución automática.`);
         return;
       }
 

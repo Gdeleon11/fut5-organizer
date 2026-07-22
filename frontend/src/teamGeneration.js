@@ -74,7 +74,7 @@ function starEffectiveRating(player) {
 // Fuerza efectiva del jugador para el balanceo. Mezcla las estrellas por
 // posición con las capacidades manuales 1-100 (si el jugador las tiene).
 // Así estrellas + capacidades cuentan; las skills se balancean aparte.
-function playerEffectiveRating(player) {
+export function playerEffectiveRating(player) {
   const starRating = starEffectiveRating(player);
   const capRating = capacityRatingOnStarScale(player);
   if (capRating == null) return starRating;
@@ -92,7 +92,7 @@ function goalkeeperCount(team) {
   return team.players.filter(isGoalkeeper).length;
 }
 
-function fairnessScore(teams) {
+export function fairnessScore(teams) {
   const totals = teams.map(totalRating);
   return Math.max(...totals) - Math.min(...totals);
 }

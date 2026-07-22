@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { generateBalancedTeams } from "./teamGeneration.js";
+import { generateBalancedTeams, playerEffectiveRating } from "./teamGeneration.js";
 
 function requireSupabase() {
   if (!supabase) {
@@ -745,8 +745,8 @@ export const api = {
           team_order: index + 1,
           target_size: teamPlayers.length,
           players: teamPlayers,
-          total_rating: teamPlayers.reduce((s, p) => s + (p.rating || 2), 0),
-          goalkeeper_count: teamPlayers.filter((p) => p.preferred_position === "Goalkeeper").length,
+          total_rating: teamPlayers.reduce((s, p) => s + playerEffectiveRating(p), 0),
+          goalkeeper_count: teamPlayers.filter((p) => (p.skills || []).includes("goalkeeper") || p.preferred_position === "Goalkeeper").length,
         };
       });
       const flatIds = aiTeams.flatMap((team) => team.players.map((player) => player.id));
@@ -773,8 +773,8 @@ export const api = {
         team_order: generated.teams.length + 1,
         target_size: penaltyTeam.length,
         players: penaltyTeam,
-        total_rating: Math.round(penaltyTeam.reduce((s, p) => s + p.rating, 0)),
-        goalkeeper_count: penaltyTeam.filter((p) => p.preferred_position === "Goalkeeper").length,
+        total_rating: Math.round(penaltyTeam.reduce((s, p) => s + playerEffectiveRating(p), 0)),
+        goalkeeper_count: penaltyTeam.filter((p) => (p.skills || []).includes("goalkeeper") || p.preferred_position === "Goalkeeper").length,
       });
       generated.team_count += 1;
       generated.confirmed_player_count += penaltyTeam.length;

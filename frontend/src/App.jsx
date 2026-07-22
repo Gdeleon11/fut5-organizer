@@ -457,14 +457,14 @@ export default function App() {
     // Pick the most recent one
     return surveyMatches.sort((a, b) => new Date(`${b.match_date}T${b.start_time || "19:00"}`) - new Date(`${a.match_date}T${a.start_time || "19:00"}`))[0] || null;
   }, [matches, attendances, matchStats, profile]);
-  const [showSurveyModal, setShowSurveyModal] = useState(false);
+  const [activeSurveyMatch, setActiveSurveyMatch] = useState(null);
   
-  // Show modal automatically if pendingSurveyMatch changes to a non-null value
+  // Show modal automatically if pendingSurveyMatch changes to a non-null value, keeping it open even after stats refresh
   useEffect(() => {
-    if (pendingSurveyMatch) {
-      setShowSurveyModal(true);
+    if (pendingSurveyMatch && !activeSurveyMatch) {
+      setActiveSurveyMatch(pendingSurveyMatch);
     }
-  }, [pendingSurveyMatch]);
+  }, [pendingSurveyMatch, activeSurveyMatch]);
 
   const upcomingMatches = useMemo(
     () => {
@@ -2468,16 +2468,16 @@ export default function App() {
 
       <AdBanner sticky={true} />
 
-      {showSurveyModal && pendingSurveyMatch && (
+      {activeSurveyMatch && (
         <PostMatchSurveyModal 
-          match={pendingSurveyMatch}
+          match={activeSurveyMatch}
           profile={profile}
           activeGroupId={activeGroupId}
           attendances={attendances}
           profiles={profiles}
           onClose={() => {
-            localStorage.setItem(`skipped_survey_${pendingSurveyMatch.id}`, 'true');
-            setShowSurveyModal(false);
+            localStorage.setItem(`skipped_survey_${activeSurveyMatch.id}`, 'true');
+            setActiveSurveyMatch(null);
           }}
           onSaveStats={refresh}
           onNotice={setNotice}

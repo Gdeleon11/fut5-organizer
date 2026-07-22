@@ -63,7 +63,7 @@ export default function PostMatchSurveyModal({
     e.preventDefault();
     setSaving(true);
     try {
-      await api.saveSinglePlayerMatchStats(match.id, activeGroupId, profile.id, {
+      await api.saveSinglePlayerMatchStats(match.id, match.group_id || activeGroupId, profile.id, {
         goals,
         assists,
         clean_sheet: cleanSheet,

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Avatar from "../components/Avatar.jsx";
 import PlayerBadge from "../components/PlayerBadge.jsx";
 import TeamColorPicker from "../components/TeamColorPicker.jsx";
-import { generateBalancedTeams } from "../teamGeneration.js";
+import { generateBalancedTeams, playerEffectiveRating, fairnessScore } from "../teamGeneration.js";
 import { distributeTeamsWithAI } from "../groq.js";
 import { displayName, positionLabel } from "../utils.js";
 
@@ -119,8 +119,8 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
           team_order: i + 1,
           target_size: teamPlayers.length,
           players: teamPlayers,
-          total_rating: teamPlayers.reduce((s, p) => s + (p.rating || 2), 0),
-          goalkeeper_count: teamPlayers.filter((p) => p.preferred_position === "Goalkeeper").length,
+          total_rating: teamPlayers.reduce((s, p) => s + playerEffectiveRating(p), 0),
+          goalkeeper_count: teamPlayers.filter((p) => (p.skills || []).includes("goalkeeper") || p.preferred_position === "Goalkeeper").length,
           color: TEAM_COLORS[i % TEAM_COLORS.length],
         };
       }).filter(Boolean);
@@ -130,6 +130,20 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
         setAiLoading(false);
         return;
       }
+
+      const aiFairness = fairnessScore(teams);
+      if (aiFairness > 1.5) {
+        const fallback = generateBalancedTeams(selected);
+        fallback.teams = fallback.teams.map((team, i) => ({
+          ...team,
+          color: TEAM_COLORS[i % TEAM_COLORS.length],
+        }));
+        setResult(fallback);
+        setError(`La IA generó equipos muy dispares (diferencia de ${aiFairness.toFixed(1)} pts); usé distribución automática.`);
+        setAiLoading(false);
+        return;
+      }
+
       setResult({ team_count: teams.length, confirmed_player_count: selected.length, teams });
     } catch (err) {
       setError(err.message);

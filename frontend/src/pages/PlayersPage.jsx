@@ -104,7 +104,9 @@ export default function PlayersPage({
     if (!selectedMatchId) return;
     setSavingStats(true);
     try {
-      await api.saveSinglePlayerMatchStats(selectedMatchId, activeGroupId, currentProfileId, {
+      const match = matches.find((m) => m.id === selectedMatchId);
+      const groupId = match ? match.group_id : activeGroupId;
+      await api.saveSinglePlayerMatchStats(selectedMatchId, groupId, currentProfileId, {
         goals,
         assists,
         clean_sheet: cleanSheet,
