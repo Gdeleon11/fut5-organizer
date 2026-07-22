@@ -259,6 +259,11 @@ export function generateBalancedTeams(players) {
     fairness_score: fairnessScore(teams),
     teams: teams.map((team) => ({
       ...team,
+      players: [...team.players].sort((a, b) => {
+        if (isGoalkeeper(a) && !isGoalkeeper(b)) return -1;
+        if (isGoalkeeper(b) && !isGoalkeeper(a)) return 1;
+        return 0;
+      }),
       total_rating: Math.round(totalRating(team)),
       goalkeeper_count: goalkeeperCount(team),
     })),

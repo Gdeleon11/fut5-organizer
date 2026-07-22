@@ -40,7 +40,13 @@ export default function TeamCards({ teams = [], isAdmin, ratingMap, skills, matc
             )}
             
             <div className="squad-list">
-              {(team.team_members || []).map((member) => {
+              {([...(team.team_members || [])].sort((a, b) => {
+                const posA = a.guest_player_id ? "Flexible" : (a.profiles?.preferred_position || "Flexible");
+                const posB = b.guest_player_id ? "Flexible" : (b.profiles?.preferred_position || "Flexible");
+                if (posA === "Goalkeeper" && posB !== "Goalkeeper") return -1;
+                if (posB === "Goalkeeper" && posA !== "Goalkeeper") return 1;
+                return 0;
+              })).map((member) => {
                 const isGuest = !!member.guest_player_id;
                 const name = isGuest ? (member.guest_name || "Invitado") : displayName(member.profiles);
                 const position = isGuest ? "Flexible" : (member.profiles?.preferred_position || "Flexible");
