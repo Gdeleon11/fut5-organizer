@@ -92,6 +92,11 @@ function goalkeeperCount(team) {
   return team.players.filter(isGoalkeeper).length;
 }
 
+function goalkeeperImbalance(teams) {
+  const counts = teams.map(goalkeeperCount);
+  return Math.max(...counts) - Math.min(...counts);
+}
+
 export function fairnessScore(teams) {
   const totals = teams.map(totalRating);
   return Math.max(...totals) - Math.min(...totals);
@@ -191,6 +196,7 @@ function greedyAssign(players, teamCount) {
 function improveWithSwaps(teams) {
   let bestTeams = cloneTeams(teams);
   let bestScore = combinedScore(bestTeams);
+  let bestGKImbalance = goalkeeperImbalance(bestTeams);
   let improved = true;
 
   while (improved) {
@@ -219,9 +225,11 @@ function improveWithSwaps(teams) {
             candidate[firstIndex].players[firstPlayerIndex] = secondPlayer;
             candidate[secondIndex].players[secondPlayerIndex] = firstPlayer;
             const candidateScore = combinedScore(candidate);
-            if (candidateScore < bestScore) {
+            const candidateGK = goalkeeperImbalance(candidate);
+            if (candidateScore < bestScore && candidateGK <= bestGKImbalance) {
               bestTeams = candidate;
               bestScore = candidateScore;
+              bestGKImbalance = candidateGK;
               improved = true;
             }
           }
