@@ -102,12 +102,12 @@ No agregues texto explicativo ni formato Markdown adicional fuera del JSON.`;
   let data;
   try {
     if (primaryUrl) {
-      console.log("Intentando LLM primario:", primaryUrl, primaryModel);
+      console.log("Intentando LLM primario vía proxy:", primaryModel);
       try {
-        data = await callLLM(primaryUrl, primaryKey || "", primaryModel, true);
+        data = await callLLM("/api/llm-proxy", "", primaryModel, true);
       } catch (jsonErr) {
         console.warn("LLM primario no soporta json_mode, reintentando sin:", jsonErr.message);
-        data = await callLLM(primaryUrl, primaryKey || "", primaryModel, false);
+        data = await callLLM("/api/llm-proxy", "", primaryModel, false);
       }
     } else {
       throw new Error("No primary URL");
