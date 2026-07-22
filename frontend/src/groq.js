@@ -114,8 +114,15 @@ No agregues texto explicativo ni formato Markdown adicional fuera del JSON.`;
   const content = data?.choices?.[0]?.message?.content;
   if (!content) throw new Error("El modelo no devolvió respuesta");
 
-  const result = JSON.parse(content);
+  let result;
+  try {
+    result = JSON.parse(content);
+  } catch (parseErr) {
+    console.warn("AI raw response (JSON parse error):", content);
+    throw new Error("La IA no devolvió JSON válido");
+  }
   if (!result.teams || !Array.isArray(result.teams)) {
+    console.warn("AI raw response (invalid format):", JSON.stringify(result));
     throw new Error("Formato de respuesta inválido");
   }
 

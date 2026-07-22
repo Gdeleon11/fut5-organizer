@@ -354,6 +354,11 @@ export default function MatchDetail({
         && assignedIds.size === players.length
         && players.every((player) => assignedIds.has(player.id));
       if (!isValid) {
+        const playerCount = players.length;
+        const aiTeamCount = aiTeams.length;
+        const aiPlayerCount = flatAssignedIds.length;
+        const uniqueCount = assignedIds.size;
+        console.warn("AI distribucion invalida:", { playerCount, aiTeamCount, aiPlayerCount, uniqueCount, aiTeams: JSON.parse(JSON.stringify(aiTeams)) });
         const fallback = generateBalancedTeams(players);
         onGenerateTeams({ aiTeams: { teams: fallback.teams.map((team) => ({
           name: team.name,
