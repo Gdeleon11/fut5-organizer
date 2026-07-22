@@ -3,6 +3,8 @@ const GROQ_MODEL = "llama-3.1-8b-instant";
 
 export async function distributeTeamsWithAI({ players, skills, instructions, teamCount }) {
   const primaryUrl = import.meta.env.VITE_PRIMARY_LLM_URL;
+  const primaryKey = import.meta.env.VITE_PRIMARY_LLM_KEY;
+  const primaryModel = import.meta.env.VITE_PRIMARY_LLM_MODEL || "local-model";
   const apiKey = import.meta.env.VITE_GROQ_API_KEY;
   if (!apiKey && !primaryUrl) {
     throw new Error("Faltan las credenciales: configura VITE_GROQ_API_KEY o VITE_PRIMARY_LLM_URL en el archivo .env");
@@ -69,22 +71,25 @@ No agregues texto explicativo ni formato Markdown adicional fuera del JSON.`;
 
   const userPrompt = `${instructions ? `INSTRUCCIONES DEL USUARIO: ${instructions}\n\n` : ""}JUGADORES:\n${JSON.stringify(playerList, null, 2)}`;
 
-  async function callLLM(url, key, model) {
+  async function callLLM(url, key, model, jsonMode = true) {
+    const body = {
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.3,
+    };
+    if (jsonMode) {
+      body.response_format = { type: "json_object" };
+    }
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(key ? { Authorization: `Bearer ${key}` } : {}),
       },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.3,
-        response_format: { type: "json_object" },
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!res.ok) {
@@ -97,15 +102,20 @@ No agregues texto explicativo ni formato Markdown adicional fuera del JSON.`;
   let data;
   try {
     if (primaryUrl) {
-      console.log("Intentando LLM primario local/Cloudflare:", primaryUrl);
-      data = await callLLM(primaryUrl, "", "local-model");
+      console.log("Intentando LLM primario:", primaryUrl, primaryModel);
+      try {
+        data = await callLLM(primaryUrl, primaryKey || "", primaryModel, true);
+      } catch (jsonErr) {
+        console.warn("LLM primario no soporta json_mode, reintentando sin:", jsonErr.message);
+        data = await callLLM(primaryUrl, primaryKey || "", primaryModel, false);
+      }
     } else {
       throw new Error("No primary URL");
     }
   } catch (error) {
     console.warn("Fallo el LLM primario, usando Groq como respaldo:", error.message);
     if (apiKey) {
-      data = await callLLM(GROQ_API_URL, apiKey, GROQ_MODEL);
+      data = await callLLM(GROQ_API_URL, apiKey, GROQ_MODEL, true);
     } else {
       throw new Error("El LLM primario falló y no hay VITE_GROQ_API_KEY configurada.");
     }
