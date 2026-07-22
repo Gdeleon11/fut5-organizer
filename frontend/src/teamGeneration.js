@@ -37,6 +37,14 @@ function getPlayerSkills(player) {
   return player.skills || [];
 }
 
+function getPlayerEffectiveSkills(player) {
+  const skills = getPlayerSkills(player);
+  if (player.preferred_position === "Goalkeeper" && !skills.includes("goalkeeper")) {
+    return [...skills, "goalkeeper"];
+  }
+  return skills;
+}
+
 function hasSkill(player, skill) {
   return getPlayerSkills(player).includes(skill);
 }
@@ -126,7 +134,7 @@ function cloneTeams(teams) {
 }
 
 function getPlayerPriority(player) {
-  const skills = getPlayerSkills(player);
+  const skills = getPlayerEffectiveSkills(player);
   let priority = 0;
   if (skills.includes("goalkeeper")) priority += 100;
   if (skills.includes("wizard")) priority += 50;
@@ -161,7 +169,7 @@ function sortPlayers(players) {
 
 function bestTeamForPlayer(teams, player) {
   const openTeams = teams.filter((team) => team.players.length < team.target_size);
-  const playerSkills = getPlayerSkills(player);
+  const playerSkills = getPlayerEffectiveSkills(player);
   const sorted = [...openTeams].sort((first, second) => {
     for (const skill of playerSkills) {
       const firstCount = countSkillInTeam(first, skill);
