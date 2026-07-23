@@ -1459,6 +1459,20 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
+  async function deleteAttendanceRecord(attendanceId) {
+    setNotice(""); setError("");
+    try {
+      if (isDemoMode) {
+        setAttendances((c) => c.filter((a) => a.id !== attendanceId));
+        setNotice("Asistencia eliminada. El jugador puede volver a confirmar (Simulación Local).");
+        return;
+      }
+      await api.deleteAttendance(attendanceId);
+      setAttendances((c) => c.filter((a) => a.id !== attendanceId));
+      setNotice("Asistencia eliminada. El jugador puede volver a confirmar.");
+    } catch (err) { setError(err.message); }
+  }
+
   async function updateGuestRating(matchId, guestId, rating) {
     try {
       if (isDemoMode) {
@@ -2296,6 +2310,7 @@ export default function App() {
             onMarkNoShow={markNoShow}
             onAddGuest={(name, rating) => addGuestPlayer(selectedMatch.id, name, rating)}
             onDeleteGuest={(id) => deleteGuestPlayer(selectedMatch.id, id)}
+            onDeleteAttendance={(id) => deleteAttendanceRecord(id)}
             onUpdateGuestRating={(id, rating) => updateGuestRating(selectedMatch.id, id, rating)}
             guests={matchGuests}
             profile={currentPlayer} profiles={profiles} profileById={profileById}

@@ -153,6 +153,7 @@ export default function MatchDetail({
   onAddGuest,
   onDeleteGuest,
   onUpdateGuestRating,
+  onDeleteAttendance,
   attendances = [],
   guests = [],
   profile,
@@ -170,6 +171,10 @@ export default function MatchDetail({
   const [teamInstructions, setTeamInstructions] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+
+  const canceledAttendances = useMemo(() =>
+    (attendances || []).filter((a) => a.status === "canceled"),
+  [attendances]);
 
   const [statsForm, setStatsForm] = useState([]);
   const [savingStats, setSavingStats] = useState(false);
@@ -742,6 +747,47 @@ export default function MatchDetail({
             <p className="confirm-delete-msg" style={{ width: "100%", margin: "0.5rem 0 0", color: "#ef4444" }}>
               ¿Eliminar "{match.title || "Chamuscón"}"? Se borran equipos, asistencias y cobros asociados.
             </p>
+          )}
+        </section>
+      )}
+
+      {/* ── JUGADORES QUE CANCELARON (solo admin) ── */}
+      {isAdmin && (
+        <section className="panel" style={{ padding: "1rem" }}>
+          <h4 style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+            Cancelados ({canceledAttendances.length})
+          </h4>
+          {canceledAttendances.length === 0 ? (
+            <p style={{ fontSize: "0.8rem", color: "var(--muted)", margin: 0 }}>Nadie canceló.</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+              {canceledAttendances.map((a) => {
+                const p = profileById?.get(a.profile_id);
+                const name = p ? displayName(p) : "Jugador";
+                return (
+                  <div key={a.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.3rem 0", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                    <span style={{ fontSize: "0.85rem" }}>{name}</span>
+                    <div style={{ display: "flex", gap: "0.4rem" }}>
+                      <button
+                        onClick={() => onDeleteAttendance?.(a.id)}
+                        style={{
+                          background: "#ef4444",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: "12px",
+                          padding: "0.2rem 0.7rem",
+                          fontSize: "0.72rem",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Eliminar y reconfirmar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </section>
       )}
