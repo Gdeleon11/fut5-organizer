@@ -598,6 +598,25 @@ export default function MatchDetail({
               >
                 <Clock size={16} /> Salir de Lista de Espera
               </button>
+            ) : myAttendance?.status === "canceled" ? (
+              <button
+                onClick={onConfirm}
+                style={{
+                  background: "#10b981",
+                  color: "#ffffff",
+                  border: "none",
+                  borderRadius: "24px",
+                  padding: "0.5rem 1.25rem",
+                  fontWeight: "600",
+                  fontSize: "0.8rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem"
+                }}
+              >
+                <Check size={16} /> Volver a Confirmar
+              </button>
             ) : isFullMatch(match, attendances) ? (
               <button
                 onClick={onJoinWaitlist}
