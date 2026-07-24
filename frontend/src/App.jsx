@@ -1459,17 +1459,17 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
-  async function deleteAttendanceRecord(attendanceId) {
+  async function reconfirmAttendance(attendanceId) {
     setNotice(""); setError("");
     try {
       if (isDemoMode) {
-        setAttendances((c) => c.filter((a) => a.id !== attendanceId));
-        setNotice("Asistencia eliminada. El jugador puede volver a confirmar (Simulación Local).");
+        setAttendances((c) => c.map((a) => a.id === attendanceId ? { ...a, status: "confirmed" } : a));
+        setNotice("Jugador reconfirmado. Ya puede aparecer en los equipos (Simulación Local).");
         return;
       }
-      await api.deleteAttendance(attendanceId);
-      setAttendances((c) => c.filter((a) => a.id !== attendanceId));
-      setNotice("Asistencia eliminada. El jugador puede volver a confirmar.");
+      const updated = await api.updateAttendance(attendanceId, { status: "confirmed", checked_in: false });
+      setAttendances((c) => c.map((a) => a.id === updated.id ? updated : a));
+      setNotice("Jugador reconfirmado. Ya puede aparecer en los equipos.");
     } catch (err) { setError(err.message); }
   }
 
@@ -2310,7 +2310,7 @@ export default function App() {
             onMarkNoShow={markNoShow}
             onAddGuest={(name, rating) => addGuestPlayer(selectedMatch.id, name, rating)}
             onDeleteGuest={(id) => deleteGuestPlayer(selectedMatch.id, id)}
-            onDeleteAttendance={(id) => deleteAttendanceRecord(id)}
+            onReconfirm={(id) => reconfirmAttendance(id)}
             onUpdateGuestRating={(id, rating) => updateGuestRating(selectedMatch.id, id, rating)}
             guests={matchGuests}
             profile={currentPlayer} profiles={profiles} profileById={profileById}

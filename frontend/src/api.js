@@ -562,10 +562,7 @@ export const api = {
     );
   },
 
-  async deleteAttendance(attendanceId) {
-    const client = requireSupabase();
-    await client.from("attendances").delete().eq("id", attendanceId);
-  },
+
 
   /**
    * Cancel an attendance and immediately create a late-cancel fine.

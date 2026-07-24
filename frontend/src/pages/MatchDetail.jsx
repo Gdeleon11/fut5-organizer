@@ -153,7 +153,7 @@ export default function MatchDetail({
   onAddGuest,
   onDeleteGuest,
   onUpdateGuestRating,
-  onDeleteAttendance,
+  onReconfirm,
   attendances = [],
   guests = [],
   profile,
@@ -769,9 +769,9 @@ export default function MatchDetail({
                     <span style={{ fontSize: "0.85rem" }}>{name}</span>
                     <div style={{ display: "flex", gap: "0.4rem" }}>
                       <button
-                        onClick={() => onDeleteAttendance?.(a.id)}
+                        onClick={() => onReconfirm?.(a.id)}
                         style={{
-                          background: "#ef4444",
+                          background: "#10b981",
                           color: "#fff",
                           border: "none",
                           borderRadius: "12px",
@@ -781,7 +781,7 @@ export default function MatchDetail({
                           cursor: "pointer",
                         }}
                       >
-                        Eliminar y reconfirmar
+                        Reconfirmar
                       </button>
                     </div>
                   </div>
