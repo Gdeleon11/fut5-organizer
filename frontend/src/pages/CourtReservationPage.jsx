@@ -57,7 +57,7 @@ function ReservationRow({ index, venues, profiles, groupTags = [], onChange, onR
           Responsable
           <select value={form.assigned_to} onChange={(e) => update({ assigned_to: e.target.value })}>
             <option value="">Seleccionar jugador</option>
-            {profiles.filter((p) => p.membership_is_active).map((p) => (
+            {profiles.filter((p) => p.membership_is_active !== false).map((p) => (
               <option key={p.id} value={p.id}>{displayName(p)}</option>
             ))}
           </select>
@@ -105,7 +105,7 @@ function ReservationRow({ index, venues, profiles, groupTags = [], onChange, onR
   );
 }
 
-function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, onConfirm, onDelete, onUploadProof, onCopyLink, copiedId }) {
+function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, onConfirm, onDelete, onUploadProof, onCopyLink, copiedId, isNewlyCreated }) {
   const [uploading, setUploading] = useState(false);
   const isAssigned = reservation.assigned_to === currentUserId;
   const canConfirm = isAdmin || isAssigned;
@@ -123,15 +123,22 @@ function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, on
     : "";
 
   return (
-    <article className={classNames("reservation-card", reservation.status === "confirmed" && "is-confirmed")}>
+    <article className={classNames("reservation-card", reservation.status === "confirmed" && "is-confirmed", isNewlyCreated && "is-newly-created")}>
       <div className="reservation-header">
         <div>
           <strong>{reservation.venue}</strong>
           <small>{dateStr}{reservation.reservation_time ? ` · ${reservation.reservation_time}` : ""}</small>
         </div>
-        <span className={classNames("status-pill", isPending ? "is-pending" : "is-paid")}>
-          {isPending ? "Pendiente" : "Confirmada"}
-        </span>
+        <div style={{ display: "flex", gap: "0.3rem", alignItems: "center" }}>
+          {isNewlyCreated && (
+            <span className="status-pill" style={{ background: "var(--primary)", color: "#000", fontWeight: "bold" }}>
+              ¡Nueva!
+            </span>
+          )}
+          <span className={classNames("status-pill", isPending ? "is-pending" : "is-paid")}>
+            {isPending ? "Pendiente" : "Confirmada"}
+          </span>
+        </div>
       </div>
 
       <div className="reservation-details">
@@ -155,9 +162,22 @@ function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, on
 
       <div className="button-row reservation-actions">
         {isPending && (
-          <button className="secondary-button" type="button" onClick={() => onCopyLink(reservation.id)}>
-            {copiedId === reservation.id ? "Copiado ✓" : "Link para responsable"}
-          </button>
+          <>
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(
+                `¡Hola ${displayName(reservation.assigned_profile)}! Te asigné la reserva de la cancha *${reservation.venue}* (${dateStr} ${reservation.reservation_time || ""}). Por favor subí tu comprobante acá:\n${appOrigin()}/reserve/${reservation.id.replace(/-/g, "")}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="secondary-button"
+              style={{ background: "#25D366", color: "#fff", border: "none", display: "inline-flex", alignItems: "center", gap: "0.35rem", textDecoration: "none" }}
+            >
+              💬 WhatsApp
+            </a>
+            <button className="secondary-button" type="button" onClick={() => onCopyLink(reservation.id)}>
+              {copiedId === reservation.id ? "Copiado ✓" : "📋 Copiar Link"}
+            </button>
+          </>
         )}
         {isPending && canConfirm && (
           <>
@@ -285,6 +305,7 @@ export default function CourtReservationPage({
   venues,
   matches = [],
   attendances = [],
+  groupTags = [],
   isAdmin,
   isSuperAdmin,
   currentUserId,
@@ -304,11 +325,12 @@ export default function CourtReservationPage({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [recentlyCreated, setRecentlyCreated] = useState([]);
   const [copiedId, setCopiedId] = useState(null);
   const [view, setView] = useState("cards"); // "cards" | "list"
 
   async function loadReservations() {
-    if (!activeGroupId || !isAdmin || isDemoMode) return;
+    if (!activeGroupId || isDemoMode) return;
     try {
       const rows = await api.listReservations(activeGroupId);
       setReservations(rows);
@@ -318,13 +340,13 @@ export default function CourtReservationPage({
   }
 
   useEffect(() => {
-    if (!isDemoMode && isAdmin) {
+    if (!isDemoMode) {
       setLoading(true);
       loadReservations().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, [activeGroupId, isDemoMode, isAdmin]);
+  }, [activeGroupId, isDemoMode]);
 
   // Auto-refresh when tab becomes visible again
   useEffect(() => {
@@ -358,7 +380,7 @@ export default function CourtReservationPage({
   }
 
   async function handleCreate() {
-    setError(""); setNotice(""); setSaving(true);
+    setError(""); setNotice(""); setRecentlyCreated([]); setSaving(true);
     const allRows = rows.map((_, i) => formData[i]);
     const validEntries = allRows.filter((d) => d?.venue && d?.reservation_date && d?.assigned_to);
     const invalidCount = allRows.length - validEntries.length;
@@ -400,6 +422,8 @@ export default function CourtReservationPage({
         } else {
           res = await api.createReservation(payload);
         }
+        const assignedProf = profiles.find((p) => p.id === payload.assigned_to) || null;
+        res.assigned_profile = assignedProf;
         created.push(res);
       } catch (err) {
         errors.push(`Reserva ${i + 1} (${validEntries[i].venue}): ${err.message}`);
@@ -407,9 +431,18 @@ export default function CourtReservationPage({
     }
     if (created.length > 0) {
       setReservations((c) => [...c, ...created]);
+      setRecentlyCreated(created);
       setShowForm(false);
       setRows([0]);
       setFormData({});
+      loadReservations();
+
+      setTimeout(() => {
+        const targetEl = document.getElementById("seguimiento-panel");
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 150);
     }
     if (errors.length > 0) {
       setError(`Errores: ${errors.join(" | ")}`);
@@ -498,8 +531,19 @@ export default function CourtReservationPage({
     }
   }
 
+  const newlyCreatedSet = new Set(recentlyCreated.map((r) => r.id));
+
   const pending = reservations.filter((r) => r.status === "pending");
+  pending.sort((a, b) => {
+    const aNew = newlyCreatedSet.has(a.id) ? 1 : 0;
+    const bNew = newlyCreatedSet.has(b.id) ? 1 : 0;
+    if (aNew !== bNew) return bNew - aNew;
+    return (b.created_at || b.reservation_date || "").localeCompare(a.created_at || a.reservation_date || "");
+  });
+
   const confirmed = reservations.filter((r) => r.status === "confirmed");
+  confirmed.sort((a, b) => (b.reservation_date || "").localeCompare(a.reservation_date || ""));
+
   const assistedReservations = matches
     .filter((match) => match.requires_reservation)
     .filter((match) => isAdmin || match.reservation_owner_user_id === currentUserId);
@@ -513,7 +557,7 @@ export default function CourtReservationPage({
     if (!groupedByDate[key]) groupedByDate[key] = [];
     groupedByDate[key].push(r);
   });
-  const sortedDates = Object.keys(groupedByDate).sort();
+  const sortedDates = Object.keys(groupedByDate).sort().reverse();
 
   return (
     <div className="page-grid reservations-page">
@@ -563,7 +607,6 @@ export default function CourtReservationPage({
         )}
       </section>
 
-      {isAdmin && (
       <section className="panel">
         <div className="section-heading">
           <div>
@@ -599,19 +642,105 @@ export default function CourtReservationPage({
                 </button>
               </div>
             )}
-            {isAdmin && (
-              <button
-                className={classNames("toolbar-btn", showForm && "secondary-button")}
-                type="button"
-                onClick={() => setShowForm((v) => !v)}
-              >
-                {showForm ? "Cancelar" : "+ Nueva"}
-              </button>
-            )}
+            <button
+              className={classNames("toolbar-btn", showForm && "secondary-button")}
+              type="button"
+              onClick={() => setShowForm((v) => !v)}
+            >
+              {showForm ? "Cancelar" : "+ Nueva"}
+            </button>
           </div>
         </div>
         {error && <p className="form-message">{error}</p>}
         {notice && <p className="form-message success">{notice}</p>}
+
+        {recentlyCreated.length > 0 && (() => {
+          const groupedByPlayer = {};
+          recentlyCreated.forEach((r) => {
+            const key = r.assigned_to || "unassigned";
+            if (!groupedByPlayer[key]) groupedByPlayer[key] = [];
+            groupedByPlayer[key].push(r);
+          });
+
+          return (
+            <div className="created-reservations-banner">
+              <h3>¡Reserva(s) creada(s) exitosamente!</h3>
+              <p>Compartí el enlace directamente con los jugadores responsables para que suban su comprobante:</p>
+              <div className="created-reservations-list">
+                {Object.entries(groupedByPlayer).map(([key, rList]) => {
+                  const personName = displayName(rList[0]?.assigned_profile);
+                  const tokens = rList.map((r) => r.id.replace(/-/g, "")).join("_");
+                  const link = `${appOrigin()}/reserve/${tokens}`;
+                  const count = rList.length;
+
+                  let waMessage = "";
+                  if (count > 1) {
+                    const listSummary = rList.map((r) => {
+                      const dateStr = r.reservation_date
+                        ? new Date(r.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" })
+                        : "";
+                      return `• *${r.venue}* (${dateStr} ${r.reservation_time || ""})`;
+                    }).join("\n");
+                    waMessage = encodeURIComponent(
+                      `¡Hola ${personName}! Te asigné ${count} reservas de cancha:\n${listSummary}\n\nPor favor subí tu(s) comprobante(s) acá:\n${link}`
+                    );
+                  } else {
+                    const r = rList[0];
+                    const dateStr = r.reservation_date
+                      ? new Date(r.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" })
+                      : "";
+                    waMessage = encodeURIComponent(
+                      `¡Hola ${personName}! Te asigné la reserva de la cancha *${r.venue}* (${dateStr} ${r.reservation_time || ""}). Por favor subí tu comprobante acá:\n${link}`
+                    );
+                  }
+                  const waUrl = `https://wa.me/?text=${waMessage}`;
+
+                  return (
+                    <div key={key} className="created-reservation-item">
+                      <div>
+                        <strong>{count > 1 ? `${count} Reservas para ${personName}` : rList[0].venue}</strong>
+                        {count > 1 ? (
+                          <div style={{ marginTop: "0.25rem" }}>
+                            {rList.map((r) => {
+                              const dStr = r.reservation_date
+                                ? new Date(r.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" })
+                                : "";
+                              return (
+                                <div key={r.id} style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                                  • {r.venue} ({dStr} {r.reservation_time || ""})
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div><small>Responsable: <strong>{personName}</strong></small></div>
+                        )}
+                      </div>
+                      <div className="button-row" style={{ marginTop: 0 }}>
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="secondary-button"
+                          style={{ background: "#25D366", color: "#fff", border: "none", display: "inline-flex", alignItems: "center", gap: "0.35rem", textDecoration: "none" }}
+                        >
+                          💬 WhatsApp
+                        </a>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => copyLink(rList[0].id, rList)}
+                        >
+                          {copiedId === rList[0].id ? "Copiado ✓" : "📋 Copiar Link"}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         {showForm && (
           <div className="reservation-form-block">
@@ -642,10 +771,9 @@ export default function CourtReservationPage({
           </div>
         )}
       </section>
-      )}
 
       {/* List view - grouped by date */}
-      {isAdmin && view === "list" && reservations.length > 0 && (
+      {view === "list" && reservations.length > 0 && (
         <section className="panel">
           <div className="section-heading">
             <h2>Todas las reservas</h2>
@@ -676,10 +804,24 @@ export default function CourtReservationPage({
                         {r.status === "pending" ? "Pendiente" : "Confirmada"}
                       </span>
                       {r.proof_url && <span className="reservation-list-proof">📎</span>}
-                      {isAdmin && r.status === "pending" && (
-                        <button className="secondary-button" type="button" onClick={() => copyLink(r.id)}>
-                          {copiedId === r.id ? "✓" : "Link"}
-                        </button>
+                      {r.status === "pending" && (
+                        <div style={{ display: "inline-flex", gap: "0.35rem" }}>
+                          <a
+                            href={`https://wa.me/?text=${encodeURIComponent(
+                              `¡Hola ${displayName(r.assigned_profile)}! Te asigné la reserva de la cancha *${r.venue}* (${r.reservation_date} ${r.reservation_time || ""}). Por favor subí tu comprobante acá:\n${appOrigin()}/reserve/${r.id.replace(/-/g, "")}`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="secondary-button"
+                            style={{ background: "#25D366", color: "#fff", border: "none", display: "inline-flex", alignItems: "center", textDecoration: "none", padding: "0.2rem 0.5rem" }}
+                            title="Enviar por WhatsApp"
+                          >
+                            💬
+                          </a>
+                          <button className="secondary-button" type="button" onClick={() => copyLink(r.id)}>
+                            {copiedId === r.id ? "✓" : "📋 Link"}
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -691,9 +833,9 @@ export default function CourtReservationPage({
       )}
 
       {/* Card view */}
-      {isAdmin && view === "cards" && (
+      {view === "cards" && (
         reservations.length > 0 && (
-          <section className="panel">
+          <section id="seguimiento-panel" className="panel">
             <div className="section-heading">
               <div>
                 <h2>Seguimiento</h2>
@@ -714,6 +856,7 @@ export default function CourtReservationPage({
                   onUploadProof={handleUploadProof}
                   onCopyLink={copyLink}
                   copiedId={copiedId}
+                  isNewlyCreated={newlyCreatedSet.has(r.id)}
                 />
               ))}
             </div>
@@ -721,7 +864,7 @@ export default function CourtReservationPage({
         )
       )}
 
-      {isAdmin && reservations.length === 0 && !loading && !showForm && (
+      {reservations.length === 0 && !loading && !showForm && (
         <section className="panel">
           <div className="empty-state compact">No hay reservas. Creá una para delegar la cancha.</div>
         </section>

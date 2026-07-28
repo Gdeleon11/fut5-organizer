@@ -899,6 +899,51 @@ small, .muted {
   padding: 0.65rem 0.75rem;
 }
 
+.form-message.success {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.created-reservations-banner {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.08);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.created-reservations-banner h3 {
+  color: #10b981;
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.created-reservations-banner p {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.created-reservations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.created-reservation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .form-grid,
 .admin-list,
 .group-list,
@@ -1503,6 +1548,17 @@ small, .muted {
 .reservation-card.is-confirmed {
   border-color: var(--accent);
   background: rgba(var(--accent-rgb), 0.06);
+}
+
+.reservation-card.is-newly-created {
+  border: 1px solid var(--primary);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+  animation: pulseNew 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulseNew {
+  from { box-shadow: 0 0 6px rgba(16, 185, 129, 0.2); }
+  to { box-shadow: 0 0 16px rgba(16, 185, 129, 0.5); }
 }
 
 .reservation-header {

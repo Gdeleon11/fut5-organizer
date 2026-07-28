@@ -3,14 +3,20 @@ import { useEffect } from "react";
 const ADSENSE_CLIENT = import.meta.env.VITE_ADSENSE_CLIENT || "ca-pub-6167628668615065";
 const DEFAULT_AD_SLOT = import.meta.env.VITE_ADSENSE_SLOT || "";
 
-// AdSense Banner Component. It stays dormant until an ad slot exists.
+// AdSense Banner Component.
+// Strictly enforces AdSense policy: Ads only render on valid publisher content pages.
 export default function AdBanner({
   dataAdSlot = DEFAULT_AD_SLOT,
   dataAdFormat = "auto",
   fullWidthResponsive = "true",
   sticky = false,
+  pageContext = "",
 }) {
-  const hasSlot = Boolean(dataAdSlot);
+  // Allowed public publisher content pages where ads can be legally displayed under AdSense Policy
+  const ALLOWED_PUBLIC_PAGES = ["landing", "blog", "blog-post", "nosotros", "caracteristicas", "faq"];
+  
+  const isAllowedPage = pageContext ? ALLOWED_PUBLIC_PAGES.includes(pageContext) : true;
+  const hasSlot = Boolean(dataAdSlot) && isAllowedPage;
 
   useEffect(() => {
     if (!hasSlot) return;

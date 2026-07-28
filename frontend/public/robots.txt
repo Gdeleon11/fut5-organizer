@@ -1,0 +1,29 @@
+# robots.txt for https://f5manager.lat
+
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/*
+Allow: /nosotros
+Allow: /caracteristicas
+Allow: /faq
+Allow: /privacidad
+Allow: /terminos
+Allow: /contacto
+Allow: /login
+
+# Prevent indexing of private app routes
+Disallow: /partidos
+Disallow: /equipo
+Disallow: /estadisticas
+Disallow: /cobros-caja
+Disallow: /perfil
+Disallow: /grupos
+Disallow: /reservas
+Disallow: /jugadores
+Disallow: /torneos
+
+User-agent: Mediapartners-Google
+Allow: /
+
+Sitemap: https://f5manager.lat/sitemap.xml

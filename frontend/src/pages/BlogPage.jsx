@@ -1,69 +1,130 @@
-import React from "react";
+import React, { useState } from "react";
+import PublicHeader from "../components/PublicHeader.jsx";
+import PublicFooter from "../components/PublicFooter.jsx";
+import { BLOG_POSTS } from "../blogData.js";
 
-export default function BlogPage() {
+export default function BlogPage({ onNavigate }) {
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const categories = ["Todos", "Organización & Gestión", "Tecnología & IA", "Finanzas & Tesorería", "Salud & Rendimiento", "Reglamento & Táctica", "Estadísticas & Gamificación"];
+
+  const filteredPosts = BLOG_POSTS.filter((post) => {
+    const matchesCategory = selectedCategory === "Todos" || post.category === selectedCategory;
+    const matchesSearch = searchQuery === "" || post.title.toLowerCase().includes(searchQuery.toLowerCase()) || post.summary.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
   return (
-    <div className="blog-page" style={{ padding: "2rem", maxWidth: "800px", margin: "0 auto", color: "var(--text)" }}>
-      <header style={{ marginBottom: "3rem", textAlign: "center" }}>
-        <h1 style={{ fontSize: "2.5rem", color: "var(--primary)", marginBottom: "0.5rem" }}>Blog de F5Manager</h1>
-        <p style={{ color: "var(--muted)" }}>Consejos, tácticas y guías para organizar y jugar el mejor fútbol 5.</p>
-        <div style={{ marginTop: "1rem" }}>
-          <a href="/" style={{ color: "var(--primary)" }}>← Volver a Inicio</a>
-        </div>
-      </header>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg, #090d16)", color: "var(--text, #ffffff)" }}>
+      <PublicHeader activePath="/blog" onNavigate={onNavigate} />
 
-      <article style={{ marginBottom: "4rem", paddingBottom: "2rem", borderBottom: "1px solid var(--border)" }}>
-        <h2 style={{ fontSize: "2rem", marginBottom: "1rem" }}>5 Consejos para Organizar tu Partido de Fútbol 5</h2>
-        <p style={{ color: "var(--muted)", marginBottom: "1rem" }}>Publicado el 1 de Julio, 2026</p>
-        <p style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-          Organizar un partido de fútbol 5 (o "chamusca") todas las semanas puede parecer una tarea sencilla, pero quienes lo hacemos sabemos que requiere paciencia. Desde encontrar la cancha adecuada hasta asegurarse de que todos lleguen a tiempo.
-        </p>
-        <h3 style={{ marginTop: "1.5rem", marginBottom: "0.5rem" }}>1. Establece reglas claras desde el principio</h3>
-        <p style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-          Es vital que todos los jugadores conozcan las reglas del grupo. ¿Qué pasa si alguien cancela a última hora? En F5Manager recomendamos implementar un sistema de multas simbólicas para evitar ausencias injustificadas que arruinen el balance de los equipos.
-        </p>
-        <h3 style={{ marginTop: "1.5rem", marginBottom: "0.5rem" }}>2. Usa herramientas tecnológicas</h3>
-        <p style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-          Olvídate de las listas de WhatsApp que se pierden entre cientos de mensajes. Utilizar aplicaciones como F5Manager permite a cada jugador confirmar su asistencia de manera individual, dejando un registro claro de quiénes jugarán.
-        </p>
-        <h3 style={{ marginTop: "1.5rem", marginBottom: "0.5rem" }}>3. Cobra por adelantado o establece un responsable</h3>
-        <p style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-          El problema financiero suele ser el mayor dolor de cabeza. Designa a un "Tesorero" del grupo o exige que la cuota de la cancha se pague por transferencia antes del pitazo inicial.
-        </p>
-      </article>
+      <main style={{ flex: 1, maxWidth: "1100px", margin: "0 auto", padding: "3rem 1.5rem", width: "100%" }}>
+        <header style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+          <h1 style={{ fontSize: "3rem", fontWeight: "900", background: "linear-gradient(90deg, #10b981, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginBottom: "1rem" }}>
+            Blog & Guías de Fútbol 5
+          </h1>
+          <p style={{ fontSize: "1.25rem", color: "var(--text-muted, #94a3b8)", maxWidth: "750px", margin: "0 auto", lineHeight: "1.6" }}>
+            Artículos, consejos tácticos, algoritmos e historias para organizadores y jugadores de fútbol aficionado.
+          </p>
+        </header>
 
-      <article style={{ marginBottom: "4rem", paddingBottom: "2rem", borderBottom: "1px solid var(--border)" }}>
-        <h2 style={{ fontSize: "2rem", marginBottom: "1rem" }}>Cómo Balancear Equipos de Fútbol Amateur</h2>
-        <p style={{ color: "var(--muted)", marginBottom: "1rem" }}>Publicado el 15 de Junio, 2026</p>
-        <p style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-          No hay nada peor que un partido desequilibrado donde un equipo gana 15 a 0. La diversión se pierde y la motivación para el próximo partido disminuye. El secreto está en la distribución de roles.
-        </p>
-        <p style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-          Primero, identifica a tus "jugadores franquicia" o estrellas. Asegúrate de que no jueguen todos juntos. Segundo, revisa las posiciones. Un equipo lleno de delanteros sin defensas está destinado al fracaso.
-        </p>
-        <p style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-          La Inteligencia Artificial de F5Manager evalúa el OVR (Overall Rating) de cada jugador, considerando sus habilidades en ataque, defensa y portería, para generar los equipos más justos matemáticamente posibles.
-        </p>
-      </article>
+        {/* Buscador y Filtros por Categoría */}
+        <section style={{ marginBottom: "3rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          <div style={{ maxWidth: "600px", margin: "0 auto", width: "100%" }}>
+            <input
+              type="text"
+              placeholder="🔍 Buscar artículos por título o tema..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.85rem 1.25rem",
+                borderRadius: "12px",
+                border: "1px solid var(--border, rgba(255, 255, 255, 0.15))",
+                background: "var(--surface-1, #0f172a)",
+                color: "#ffffff",
+                fontSize: "1rem"
+              }}
+            />
+          </div>
 
-      <article style={{ marginBottom: "4rem" }}>
-        <h2 style={{ fontSize: "2rem", marginBottom: "1rem" }}>La Importancia del Tercer Tiempo</h2>
-        <p style={{ color: "var(--muted)", marginBottom: "1rem" }}>Publicado el 2 de Mayo, 2026</p>
-        <p style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-          El fútbol amateur no se trata solo de patear un balón; se trata de la comunidad. El "tercer tiempo", ese espacio de convivencia después del partido, es fundamental para fortalecer los lazos del grupo.
-        </p>
-        <p style={{ marginBottom: "1rem", lineHeight: "1.6" }}>
-          Utiliza los excedentes de las cuotas o las multas recaudadas (la "Caja" del grupo) para comprar bebidas o snacks al final del mes. Esto no solo incentiva a los jugadores a ser puntuales, sino que premia la constancia del equipo.
-        </p>
-      </article>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "center" }}>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                style={{
+                  padding: "0.4rem 1rem",
+                  borderRadius: "20px",
+                  border: selectedCategory === cat ? "1px solid var(--primary, #10b981)" : "1px solid rgba(255, 255, 255, 0.1)",
+                  background: selectedCategory === cat ? "rgba(16, 185, 129, 0.15)" : "var(--surface-1, #0f172a)",
+                  color: selectedCategory === cat ? "var(--primary, #10b981)" : "var(--text-muted, #94a3b8)",
+                  fontWeight: selectedCategory === cat ? "700" : "500",
+                  cursor: "pointer",
+                  fontSize: "0.9rem",
+                  transition: "all 0.2s ease"
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </section>
 
-      <footer style={{ textAlign: "center", borderTop: "1px solid var(--border)", paddingTop: "2rem", marginTop: "3rem" }}>
-        <p>© 2026 F5Manager. Todos los derechos reservados.</p>
-        <div style={{ display: "flex", justifyContent: "center", gap: "1.5rem", marginTop: "1rem" }}>
-          <a href="/privacidad" style={{ color: "var(--muted)", textDecoration: "none" }}>Privacidad</a>
-          <a href="/terminos" style={{ color: "var(--muted)", textDecoration: "none" }}>Términos</a>
-          <a href="/contacto" style={{ color: "var(--muted)", textDecoration: "none" }}>Contacto</a>
-        </div>
-      </footer>
+        {/* Grid de Artículos */}
+        <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "2rem", marginBottom: "4rem" }}>
+          {filteredPosts.map((post) => (
+            <article
+              key={post.slug}
+              style={{
+                background: "var(--surface-1, #0f172a)",
+                borderRadius: "16px",
+                border: "1px solid var(--border, rgba(255, 255, 255, 0.1))",
+                padding: "2rem",
+                display: "flex",
+                flexDirection: "column",
+                transition: "transform 0.2s ease, border-color 0.2s ease"
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                <span style={{ padding: "0.25rem 0.75rem", borderRadius: "12px", background: "rgba(16, 185, 129, 0.12)", color: "var(--primary, #10b981)", fontSize: "0.8rem", fontWeight: "bold" }}>
+                  {post.category}
+                </span>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-muted, #64748b)" }}>{post.readTime}</span>
+              </div>
+
+              <h2 style={{ fontSize: "1.35rem", fontWeight: "800", marginBottom: "0.75rem", lineHeight: "1.4", color: "#ffffff" }}>
+                <a
+                  href={`/blog/${post.slug}`}
+                  onClick={(e) => { e.preventDefault(); onNavigate ? onNavigate(`/blog/${post.slug}`) : window.location.href = `/blog/${post.slug}`; }}
+                  style={{ color: "inherit", textDecoration: "none" }}
+                >
+                  {post.title}
+                </a>
+              </h2>
+
+              <p style={{ color: "var(--text-muted, #cbd5e1)", fontSize: "0.95rem", lineHeight: "1.6", marginBottom: "1.5rem", flex: 1 }}>
+                {post.summary}
+              </p>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "1rem" }}>
+                <span style={{ fontSize: "0.85rem", color: "var(--text-muted, #64748b)" }}>{post.date}</span>
+                <a
+                  href={`/blog/${post.slug}`}
+                  onClick={(e) => { e.preventDefault(); onNavigate ? onNavigate(`/blog/${post.slug}`) : window.location.href = `/blog/${post.slug}`; }}
+                  style={{ color: "var(--primary, #10b981)", textDecoration: "none", fontWeight: "bold", fontSize: "0.9rem" }}
+                >
+                  Leer Artículo →
+                </a>
+              </div>
+            </article>
+          ))}
+        </section>
+      </main>
+
+      <PublicFooter onNavigate={onNavigate} />
     </div>
   );
 }

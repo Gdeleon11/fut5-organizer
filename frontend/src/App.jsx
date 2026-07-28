@@ -26,6 +26,10 @@ import MyFifaCardPage from "./pages/MyFifaCardPage.jsx";
 import ProfileForm from "./pages/ProfileForm.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import BlogPage from "./pages/BlogPage.jsx";
+import BlogPostPage from "./pages/BlogPostPage.jsx";
+import AboutPage from "./pages/AboutPage.jsx";
+import FeaturesPage from "./pages/FeaturesPage.jsx";
+import FaqPage from "./pages/FaqPage.jsx";
 import { PrivacyPage, TermsPage, ContactPage } from "./pages/LegalPages.jsx";
 import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
 import { activeReservationStatus, canUseReservationAssistant } from "./reservationAssistant.js";
@@ -65,6 +69,9 @@ const PAGE_PATHS = {
   tournaments: "/torneos",
   landing: "/",
   blog: "/blog",
+  nosotros: "/nosotros",
+  caracteristicas: "/caracteristicas",
+  faq: "/faq",
   privacy: "/privacidad",
   terms: "/terminos",
   contact: "/contacto",
@@ -74,12 +81,17 @@ const PAGE_PATHS = {
 const PATH_PAGES = Object.fromEntries(Object.entries(PAGE_PATHS).map(([page, path]) => [path, page]));
 
 function routeFromLocation() {
-  if (typeof window === "undefined") return { page: "matches", matchId: null };
+  if (typeof window === "undefined") return { page: "landing", matchId: null, slug: null };
 
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
   const matchPath = path.match(/^\/partidos\/([^/]+)$/);
   if (matchPath) {
-    return { page: "match", matchId: decodeURIComponent(matchPath[1]) };
+    return { page: "match", matchId: decodeURIComponent(matchPath[1]), slug: null };
+  }
+
+  const blogPostMatch = path.match(/^\/blog\/([^/]+)$/);
+  if (blogPostMatch) {
+    return { page: "blog-post", matchId: null, slug: decodeURIComponent(blogPostMatch[1]) };
   }
 
   const legacyMappings = {
@@ -94,10 +106,10 @@ function routeFromLocation() {
   };
 
   if (legacyMappings[path]) {
-    return { page: legacyMappings[path], matchId: null };
+    return { page: legacyMappings[path], matchId: null, slug: null };
   }
 
-  return { page: PATH_PAGES[path] || "matches", matchId: null };
+  return { page: PATH_PAGES[path] || "landing", matchId: null, slug: null };
 }
 
 function urlForPage(page, matchId, groupId) {
@@ -119,6 +131,7 @@ export default function App() {
   const [activeGroupId, setActiveGroupId] = useState("");
   const [page, setPage] = useState(initialRoute.page);
   const [selectedMatchId, setSelectedMatchId] = useState(initialRoute.matchId);
+  const [selectedBlogSlug, setSelectedBlogSlug] = useState(initialRoute.slug || "");
   const [matches, setMatches] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [ratings, setRatings] = useState([]);
@@ -1969,30 +1982,53 @@ export default function App() {
     return <ProofUploadPage token={proofToken} session={session} />;
   }
 
-  const isPublicRoute = ["landing", "blog", "privacy", "terms", "contact", "auth"].includes(page);
+  const isPublicRoute = ["landing", "blog", "blog-post", "nosotros", "caracteristicas", "faq", "privacy", "terms", "contact", "auth"].includes(page);
+
+  function handlePublicNavigate(targetPath) {
+    const cleanPath = targetPath.replace(/\/+$/, "") || "/";
+    window.history.pushState({}, "", cleanPath);
+
+    const blogPostMatch = cleanPath.match(/^\/blog\/([^/]+)$/);
+    if (blogPostMatch) {
+      setSelectedBlogSlug(decodeURIComponent(blogPostMatch[1]));
+      setPage("blog-post");
+      return;
+    }
+
+    const pageKey = PATH_PAGES[cleanPath] || "landing";
+    setPage(pageKey);
+  }
 
   // Auto-redirect logged-in users away from auth/landing to the app
-  if (session && !isDemoMode && (page === "landing" || page === "auth")) {
+  if (session && !isDemoMode && (page === "auth")) {
     window.history.replaceState({}, "", "/partidos");
     setPage("matches");
   }
 
   if (!session && !isDemoMode) {
-    if (page === "blog") return <BlogPage />;
-    if (page === "privacy") return <PrivacyPage />;
-    if (page === "terms") return <TermsPage />;
-    if (page === "contact") return <ContactPage />;
-    if (page === "landing") {
+    if (page === "blog-post") return <> <BlogPostPage slug={selectedBlogSlug} onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="blog-post" /> </>;
+    if (page === "blog") return <> <BlogPage onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="blog" /> </>;
+    if (page === "nosotros") return <> <AboutPage onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="nosotros" /> </>;
+    if (page === "caracteristicas") return <> <FeaturesPage onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="caracteristicas" /> </>;
+    if (page === "faq") return <> <FaqPage onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="faq" /> </>;
+    if (page === "privacy") return <PrivacyPage onNavigate={handlePublicNavigate} />;
+    if (page === "terms") return <TermsPage onNavigate={handlePublicNavigate} />;
+    if (page === "contact") return <ContactPage onNavigate={handlePublicNavigate} />;
+    if (page === "landing" || page === "/") {
       return (
-        <LandingPage 
-          onLogin={() => { 
-            setPage("auth"); 
-            window.history.pushState({}, "", "/login"); 
-          }} 
-        />
+        <>
+          <LandingPage 
+            onLogin={() => { 
+              setPage("auth"); 
+              window.history.pushState({}, "", "/login"); 
+            }} 
+            onNavigate={handlePublicNavigate}
+          />
+          <AdBanner sticky={true} pageContext="landing" />
+        </>
       );
     }
-    // Default to AuthScreen for unauthenticated users on any other route
+    // Default to AuthScreen for unauthenticated users on /login or other non-public paths
     return (
       <AuthScreen
         onMockLogin={() => {
@@ -2004,10 +2040,14 @@ export default function App() {
   }
 
   // If a logged-in user explicitly visits a public page, show it
-  if (page === "blog") return <BlogPage />;
-  if (page === "privacy") return <PrivacyPage />;
-  if (page === "terms") return <TermsPage />;
-  if (page === "contact") return <ContactPage />;
+  if (page === "blog-post") return <> <BlogPostPage slug={selectedBlogSlug} onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="blog-post" /> </>;
+  if (page === "blog") return <> <BlogPage onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="blog" /> </>;
+  if (page === "nosotros") return <> <AboutPage onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="nosotros" /> </>;
+  if (page === "caracteristicas") return <> <FeaturesPage onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="caracteristicas" /> </>;
+  if (page === "faq") return <> <FaqPage onNavigate={handlePublicNavigate} /> <AdBanner sticky={true} pageContext="faq" /> </>;
+  if (page === "privacy") return <PrivacyPage onNavigate={handlePublicNavigate} />;
+  if (page === "terms") return <TermsPage onNavigate={handlePublicNavigate} />;
+  if (page === "contact") return <ContactPage onNavigate={handlePublicNavigate} />;
 
   if (loading && !profile) return <ShellMessage title="Cargando" message="Preparando tu perfil..." />;
   if (profile && !profileComplete(profile)) {
@@ -2426,6 +2466,7 @@ export default function App() {
             venues={venues}
             matches={sortedMatches}
             attendances={attendances}
+            groupTags={collectGroupTags(groupTagRows)}
             isAdmin={isAdmin}
             isSuperAdmin={isSuperAdmin}
             currentUserId={profile?.id}
