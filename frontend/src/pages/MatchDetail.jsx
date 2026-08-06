@@ -328,12 +328,6 @@ export default function MatchDetail({
       let teamCount = players.length >= 10 && players.length <= 13 ? 2 : (players.length >= 14 && players.length <= 18 ? 3 : Math.ceil(players.length / 5));
 
       let penaltyTeam = null;
-      if (options?.penaltyTeam && players.length === 14) {
-        const sortedByTime = [...players].sort((a, b) => a.confirmed_at - b.confirmed_at);
-        players = sortedByTime.slice(0, 10);
-        penaltyTeam = sortedByTime.slice(10);
-        teamCount = 2; // Pass only 2 teams to AI
-      }
 
       const aiTeams = await distributeTeamsWithAI({
         players,
