@@ -1,5 +1,12 @@
 import { getCapacities, CAPACITY_KEYS } from "./capacityStore.js";
 
+export function normalizeRating(v) {
+  const num = Number(v);
+  if (isNaN(num) || num <= 0) return 2.5;
+  if (num > 5) return Math.max(1, Math.min(5, num / 20));
+  return Math.max(1, Math.min(5, num));
+}
+
 // Convierte las capacidades manuales (1-100) de un jugador a la escala de
 // estrellas (1-5) promediando las 6. Devuelve null si no hay capacidades.
 function capacityRatingOnStarScale(player) {
@@ -55,15 +62,20 @@ function countSkillInTeam(team, skill) {
 
 function starEffectiveRating(player) {
   const position = player.preferred_position;
+  let raw = 2.5;
   switch (position) {
     case "Forward":
-      return player.attack_rating || player.rating || 2;
+      raw = player.attack_rating || player.rating || 2.5;
+      break;
     case "Defender":
-      return player.defense_rating || player.rating || 2;
+      raw = player.defense_rating || player.rating || 2.5;
+      break;
     case "Midfielder":
-      return player.midfield_rating || player.rating || 2;
+      raw = player.midfield_rating || player.rating || 2.5;
+      break;
     case "Goalkeeper":
-      return player.goalkeeper_rating || player.rating || 2;
+      raw = player.goalkeeper_rating || player.rating || 2.5;
+      break;
     case "Flexible":
     default: {
       const ratings = [
@@ -71,12 +83,13 @@ function starEffectiveRating(player) {
         player.defense_rating,
         player.midfield_rating,
         player.goalkeeper_rating,
-      ].filter(Boolean);
-      return ratings.length
+      ].filter((r) => r != null && r > 0);
+      raw = ratings.length
         ? ratings.reduce((a, b) => a + b, 0) / ratings.length
-        : player.rating || 2;
+        : player.rating || 2.5;
     }
   }
+  return normalizeRating(raw);
 }
 
 // Fuerza efectiva del jugador para el balanceo. Mezcla las estrellas por
@@ -249,14 +262,13 @@ function improveWithSwaps(teams) {
 }
 
 export function generateBalancedTeams(players) {
-  const clamp = (v) => Math.max(1, Math.min(4, Number(v) || 2));
   const normalizedPlayers = players.map((player) => ({
     ...player,
-    rating: clamp(player.rating),
-    attack_rating: clamp(player.attack_rating),
-    defense_rating: clamp(player.defense_rating),
-    midfield_rating: clamp(player.midfield_rating),
-    goalkeeper_rating: clamp(player.goalkeeper_rating),
+    rating: normalizeRating(player.rating),
+    attack_rating: normalizeRating(player.attack_rating || player.rating),
+    defense_rating: normalizeRating(player.defense_rating || player.rating),
+    midfield_rating: normalizeRating(player.midfield_rating || player.rating),
+    goalkeeper_rating: normalizeRating(player.goalkeeper_rating || player.rating),
   }));
   const teamCount = teamCountForPlayers(normalizedPlayers.length);
   const teams = improveWithSwaps(greedyAssign(normalizedPlayers, teamCount));
@@ -272,7 +284,7 @@ export function generateBalancedTeams(players) {
         if (isGoalkeeper(b) && !isGoalkeeper(a)) return 1;
         return 0;
       }),
-      total_rating: Math.round(totalRating(team)),
+      total_rating: Math.round(totalRating(team) * 10) / 10,
       goalkeeper_count: goalkeeperCount(team),
     })),
   };

@@ -1,3 +1,5 @@
+import { normalizeRating } from "./teamGeneration.js";
+
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.1-8b-instant";
 
@@ -16,11 +18,11 @@ export async function distributeTeamsWithAI({ players, skills, instructions, tea
       id: p.id,
       name: p.full_name || p.nickname || "Jugador",
       position: p.preferred_position || "Flexible",
-      rating: p.rating,
-      attack_rating: p.attack_rating,
-      defense_rating: p.defense_rating,
-      midfield_rating: p.midfield_rating,
-      goalkeeper_rating: p.goalkeeper_rating,
+      rating: normalizeRating(p.rating),
+      attack_rating: normalizeRating(p.attack_rating || p.rating),
+      defense_rating: normalizeRating(p.defense_rating || p.rating),
+      midfield_rating: normalizeRating(p.midfield_rating || p.rating),
+      goalkeeper_rating: normalizeRating(p.goalkeeper_rating || p.rating),
       skills: playerSkills,
     };
   });
@@ -41,8 +43,8 @@ export async function distributeTeamsWithAI({ players, skills, instructions, tea
   const systemPrompt = `Eres un asistente experto en fútbol. Tu trabajo es distribuir jugadores en equipos equilibrados.
 
 CADA JUGADOR INCLUYE:
-- rating: puntuación general (1-4)
-- attack_rating, defense_rating, midfield_rating, goalkeeper_rating: puntuación por posición (1-4)
+- rating: puntuación general de 1 a 5 estrellas (donde 5.0 es el nivel máximo / crack)
+- attack_rating, defense_rating, midfield_rating, goalkeeper_rating: puntuación por posición de 1 a 5 estrellas
 - position: posición preferida (Forward, Defender, Midfielder, Goalkeeper, Flexible)
 - skills: habilidades especiales (goalkeeper, wizard, cannon, shield, etc)
 
@@ -63,8 +65,7 @@ Responde SOLO con un objeto JSON en este formato:
     {
       "name": "Equipo A",
       "player_ids": ["uuid1", "uuid2", ...]
-    },
-    ...
+    }
   ]
 }
 No agregues texto explicativo ni formato Markdown adicional fuera del JSON.`;

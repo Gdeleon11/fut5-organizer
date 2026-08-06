@@ -721,7 +721,7 @@ export const api = {
 
     let penaltyTeam = null;
 
-    if (players.length === 14) {
+    if (options.penaltyTeam && players.length === 14) {
       // 14 players: force last 4 confirmed to be the 3rd team
       const sortedByTime = [...players].sort((a, b) => a.confirmed_at - b.confirmed_at);
       const topTen = sortedByTime.slice(0, 10);
