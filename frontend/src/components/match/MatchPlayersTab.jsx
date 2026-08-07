@@ -24,7 +24,7 @@ export function MatchPlayersTab({
         <SectionHeader
           title="Jugadores Confirmados"
           subtitle={`${confirmedPlayers.length} de ${maxPlayers} plazas ocupadas`}
-          icon={<Users size={18} className="text-emerald-400" />}
+          icon={<Users size={18} className="f5-text-success" />}
         />
 
         {confirmedPlayers.length === 0 ? (
@@ -45,15 +45,7 @@ export function MatchPlayersTab({
               const rating = ratingMap?.get(cp.id)?.rating || 70;
 
               return (
-                <div key={cp.id} style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  background: "var(--surface-2)",
-                  padding: "0.65rem 0.85rem",
-                  borderRadius: "var(--r-md)",
-                  border: "1px solid var(--border-subtle)"
-                }}>
+                <div key={cp.id} className="f5-player-card">
                   <div style={{ display: "flex", alignItems: "center", gap: "0.65rem" }}>
                     <Avatar profile={cp.is_guest ? null : cp.profile} size={32} />
                     <div>
@@ -81,7 +73,7 @@ export function MatchPlayersTab({
           <SectionHeader
             title="Lista de Espera"
             subtitle={`${waitlistAttendances.length} ${waitlistAttendances.length === 1 ? "jugador en espera" : "jugadores en espera"}`}
-            icon={<Clock size={18} className="text-amber-400" />}
+            icon={<Clock size={18} className="f5-text-warning" />}
           />
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>

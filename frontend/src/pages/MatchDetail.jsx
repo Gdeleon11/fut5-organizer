@@ -390,23 +390,7 @@ export default function MatchDetail({
       <button
         onClick={handleCopyGuestLink}
         title="Copiar enlace para invitados"
-        style={{
-          position: "fixed",
-          bottom: "80px",
-          right: "20px",
-          width: "56px",
-          height: "56px",
-          borderRadius: "28px",
-          background: "var(--primary)",
-          color: "#040d06",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 4px 18px rgba(57, 229, 90, 0.4)",
-          border: "none",
-          cursor: "pointer",
-          zIndex: 980
-        }}
+        className="f5-floating-btn"
       >
         <Link2 size={24} />
       </button>

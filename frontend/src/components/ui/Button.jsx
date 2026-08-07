@@ -38,7 +38,7 @@ export function Button({
       {...rest}
     >
       {loading ? (
-        <Loader2 className="animate-spin" size={size === "sm" ? 14 : size === "lg" ? 20 : 16} />
+        <Loader2 className="f5-spin" size={size === "sm" ? 14 : size === "lg" ? 20 : 16} />
       ) : icon ? (
         <span className="f5-btn-icon">{icon}</span>
       ) : null}

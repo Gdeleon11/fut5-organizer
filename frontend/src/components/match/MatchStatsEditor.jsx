@@ -19,7 +19,7 @@ export function MatchStatsEditor({
       <SectionHeader
         title="Cargar / Editar Estadísticas"
         subtitle="Registra goles, asistencias, MVP del partido y valla invicta."
-        icon={<Trophy size={18} className="text-amber-400" />}
+        icon={<Trophy size={18} className="f5-text-warning" />}
       />
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem", marginBottom: "1.25rem" }}>

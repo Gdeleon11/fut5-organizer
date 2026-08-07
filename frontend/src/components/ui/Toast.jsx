@@ -19,10 +19,10 @@ export function Toast({
   if (!message) return null;
 
   const iconMap = {
-    success: <CheckCircle2 size={18} className="text-emerald-400" />,
-    warning: <AlertCircle size={18} className="text-amber-400" />,
-    danger: <AlertCircle size={18} className="text-rose-400" />,
-    info: <Info size={18} className="text-blue-400" />,
+    success: <CheckCircle2 size={18} className="f5-text-success" />,
+    warning: <AlertCircle size={18} className="f5-text-warning" />,
+    danger: <AlertCircle size={18} className="f5-text-danger" />,
+    info: <Info size={18} className="f5-text-info" />,
   };
 
   return (

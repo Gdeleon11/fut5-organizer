@@ -6,7 +6,7 @@ import GuestPlayersSection from "./GuestPlayersSection.jsx";
 import CopyReservationTextButton from "../CopyReservationTextButton.jsx";
 import ExportCard from "../ExportCard.jsx";
 import SocialShareCard from "../SocialShareCard.jsx";
-import { Settings, Sparkles, Trophy, Users, AlertTriangle, ChevronDown, ChevronUp, RefreshCw, XCircle } from "lucide-react";
+import { Settings, Sparkles, Trophy, Users, AlertTriangle, ChevronDown, ChevronUp, RefreshCw, XCircle, Zap } from "lucide-react";
 import { attendanceLabel, displayName, matchInvitationText } from "../../utils.js";
 
 /**
@@ -56,7 +56,7 @@ export function MatchAdminPanel({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-          <Settings size={20} className="text-emerald-400" />
+          <Settings size={20} className="f5-text-success" />
           <div>
             <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "700", color: "#ffffff" }}>
               Panel de Administración
@@ -81,7 +81,7 @@ export function MatchAdminPanel({
             <SectionHeader
               title="Generación de Equipos"
               subtitle="Crea equipos balanceados de 5 vs 5 automáticamente o con asistencia de IA."
-              icon={<Sparkles size={18} className="text-blue-400" />}
+              icon={<Sparkles size={18} className="f5-text-info" />}
             />
 
             <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -108,6 +108,15 @@ export function MatchAdminPanel({
                 <Button
                   variant="primary"
                   size="md"
+                  onClick={() => onGenerateTeams && onGenerateTeams({})}
+                  icon={<Zap size={16} />}
+                >
+                  ⚡ Generar automáticamente
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="md"
                   loading={aiLoading}
                   onClick={handleAIDistribute}
                   icon={<Sparkles size={16} />}
@@ -116,7 +125,7 @@ export function MatchAdminPanel({
                 </Button>
 
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="md"
                   onClick={() => setIsEditingStats((v) => !v)}
                   icon={<Trophy size={16} />}
@@ -140,7 +149,7 @@ export function MatchAdminPanel({
             <SectionHeader
               title="Control de Asistencia"
               subtitle="Registra llegada de jugadores en cancha o marca no-show."
-              icon={<Users size={18} className="text-emerald-400" />}
+              icon={<Users size={18} className="f5-text-success" />}
             />
 
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", maxHeight: "300px", overflowY: "auto" }}>

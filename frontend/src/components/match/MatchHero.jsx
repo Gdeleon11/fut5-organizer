@@ -65,22 +65,9 @@ export function MatchHero({
       </div>
 
       {/* Key Info Grid */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-        gap: "0.85rem",
-        marginBottom: "1.5rem"
-      }}>
+      <div className="f5-match-info-grid">
         {/* Date */}
-        <div style={{
-          background: "rgba(255, 255, 255, 0.03)",
-          border: "1px solid rgba(255, 255, 255, 0.06)",
-          borderRadius: "var(--r-md)",
-          padding: "0.75rem 0.9rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.65rem"
-        }}>
+        <div className="f5-match-info-item">
           <div style={{ width: 36, height: 36, borderRadius: "var(--r-sm)", background: "rgba(57, 229, 90, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary)" }}>
             <Calendar size={18} />
           </div>
@@ -91,15 +78,7 @@ export function MatchHero({
         </div>
 
         {/* Kickoff Time */}
-        <div style={{
-          background: "rgba(255, 255, 255, 0.03)",
-          border: "1px solid rgba(255, 255, 255, 0.06)",
-          borderRadius: "var(--r-md)",
-          padding: "0.75rem 0.9rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.65rem"
-        }}>
+        <div className="f5-match-info-item">
           <div style={{ width: 36, height: 36, borderRadius: "var(--r-sm)", background: "rgba(59, 130, 246, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--info)" }}>
             <Clock size={18} />
           </div>
@@ -110,15 +89,7 @@ export function MatchHero({
         </div>
 
         {/* Quorum */}
-        <div style={{
-          background: "rgba(255, 255, 255, 0.03)",
-          border: "1px solid rgba(255, 255, 255, 0.06)",
-          borderRadius: "var(--r-md)",
-          padding: "0.75rem 0.9rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.65rem"
-        }}>
+        <div className="f5-match-info-item">
           <div style={{ width: 36, height: 36, borderRadius: "var(--r-sm)", background: "rgba(245, 158, 11, 0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--warning)" }}>
             <Users size={18} />
           </div>
@@ -147,7 +118,7 @@ export function MatchHero({
       </div>
 
       {/* Divider */}
-      <div style={{ height: "1px", background: "rgba(255, 255, 255, 0.08)", marginBottom: "1.25rem" }} />
+      <div className="f5-inline-divider" />
 
       {/* Main Action Callout */}
       {!isClosed && (
@@ -195,9 +166,21 @@ export function MatchHero({
       )}
 
       {/* Mobile Sticky CTA Bar */}
-      {!isClosed && !isConfirmed && (
+      {!isClosed && (
         <div className="f5-sticky-cta">
-          {isFull ? (
+          {isConfirmed ? (
+            <Button variant="danger" fullWidth size="lg" onClick={onCancel} icon={<X size={20} />}>
+              Cancelar Asistencia
+            </Button>
+          ) : isWaitlist ? (
+            <Button variant="secondary" fullWidth size="lg" onClick={onCancel} icon={<Clock size={20} />}>
+              Salir de Lista de Espera
+            </Button>
+          ) : isCanceled ? (
+            <Button variant="success" fullWidth size="lg" onClick={onConfirm} icon={<Check size={20} />}>
+              Volver a Confirmar
+            </Button>
+          ) : isFull ? (
             <Button variant="secondary" fullWidth size="lg" onClick={onJoinWaitlist} icon={<Clock size={20} />}>
               Unirse a Lista de Espera
             </Button>
@@ -208,6 +191,7 @@ export function MatchHero({
           )}
         </div>
       )}
+
     </Card>
   );
 }

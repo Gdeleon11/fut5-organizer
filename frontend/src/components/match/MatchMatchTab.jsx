@@ -54,7 +54,7 @@ export function MatchMatchTab({
         <SectionHeader
           title="Información de la Cancha"
           subtitle={selectedVenue?.address || selectedVenue?.name || match.venue || "Guatemala"}
-          icon={<MapPin size={18} className="text-emerald-400" />}
+          icon={<MapPin size={18} className="f5-text-success" />}
         />
         <div style={{ fontSize: "0.88rem", color: "var(--text-secondary)", lineHeight: "1.5" }}>
           {selectedVenue?.notes ? (
@@ -75,7 +75,7 @@ export function MatchMatchTab({
           <SectionHeader
             title="Pronóstico del Clima"
             subtitle="Condiciones esperadas para la hora de kickoff"
-            icon={<Cloud size={18} className="text-emerald-400" />}
+            icon={<Cloud size={18} className="f5-text-info" />}
           />
           <WeatherWidget
             venue={selectedVenue?.name || match.venue || "Guatemala"}

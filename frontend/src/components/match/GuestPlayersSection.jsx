@@ -46,7 +46,7 @@ export function GuestPlayersSection({
       <SectionHeader
         title="Jugadores Invitados"
         subtitle="Agrega invitados temporales solo para este partido."
-        icon={<UserPlus size={18} className="text-emerald-400" />}
+        icon={<UserPlus size={18} className="f5-text-success" />}
         action={
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <Button
@@ -164,7 +164,7 @@ export function GuestPlayersSection({
                 variant="ghost"
                 size="sm"
                 onClick={() => onDelete(guest.id)}
-                icon={<Trash2 size={14} className="text-rose-400" />}
+                icon={<Trash2 size={14} className="f5-text-danger" />}
               />
             </div>
           ))}

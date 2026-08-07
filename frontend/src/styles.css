@@ -6434,8 +6434,81 @@ small, .muted {
   color: #ffffff;
 }
 
-@keyframes f5-fade-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+/* --- Utility Helpers & Spin Animation --- */
+.f5-spin {
+  animation: f5-spin-anim 900ms linear infinite;
 }
+
+@keyframes f5-spin-anim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* --- UI v2 Layout Helper Classes --- */
+.f5-match-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.f5-match-info-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--r-md);
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.f5-player-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface-2);
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.f5-inline-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 1.25rem 0;
+}
+
+.f5-floating-btn {
+  position: fixed;
+  bottom: calc(5.2rem + env(safe-area-inset-bottom, 0px));
+  right: 1.25rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background: var(--primary);
+  color: #040d06;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(57, 229, 90, 0.4);
+  border: none;
+  cursor: pointer;
+  z-index: 980;
+  transition: transform 180ms ease;
+}
+
+.f5-floating-btn:hover {
+  transform: scale(1.06);
+}
+
+@media (max-width: 719px) {
+  .f5-sticky-cta {
+    bottom: calc(3.8rem + env(safe-area-inset-bottom, 0px));
+  }
+  .f5-floating-btn {
+    bottom: calc(7.8rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+
 

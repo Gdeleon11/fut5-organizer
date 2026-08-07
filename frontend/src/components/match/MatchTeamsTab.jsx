@@ -26,7 +26,7 @@ export function MatchTeamsTab({
         <SectionHeader
           title="Equipos Generados"
           subtitle={hasTeams ? `${teams.length} equipos listos para la chamusca` : "Los equipos aún no han sido generados"}
-          icon={<Shield size={18} className="text-emerald-400" />}
+          icon={<Shield size={18} className="f5-text-success" />}
         />
 
         {!hasTeams ? (
