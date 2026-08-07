@@ -167,3 +167,58 @@
 
   color-scheme: dark;
 }
+
+/* ============================================================
+
+   Unified Token Aliases for UI v2
+   ============================================================ */
+:root,
+[data-theme] {
+  --bg: var(--surface-0);
+  --surface-1: var(--surface-1);
+  --surface-2: var(--surface-2);
+  --surface-3: var(--surface-3);
+  --border: var(--border);
+  --border-subtle: var(--border-light);
+  --border-hover: rgba(255, 255, 255, 0.15);
+
+  --text: var(--text-primary);
+  --text-secondary: var(--text-secondary);
+  --text-muted: var(--text-muted);
+
+  --primary: var(--accent);
+  --primary-hover: var(--accent-dim);
+
+  --success: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --success-border: rgba(16, 185, 129, 0.3);
+
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.1);
+  --warning-border: rgba(245, 158, 11, 0.3);
+
+  --danger: var(--red, #ef4444);
+  --danger-bg: var(--red-bg, rgba(239, 68, 68, 0.1));
+  --danger-border: var(--red-border, rgba(239, 68, 68, 0.3));
+
+  --info: #3b82f6;
+  --info-bg: rgba(59, 130, 246, 0.1);
+  --info-border: rgba(59, 130, 246, 0.3);
+
+  /* Radius scale */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+
+  /* Spacing scale */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-7: 32px;
+  --s-8: 40px;
+}
+
