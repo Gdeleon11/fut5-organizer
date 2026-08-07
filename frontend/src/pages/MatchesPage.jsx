@@ -1,18 +1,17 @@
-import AttendanceAction from "../components/AttendanceAction.jsx";
-import CourtPhoto from "../components/CourtPhoto.jsx";
-import ExportCard from "../components/ExportCard.jsx";
+import React, { useState } from "react";
 import MatchForm from "../components/MatchForm.jsx";
-import SocialShareCard from "../components/SocialShareCard.jsx";
-import WeatherWidget from "../components/WeatherWidget.jsx";
-import { useState } from "react";
-import { formatTag } from "../tags.js";
-import {
-  formatMatchDate,
-  isConfirmedAttendance,
-  isFullMatch,
-  matchInvitationText,
-  waitlistPosition,
-} from "../utils.js";
+import { isConfirmedAttendance } from "../utils.js";
+
+// UI V2 Design System & Subcomponents
+import { Card } from "../components/ui/Card.jsx";
+import { Button } from "../components/ui/Button.jsx";
+import { SectionHeader } from "../components/ui/SectionHeader.jsx";
+import { MatchesHeader } from "../components/matches/MatchesHeader.jsx";
+import { NextMatchHeroCard } from "../components/matches/NextMatchHeroCard.jsx";
+import { UpcomingMatchCard } from "../components/matches/UpcomingMatchCard.jsx";
+import { MatchesHistoryFilter } from "../components/matches/MatchesHistoryFilter.jsx";
+import { MatchHistoryCard } from "../components/matches/MatchHistoryCard.jsx";
+import { Calendar, History } from "lucide-react";
 
 export default function MatchesPage({
   attendances,
@@ -44,41 +43,11 @@ export default function MatchesPage({
   const [visiblePastCount, setVisiblePastCount] = useState(6);
   const [historyFrom, setHistoryFrom] = useState("");
   const [historyTo, setHistoryTo] = useState("");
-  const venueById = new Map((venues || []).map((venue) => venue && [venue.id, venue]).filter(Boolean));
 
   function matchConfirmedCount(matchId) {
     const regularConfirmed = (matchAttendances(matchId) || []).filter(isConfirmedAttendance).length;
     const guestList = (guests || {})[matchId] || [];
     return regularConfirmed + guestList.length;
-  }
-
-  function matchWaitlist(matchId) {
-    return (matchAttendances(matchId) || [])
-      .filter((attendance) => attendance && attendance.status === "waitlist")
-      .map((attendance) => profiles.find((p) => p.id === attendance.profile_id))
-      .filter(Boolean);
-  }
-
-  function waitlistText(match) {
-    const waiting = matchWaitlist(match.id);
-    const confirmed = matchConfirmedCount(match.id);
-    const maxPlayers = Number(match.max_players || 0);
-    return [
-      "ESTADO F5MANAGER",
-      "",
-      match.title || "Chamuscón",
-      `Cuándo: ${formatMatchDate(match)}`,
-      `Cupos: ${confirmed}/${maxPlayers || "sin límite"}`,
-      waiting.length > 0
-        ? `Lista de espera: ${waiting.map((p) => p.nickname || p.full_name).join(", ")}`
-        : "Lista de espera: vacía",
-      "",
-      "Avisen si alguien libera cupo.",
-    ].join("\n");
-  }
-
-  function matchVenue(match) {
-    return venueById.get(match?.venue_id) || (venues || []).find((venue) => venue && venue.name === match?.venue) || null;
   }
 
   async function handleCreate(payload, photoFile) {
@@ -91,7 +60,7 @@ export default function MatchesPage({
     setDeletingId(null);
   }
 
-  const upcomingExcludingNext = (matches || []).filter((m) => nextMatch ? m.id !== nextMatch.id : true);
+  const upcomingExcludingNext = (matches || []).filter((m) => (nextMatch ? m.id !== nextMatch.id : true));
   const currentList = pastMatches || [];
   const filteredPast = currentList.filter((m) => {
     if (!m.match_date) return !historyFrom && !historyTo;
@@ -106,330 +75,140 @@ export default function MatchesPage({
   }
 
   return (
-    <div className="page-grid">
-      {/* ── Cartelera de Partidos Header ── */}
-      <div className="section-heading" style={{ gridColumn: "1 / -1", marginBottom: "1rem" }}>
-        <div>
-          <p className="eyebrow" style={{ color: "var(--primary)" }}>Cartelera de Partidos</p>
-          <h2 className="page-lede" style={{ fontWeight: "normal", margin: "0.25rem 0 0" }}>
-            Explorá partidos, registrate, convocá, convocados e historial del grupo
-          </h2>
+    <div className="f5-match-container">
+      {/* ── HEADER / TOOLBAR ── */}
+      <MatchesHeader
+        isAdmin={isAdmin}
+        showCreate={showCreate}
+        onToggleCreate={() => setShowCreate((v) => !v)}
+        onOpenPizarra={onOpenPizarra}
+      />
+
+      {/* ── SINGLE MATCH FORM INSTANCE FOR ADMIN ── */}
+      {showCreate && isAdmin && (
+        <Card variant="hero" style={{ borderLeft: "4px solid var(--primary)" }}>
+          <SectionHeader
+            title="Crear Nuevo Partido"
+            subtitle="Configura la fecha, hora, cancha y límite de jugadores para la convocatoria."
+          />
+          <MatchForm
+            venues={venues}
+            profiles={profiles}
+            attendances={attendances}
+            groupTags={groupTags}
+            onCreateGroupTag={onCreateGroupTag}
+            onCopied={onNotice}
+            onSave={handleCreate}
+            onCancel={() => setShowCreate(false)}
+          />
+        </Card>
+      )}
+
+      {/* ── PRÓXIMO PARTIDO — HERO CARD ── */}
+      <div>
+        <SectionHeader
+          title="Próximo Partido"
+          subtitle="Convocatoria activa más cercana del grupo."
+        />
+        <NextMatchHeroCard
+          match={nextMatch}
+          confirmedCount={nextMatch ? matchConfirmedCount(nextMatch.id) : 0}
+          onOpenMatch={onOpenMatch}
+        />
+      </div>
+
+      {/* ── S IGU IENTES PARTIDOS PROGRAMADOS ── */}
+      {upcomingExcludingNext.length > 0 && (
+        <div style={{ marginTop: "1rem" }}>
+          <SectionHeader
+            title="Siguientes Partidos Programados"
+            subtitle={`${upcomingExcludingNext.length} ${upcomingExcludingNext.length === 1 ? "partido programado" : "partidos programados"} a futuro`}
+            icon={<Calendar size={18} className="f5-text-primary" />}
+          />
+          <div className="f5-matches-grid">
+            {upcomingExcludingNext.map((match) => (
+              <UpcomingMatchCard
+                key={match.id}
+                match={match}
+                confirmedCount={matchConfirmedCount(match.id)}
+                onOpenMatch={onOpenMatch}
+              />
+            ))}
+          </div>
         </div>
-        <div className="button-row">
-          {isAdmin && (
-            <>
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={onOpenPizarra}
-                style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
-              >
-                📋 Pizarra Táctica
-              </button>
-              <button
-                className={showCreate ? "secondary-button" : ""}
-                type="button"
-                onClick={() => setShowCreate((v) => !v)}
-              >
-                {showCreate ? "Cancelar" : "+ Nuevo Partido"}
-              </button>
-            </>
+      )}
+
+      {/* ── HISTORIAL V2 ── */}
+      <div style={{ marginTop: "1.5rem" }}>
+        <SectionHeader
+          title="Historial de Partidos"
+          subtitle={`${filteredPast.length} partido${filteredPast.length === 1 ? "" : "s"} jugado${filteredPast.length === 1 ? "" : "s"}${(historyFrom || historyTo) ? " en el rango de fechas" : ""}`}
+          icon={<History size={18} className="f5-text-muted" />}
+        />
+
+        {/* Date Filter Bar */}
+        <MatchesHistoryFilter
+          historyFrom={historyFrom}
+          historyTo={historyTo}
+          onChangeFrom={(val) => updateHistoryFilter(setHistoryFrom, val)}
+          onChangeTo={(val) => updateHistoryFilter(setHistoryTo, val)}
+          onClear={() => {
+            setHistoryFrom("");
+            setHistoryTo("");
+            setVisiblePastCount(6);
+          }}
+        />
+
+        {/* History Item Cards / Rows */}
+        {filteredPast.length === 0 ? (
+          <Card variant="default">
+            <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-muted)", fontSize: "0.9rem" }}>
+              {(historyFrom || historyTo)
+                ? "No se encontraron partidos jugados en el rango de fechas seleccionado."
+                : "No hay partidos pasados registrados en el historial."}
+            </div>
+          </Card>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+            {filteredPast.slice(0, visiblePastCount).map((match) => (
+              <MatchHistoryCard
+                key={match.id}
+                match={match}
+                confirmedCount={matchConfirmedCount(match.id)}
+                isAdmin={isAdmin}
+                isDeleting={deletingId === match.id}
+                onStartDelete={(id) => setDeletingId(id)}
+                onConfirmDelete={handleDelete}
+                onCancelDelete={() => setDeletingId(null)}
+                onOpenMatch={onOpenMatch}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Load More / Load Less Buttons */}
+        <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem", marginTop: "1.25rem" }}>
+          {filteredPast.length > visiblePastCount && (
+            <Button
+              variant="secondary"
+              size="md"
+              onClick={() => setVisiblePastCount((c) => c + 9)}
+            >
+              Ver más ({filteredPast.length - visiblePastCount} restantes)
+            </Button>
+          )}
+
+          {visiblePastCount > 6 && filteredPast.length <= visiblePastCount && filteredPast.length > 6 && (
+            <Button
+              variant="ghost"
+              size="md"
+              onClick={() => setVisiblePastCount(6)}
+            >
+              Ver menos
+            </Button>
           )}
         </div>
       </div>
-
-      {showCreate && isAdmin && (
-        <div style={{ gridColumn: "1 / -1", marginBottom: "1.5rem" }}>
-          <MatchForm
-            venues={venues}
-            profiles={profiles}
-            attendances={attendances}
-            groupTags={groupTags}
-            onCreateGroupTag={onCreateGroupTag}
-            onCopied={onNotice}
-            onSave={handleCreate}
-            onCancel={() => setShowCreate(false)}
-          />
-        </div>
-      )}
-
-      {/* ── Siguiente Partido Tarjeta Premium ── */}
-      {nextMatch ? (
-        <section className="next-match-card-premium" style={{ gridColumn: "1 / -1" }}>
-          <div className="next-match-badge">PRÓXIMO PARTIDO MÁS CERCANO</div>
-          <div className="next-match-premium-header">
-            <h3>{nextMatch.title || nextMatch.venue || "Chamuscón"}</h3>
-            <div className="next-match-datetime-pill">
-              📅 {formatMatchDate(nextMatch)}
-            </div>
-          </div>
-          
-          <div className="next-match-location">
-            📍 {nextMatch.venue || "Lugar reservado"}
-          </div>
-
-          <div className="next-match-progress-container">
-            <div className="next-match-progress-label">
-              <span>Quórum del partido</span>
-              <span>{matchConfirmedCount(nextMatch.id)}/{nextMatch.max_players || 15} convocados</span>
-            </div>
-            <div className="next-match-progress-bar-bg">
-              <div
-                className="next-match-progress-bar-fill"
-                style={{
-                  width: `${Math.min(100, Math.round((matchConfirmedCount(nextMatch.id) / (nextMatch.max_players || 15)) * 100))}%`
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="next-match-footer">
-            <div className="next-match-info-text">
-              {matchConfirmedCount(nextMatch.id) >= (nextMatch.max_players || 15) ? (
-                <span>⚠️ Convocatoria llena. Anótate en lista de espera.</span>
-              ) : (
-                <span>ⓘ Convocatoria abierta para el equipo. ¡Súmate ahora!</span>
-              )}
-            </div>
-            <button
-              type="button"
-              className="next-match-action-btn"
-              onClick={() => onOpenMatch(nextMatch.id)}
-            >
-              Entrar y confirmar asistencia →
-            </button>
-          </div>
-        </section>
-      ) : (
-        <section className="panel" style={{ gridColumn: "1 / -1" }}>
-          <div className="empty-state compact">
-            Todavía no hay partidos creados.
-          </div>
-        </section>
-      )}
-
-      {/* ── Siguientes Partidos Programados ── */}
-      {upcomingExcludingNext.length > 0 && (
-        <section className="panel" style={{ gridColumn: "1 / -1", marginBottom: "1.5rem" }}>
-          <div className="section-heading" style={{ marginBottom: "1rem" }}>
-            <h2>Siguientes partidos programados</h2>
-          </div>
-          <div className="list" style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-            {upcomingExcludingNext.map((match) => (
-              <article
-                key={match.id}
-                className="panel"
-                style={{
-                  background: "var(--background-alt)",
-                  border: "1px solid var(--border)",
-                  padding: "1rem",
-                  borderRadius: "8px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: "1rem"
-                }}
-              >
-                <div>
-                  <span className="status-pill is-pending" style={{ marginBottom: "0.5rem" }}>PRÓXIMO</span>
-                  <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{match.title || match.venue || "Chamuscón"}</h4>
-                  <small style={{ color: "var(--muted)", display: "block", marginTop: "0.2rem" }}>
-                    📅 {formatMatchDate(match)}
-                  </small>
-                  <small style={{ color: "var(--text-secondary)", display: "block", marginTop: "0.4rem" }}>
-                    📍 {match.venue || "Lugar pendiente"}
-                  </small>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span className="count-pill">{matchConfirmedCount(match.id)} confirmados</span>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => onOpenMatch(match.id)}
-                    style={{ padding: "4px 10px", fontSize: "0.85rem", minHeight: "auto" }}
-                  >
-                    Ver Detalles
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="panel" style={{ gridColumn: "1 / -1" }}>
-        <div className="section-heading" style={{ marginBottom: "0.5rem" }}>
-          <div>
-            <h2>Historial de Partidos</h2>
-            <small>{filteredPast.length} partido{filteredPast.length === 1 ? "" : "s"}{(historyFrom || historyTo) ? " en el rango" : ""}</small>
-          </div>
-          {isAdmin && (
-            <button
-              className={showCreate ? "secondary-button" : ""}
-              type="button"
-              onClick={() => setShowCreate((v) => !v)}
-              style={{ minHeight: "auto", padding: "0.4rem 0.8rem", fontSize: "0.85rem" }}
-            >
-              {showCreate ? "Cancelar" : "+ Nuevo partido"}
-            </button>
-          )}
-        </div>
-
-        <div className="history-filter">
-          <label>
-            <span>Desde</span>
-            <input
-              type="date"
-              value={historyFrom}
-              max={historyTo || undefined}
-              onChange={(e) => updateHistoryFilter(setHistoryFrom, e.target.value)}
-            />
-          </label>
-          <label>
-            <span>Hasta</span>
-            <input
-              type="date"
-              value={historyTo}
-              min={historyFrom || undefined}
-              onChange={(e) => updateHistoryFilter(setHistoryTo, e.target.value)}
-            />
-          </label>
-          {(historyFrom || historyTo) && (
-            <button
-              className="ghost-button history-filter-clear"
-              type="button"
-              onClick={() => { setHistoryFrom(""); setHistoryTo(""); setVisiblePastCount(6); }}
-            >
-              ✕ Limpiar
-            </button>
-          )}
-        </div>
-
-        {showCreate && isAdmin && (
-          <MatchForm
-            venues={venues}
-            profiles={profiles}
-            attendances={attendances}
-            groupTags={groupTags}
-            onCreateGroupTag={onCreateGroupTag}
-            onCopied={onNotice}
-            onSave={handleCreate}
-            onCancel={() => setShowCreate(false)}
-          />
-        )}
-
-        {filteredPast.length === 0 ? (
-          <div className="empty-state compact">
-            {(historyFrom || historyTo) ? "No hay partidos en ese rango de fechas." : "No hay partidos pasados."}
-          </div>
-        ) : (
-          <div className="list" style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-            {filteredPast.slice(0, visiblePastCount).map((match) => (
-              <article
-                key={match.id}
-                className="panel"
-                style={{
-                  background: "var(--background-alt)",
-                  border: "1px solid var(--border)",
-                  padding: "1rem",
-                  borderRadius: "8px",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  gap: "1rem"
-                }}
-              >
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                    <span className="status-pill is-paid">Jugado</span>
-                    <span className="count-pill">{matchConfirmedCount(match.id)} jugadores</span>
-                  </div>
-                  <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{match.title || "Chamuscón"}</h4>
-                  <small style={{ color: "var(--muted)", display: "block", marginTop: "0.2rem" }}>
-                    📅 {formatMatchDate(match)}
-                  </small>
-                  {match.venue && (
-                    <small style={{ color: "var(--text-secondary)", display: "block", marginTop: "0.4rem" }}>
-                      📍 {match.venue}
-                    </small>
-                  )}
-                  {(match.allowed_tags || []).length > 0 && (
-                    <span className="tag-list compact" style={{ marginTop: "0.4rem" }}>
-                      {(match.allowed_tags || []).map((tag) => (
-                        <span className="tag-chip is-readonly" key={tag}>{formatTag(tag)}</span>
-                      ))}
-                    </span>
-                  )}
-                </div>
-                {deletingId === match.id ? (
-                  <div style={{ display: "grid", gap: "0.5rem" }}>
-                    <p className="confirm-delete-msg" style={{ margin: 0 }}>
-                      ¿Eliminar "{match.title || "Chamuscón"}"? Se borran equipos,
-                      asistencias y cobros asociados.
-                    </p>
-                    <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
-                      <button
-                        className="danger-button history-card-btn"
-                        type="button"
-                        onClick={() => handleDelete(match.id)}
-                      >
-                        Confirmar
-                      </button>
-                      <button
-                        className="secondary-button history-card-btn"
-                        type="button"
-                        onClick={() => setDeletingId(null)}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
-                    <button
-                      className="secondary-button history-card-btn"
-                      type="button"
-                      onClick={() => onOpenMatch(match.id)}
-                    >
-                      Ver Detalles
-                    </button>
-                    {isAdmin && (
-                      <button
-                        className="danger-button history-card-btn"
-                        type="button"
-                        title="Eliminar partido"
-                        aria-label={`Eliminar ${match.title || "Chamuscón"}`}
-                        onClick={() => setDeletingId(match.id)}
-                      >
-                        🗑
-                      </button>
-                    )}
-                  </div>
-                )}
-              </article>
-            ))}
-          </div>
-        )}
-
-        {filteredPast.length > visiblePastCount && (
-          <button
-            className="show-more-btn"
-            type="button"
-            onClick={() => setVisiblePastCount((c) => c + 9)}
-          >
-            Ver más ({filteredPast.length - visiblePastCount} restantes)
-          </button>
-        )}
-        {visiblePastCount > 6 && filteredPast.length <= visiblePastCount && filteredPast.length > 6 && (
-          <button
-            className="show-more-btn"
-            type="button"
-            onClick={() => setVisiblePastCount(6)}
-          >
-            Ver menos
-          </button>
-        )}
-      </section>
     </div>
   );
 }
