@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, CalendarHeart, Home, Users, CreditCard, Shield, Trophy, UserCircle, BookOpen } from "lucide-react";
 import { api } from "./api.js";
-import Avatar from "./components/Avatar.jsx";
-import PushNotifications from "./components/PushNotifications.jsx";
-import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
 import SectionHero from "./components/SectionHero.jsx";
 import AdBanner from "./components/AdBanner.jsx";
+
 import PostMatchSurveyModal from "./components/PostMatchSurveyModal.jsx";
 import AuthScreen from "./pages/AuthScreen.jsx";
 import GroupOnboardingPage from "./pages/GroupOnboardingPage.jsx";
@@ -153,20 +151,8 @@ export default function App() {
   const [groupExpenses, setGroupExpenses] = useState([]);
   const [simHasGeneratedTeams, setSimHasGeneratedTeams] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-
-  // When clicking outside the profile menu, close it
-  useEffect(() => {
-    if (!showProfileMenu) return;
-    const handleClick = (e) => {
-      if (!e.target.closest('.user-profile-dropdown-container')) {
-        setShowProfileMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showProfileMenu]);
   const [isDemoMode, setIsDemoMode] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -2081,7 +2067,7 @@ export default function App() {
   return (
     <div className="app">
       {/* ── MODO DESARROLLO / SIMULADOR DE ROLES BANNER ── */}
-      {isSimulating && (
+      {isDemoMode && (
         <DevRoleBanner
           myRole={myRole}
           setDevRoleOverride={setDevRoleOverride}
@@ -2089,6 +2075,7 @@ export default function App() {
           profiles={profiles}
         />
       )}
+
 
       {/* ── APP HEADER / TOPBAR V2 ── */}
       <AppHeader

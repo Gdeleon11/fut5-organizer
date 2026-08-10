@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { MoreHorizontal, Trophy } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
+
 
 /**
  * F5Manager MobileBottomNav Component
