@@ -1,12 +1,24 @@
 import { processUpcomingMatchReminders } from "../_lib/notifications/notificationEngine.js";
 
 export default async function handler(req, res) {
-  // Verify cron secret
-  const authHeader = req.headers.authorization;
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: "Unauthorized" });
+  // FAIL CLOSED: Require CRON_SECRET to be configured server-side
+  if (!cronSecret) {
+    console.error("[cron/check-matches] CRON_SECRET is missing from server environment.");
+    return res.status(500).json({
+      success: false,
+      error: "Server misconfigured: CRON_SECRET is required to execute cron jobs",
+    });
+  }
+
+  // Verify Authorization header against CRON_SECRET
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return res.status(401).json({
+      success: false,
+      error: "Unauthorized: Invalid or missing cron authorization token",
+    });
   }
 
   try {

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
-import { Bell, BellOff, BellRing, Loader2 } from "lucide-react";
+import { Bell, BellRing, Loader2, Send } from "lucide-react";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "BChz-bc_HZwtRJCNMu7aM6KeFhjYP8FX6RWaZq_EJX2hdxmB_9y5t8WsSu2UVi_e8a5D7vZ9XhXWHSPVtxwTqos";
+const ENABLE_PUSH_TESTS = import.meta.env.VITE_ENABLE_PUSH_TESTS === "true";
 
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -90,11 +91,10 @@ export default function PushNotifications({ profile }) {
   }
 
   async function handleSendTestPush() {
-    if (!profile) return;
     setLoading(true);
     setMessage("");
     try {
-      const res = await api.sendTestPushNotification(profile.id);
+      const res = await api.sendTestPushNotification();
       setMessage(res.message || "Notificación de prueba enviada");
     } catch (err) {
       setMessage(`Error: ${err.message}`);
@@ -136,6 +136,30 @@ export default function PushNotifications({ profile }) {
           <Bell size={18} />
         )}
       </button>
+
+      {ENABLE_PUSH_TESTS && isSubscribed && (
+        <button
+          type="button"
+          onClick={handleSendTestPush}
+          disabled={loading}
+          title="Probar notificación Web Push"
+          style={{
+            height: "38px",
+            padding: "0 0.6rem",
+            fontSize: "0.75rem",
+            borderRadius: "var(--r-sm)",
+            background: "var(--surface-2)",
+            border: "1px solid var(--border-subtle)",
+            color: "var(--text-primary)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.3rem",
+            cursor: "pointer"
+          }}
+        >
+          <Send size={14} /> Probar
+        </button>
+      )}
 
       {message && (
         <span

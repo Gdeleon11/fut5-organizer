@@ -1,4 +1,4 @@
-const CACHE_NAME = "f5manager-v4";
+const CACHE_NAME = "f5manager-v5";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -70,8 +70,9 @@ self.addEventListener("push", (event) => {
     body: data.body || "Tenés un partido pronto",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
+    tag: data.tag || "f5manager-push",
     vibrate: [100, 50, 100],
-    data: data.url || "/",
+    data: data.url || "/partidos",
     actions: [
       { action: "open", title: "Abrir" },
       { action: "dismiss", title: "Cerrar" },
@@ -88,16 +89,22 @@ self.addEventListener("notificationclick", (event) => {
 
   if (event.action === "dismiss") return;
 
-  const url = event.notification.data || "/";
+  const rawUrl = event.notification.data || "/partidos";
+  const targetUrl = new URL(rawUrl, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
-        if (client.url.includes(self.location.origin) && "focus" in client) {
+        if (client.url.startsWith(self.location.origin) && "focus" in client) {
+          if ("navigate" in client) {
+            return client.navigate(targetUrl).then((c) => (c ? c.focus() : client.focus()));
+          }
           return client.focus();
         }
       }
-      return clients.openWindow(url);
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
     }),
   );
 });

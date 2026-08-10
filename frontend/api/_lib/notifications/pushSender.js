@@ -4,17 +4,19 @@ let vapidInitialized = false;
 
 /**
  * Initializes web-push VAPID configuration safely from server-side environment variables.
+ * Fails closed if any VAPID key is missing.
+ *
  * @returns {boolean} True if initialized successfully, false otherwise
  */
 export function initVapidKeys() {
   if (vapidInitialized) return true;
 
-  const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY || "BChz-bc_HZwtRJCNMu7aM6KeFhjYP8FX6RWaZq_EJX2hdxmB_9y5t8WsSu2UVi_e8a5D7vZ9XhXWHSPVtxwTqos";
+  const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.VITE_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
   const subject = process.env.VAPID_SUBJECT || "mailto:soporte@f5manager.lat";
 
-  if (!privateKey) {
-    console.warn("[pushSender] VAPID_PRIVATE_KEY not set in environment.");
+  if (!publicKey || !privateKey) {
+    console.error("[pushSender] VAPID configuration error: Both VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are required server-side.");
     return false;
   }
 
@@ -51,7 +53,7 @@ export async function sendPushNotification(subscription, payload) {
       success: false,
       statusCode: 500,
       isExpired: false,
-      error: "VAPID keys not properly configured server-side",
+      error: "VAPID configuration error: VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY are required server-side",
     };
   }
 

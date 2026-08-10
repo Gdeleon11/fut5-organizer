@@ -1994,16 +1994,20 @@ export const api = {
     return readMany(query);
   },
 
-  async sendTestPushNotification(profileId) {
+  async sendTestPushNotification() {
     const client = requireSupabase();
     const { data: { session } } = await client.auth.getSession();
     const token = session?.access_token;
 
-    const response = await fetch(`/api/notifications/test-push?profile_id=${profileId}`, {
+    if (!token) {
+      throw new Error("No hay una sesión activa para enviar la notificación de prueba.");
+    }
+
+    const response = await fetch("/api/notifications/test-push", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -2014,6 +2018,7 @@ export const api = {
 
     return response.json();
   },
+
 
 
   // Match Stats API

@@ -2,54 +2,81 @@ import { createClient } from "@supabase/supabase-js";
 import { sendPushNotification } from "../_lib/notifications/pushSender.js";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST" && req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed. Use POST or GET." });
-  }
-
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
-  const supabase = createClient(supabaseUrl, serviceRoleKey || anonKey);
-
-  // Authenticate user via Authorization header Bearer token or profile_id param
-  const authHeader = req.headers.authorization;
-  let userProfileId = req.query?.profile_id || req.body?.profile_id;
-
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.substring(7);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (!authError && user) {
-      userProfileId = user.id;
-    }
-  }
-
-  if (!userProfileId) {
-    return res.status(401).json({
-      error: "Unauthorized. Please provide a valid Authorization Bearer token or authenticated profile_id.",
+  // 1. Accept ONLY POST
+  if (req.method !== "POST") {
+    return res.status(405).json({
+      success: false,
+      error: "Method not allowed. Use POST.",
     });
   }
+
+  // 2. Feature Flag Check (Server-Side)
+  if (process.env.ENABLE_PUSH_TEST_ENDPOINT !== "true") {
+    return res.status(403).json({
+      success: false,
+      error: "Test push endpoint is disabled in this environment.",
+    });
+  }
+
+  // 3. Authorization Bearer Token Mandatory Check
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+      success: false,
+      error: "Unauthorized: Missing or invalid Authorization Bearer token",
+    });
+  }
+
+  const token = authHeader.substring(7);
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return res.status(500).json({
+      success: false,
+      error: "Server misconfigured: missing Supabase environment variables",
+    });
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  // 4. Validate Token & Derive Profile ID EXCLUSIVELY from Auth User
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+  if (authError || !user) {
+    return res.status(401).json({
+      success: false,
+      error: "Unauthorized: Invalid or expired access token",
+    });
+  }
+
+  // Derived EXCLUSIVELY from user.id
+  const authenticatedProfileId = user.id;
 
   try {
     // Fetch profile and active push subscriptions
     const { data: profile } = await supabase
       .from("profiles")
       .select("id, full_name, nickname")
-      .eq("id", userProfileId)
+      .eq("id", authenticatedProfileId)
       .single();
 
     const { data: subscriptions, error: subError } = await supabase
       .from("push_subscriptions")
       .select("*")
-      .eq("profile_id", userProfileId);
+      .eq("profile_id", authenticatedProfileId);
 
     if (subError) {
-      return res.status(500).json({ error: `Failed to fetch push subscriptions: ${subError.message}` });
+      return res.status(500).json({
+        success: false,
+        error: `Failed to fetch push subscriptions: ${subError.message}`,
+      });
     }
 
     if (!subscriptions || subscriptions.length === 0) {
       return res.status(404).json({
         success: false,
-        message: "No active push subscriptions found for this profile. Please subscribe in your browser first.",
+        message: "No active push subscriptions found for your profile. Please activate push notifications in your browser first.",
         subscriptions_found: 0,
       });
     }
@@ -88,7 +115,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: sentCount > 0,
-      message: sentCount > 0 ? "Test push notification sent successfully!" : "Failed to deliver push notification.",
+      message: sentCount > 0 ? "Notificación de prueba enviada con éxito" : "Error al enviar notificación de prueba",
       sent_count: sentCount,
       expired_count: expiredCount,
       total_subscriptions: subscriptions.length,
@@ -96,6 +123,9 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("[api/notifications/test-push] Error:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      error: err.message || "Internal server error",
+    });
   }
 }
