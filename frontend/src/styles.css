@@ -6831,7 +6831,7 @@ small, .muted {
   }
 }
 
-@media (max-width: 1179px) and (min-width: 768px) {
+@media (max-width: 1179px) and (min-width: 900px) {
   .f5-desktop-nav-primary {
     display: flex;
   }
@@ -6849,11 +6849,18 @@ small, .muted {
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 899px) {
   .f5-desktop-nav {
-    display: none;
+    display: none !important;
+  }
+  .bottom-nav {
+    display: flex !important;
+  }
+  .app {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
   }
 }
+
 
 
 
