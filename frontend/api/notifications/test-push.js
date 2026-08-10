@@ -29,12 +29,12 @@ export default async function handler(req, res) {
 
   const token = authHeader.substring(7);
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
     return res.status(500).json({
       success: false,
-      error: "Server misconfigured: missing Supabase environment variables",
+      error: "Server misconfigured: VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required",
     });
   }
 

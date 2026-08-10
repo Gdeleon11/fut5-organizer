@@ -192,6 +192,10 @@ export async function processUpcomingMatchReminders(options = {}) {
     deliveries_attempted: 0,
     deliveries_sent: 0,
     deliveries_skipped_duplicate: 0,
+    deliveries_in_progress: 0,
+    deliveries_max_attempts: 0,
+    deliveries_skipped_no_subscription: 0,
+    deliveries_claim_failed: 0,
     subscriptions_expired: 0,
     errors: [],
   };
@@ -248,9 +252,18 @@ export async function processUpcomingMatchReminders(options = {}) {
         metrics.events_considered++;
 
         for (const player of playerProfiles) {
+          // Check active subscriptions FIRST before claiming delivery lock!
+          const playerSubs = (subscriptions || []).filter((s) => s.profile_id === player.id);
+
+          if (playerSubs.length === 0) {
+            // DO NOT consume delivery claim if player has 0 active push subscriptions
+            metrics.deliveries_skipped_no_subscription++;
+            continue;
+          }
+
           const dedupeKey = buildDedupeKey(reminderType, match.id, player.id, CHANNELS.PUSH);
 
-          // ATOMIC CLAIM: 1 delivery row per (type, match, profile, channel)
+          // ATOMIC CLAIM: Only claim lock when at least 1 subscription is available
           const claimResult = await claimNotificationDelivery(supabase, {
             profileId: player.id,
             groupId: match.group_id || null,
@@ -262,22 +275,15 @@ export async function processUpcomingMatchReminders(options = {}) {
           });
 
           if (!claimResult.claimed) {
-            metrics.deliveries_skipped_duplicate++;
-            continue;
-          }
-
-          // Get subscriptions for this player (multi-device support)
-          const playerSubs = (subscriptions || []).filter((s) => s.profile_id === player.id);
-
-          if (playerSubs.length === 0) {
-            // No subscriptions to send to -> Mark delivery as skipped
-            await supabase
-              .from("notification_deliveries")
-              .update({
-                status: "skipped",
-                error: "No active push subscriptions for profile",
-              })
-              .eq("id", claimResult.deliveryId);
+            if (claimResult.reason === "already_sent") {
+              metrics.deliveries_skipped_duplicate++;
+            } else if (claimResult.reason === "in_progress_lease") {
+              metrics.deliveries_in_progress++;
+            } else if (claimResult.reason === "max_attempts_reached") {
+              metrics.deliveries_max_attempts++;
+            } else {
+              metrics.deliveries_claim_failed++;
+            }
             continue;
           }
 

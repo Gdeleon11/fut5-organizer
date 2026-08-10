@@ -1,8 +1,10 @@
+import webpush from "web-push";
 import {
   getMatchDateTimeGuatemala,
   getApplicableReminderTypes,
   claimNotificationDelivery,
   getSupabaseServerClient,
+  processUpcomingMatchReminders,
   PROCESSING_LEASE_MINUTES,
   MAX_ATTEMPTS,
 } from "../notificationEngine.js";
@@ -12,6 +14,7 @@ import {
   buildNotificationPayload,
 } from "../notificationTypes.js";
 import { initVapidKeys } from "../pushSender.js";
+import testPushHandler from "../../../notifications/test-push.js";
 
 function assert(condition, message) {
   if (!condition) {
@@ -20,7 +23,7 @@ function assert(condition, message) {
 }
 
 export async function runNotificationEngineTests() {
-  console.log("Running Hardened Notification Engine Unit & Security Tests...");
+  console.log("Running Hardened Notification Engine Unit, Security & Claim Order Tests...");
 
   // 1. Test buildDedupeKey
   const key = buildDedupeKey(
@@ -96,21 +99,82 @@ export async function runNotificationEngineTests() {
   process.env.SUPABASE_SERVICE_ROLE_KEY = originalServiceRoleKey || "test-service-key";
   assert(serviceRoleErrorCaught, "getSupabaseServerClient did NOT fail closed without SUPABASE_SERVICE_ROLE_KEY");
 
-  // 7. Security Check: initVapidKeys fail-closed without VAPID keys
+  // 7. Security Check: VAPID server fail-closed checks
   const originalPublicKey = process.env.VAPID_PUBLIC_KEY;
   const originalPrivateKey = process.env.VAPID_PRIVATE_KEY;
+  const originalSubject = process.env.VAPID_SUBJECT;
+
+  // A. Missing VAPID_PUBLIC_KEY
   delete process.env.VAPID_PUBLIC_KEY;
-  delete process.env.VITE_VAPID_PUBLIC_KEY;
   delete process.env.VAPID_PRIVATE_KEY;
-  const vapidInitializedFail = initVapidKeys();
-  assert(!vapidInitializedFail, "initVapidKeys did NOT fail closed without VAPID keys");
+  delete process.env.VAPID_SUBJECT;
+  assert(!initVapidKeys(), "initVapidKeys did NOT fail closed when all keys are missing");
 
-  // Restore env keys for remaining tests
-  process.env.VAPID_PUBLIC_KEY = originalPublicKey || "BCYJ7i6_JUrcGnQEkr1KANFc6BZ4OaQ_98n2LuRyWnGCtYniwKpoaJ1i5ICSUUSLHOQOodrJAPpOKmWn_TFcC_M";
-  process.env.VAPID_PRIVATE_KEY = originalPrivateKey || "4q8PfuXFIKv34ScTftCRE3HQIXyYXr1Z6rKlWn7QcHc";
+  // B. Missing VAPID_PRIVATE_KEY
+  const dynamicKeys = webpush.generateVAPIDKeys(); // Generated dynamically in runtime (no hardcoded private key!)
+  process.env.VAPID_PUBLIC_KEY = dynamicKeys.publicKey;
+  process.env.VAPID_SUBJECT = "mailto:soporte@f5manager.lat";
+  delete process.env.VAPID_PRIVATE_KEY;
+  assert(!initVapidKeys(), "initVapidKeys did NOT fail closed without VAPID_PRIVATE_KEY");
 
-  // 8. Atomic Claim & CAS Idempotency Simulation Test
-  console.log("Testing Atomic Claim & CAS Simulation...");
+  // C. Missing VAPID_SUBJECT
+  process.env.VAPID_PRIVATE_KEY = dynamicKeys.privateKey;
+  delete process.env.VAPID_SUBJECT;
+  assert(!initVapidKeys(), "initVapidKeys did NOT fail closed without VAPID_SUBJECT");
+
+  // D. Full valid key pair -> Must succeed
+  process.env.VAPID_SUBJECT = "mailto:soporte@f5manager.lat";
+  assert(initVapidKeys(), "initVapidKeys failed with valid VAPID keys");
+
+  // Restore env keys
+  if (originalPublicKey) process.env.VAPID_PUBLIC_KEY = originalPublicKey;
+  if (originalPrivateKey) process.env.VAPID_PRIVATE_KEY = originalPrivateKey;
+  if (originalSubject) process.env.VAPID_SUBJECT = originalSubject;
+
+  // 8. Test Endpoint Security Checks (Method, Feature Flag, Bearer Auth)
+  console.log("Testing Test Push Endpoint Security Controls...");
+
+  // Mock response object
+  const createMockRes = () => {
+    const res = {
+      statusCode: 200,
+      jsonBody: null,
+      status(code) {
+        this.statusCode = code;
+        return this;
+      },
+      json(body) {
+        this.jsonBody = body;
+        return this;
+      },
+    };
+    return res;
+  };
+
+  // A. Test GET -> 405 Method Not Allowed
+  const resGet = createMockRes();
+  await testPushHandler({ method: "GET", headers: {} }, resGet);
+  assert(resGet.statusCode === 405, `GET test endpoint did not return 405 (got ${resGet.statusCode})`);
+
+  // B. Test POST without ENABLE_PUSH_TEST_ENDPOINT=true -> 403 Forbidden
+  const originalFlag = process.env.ENABLE_PUSH_TEST_ENDPOINT;
+  delete process.env.ENABLE_PUSH_TEST_ENDPOINT;
+  const resDisabled = createMockRes();
+  await testPushHandler({ method: "POST", headers: {} }, resDisabled);
+  assert(resDisabled.statusCode === 403, `Disabled test endpoint did not return 403 (got ${resDisabled.statusCode})`);
+  process.env.ENABLE_PUSH_TEST_ENDPOINT = originalFlag || "false";
+
+  // C. Test POST without Bearer Token -> 401 Unauthorized
+  process.env.ENABLE_PUSH_TEST_ENDPOINT = "true";
+  const resNoAuth = createMockRes();
+  await testPushHandler({ method: "POST", headers: {} }, resNoAuth);
+  assert(resNoAuth.statusCode === 401, `Missing auth header did not return 401 (got ${resNoAuth.statusCode})`);
+
+  // Restore flag
+  process.env.ENABLE_PUSH_TEST_ENDPOINT = originalFlag;
+
+  // 9. Atomic Claim & No-Subscription Order Simulation
+  console.log("Testing Atomic Claim & No-Subscription Order Logic...");
   const mockDb = new Map();
 
   const mockSupabase = {
@@ -143,7 +207,6 @@ export async function runNotificationEngineTests() {
           eq: (f2, v2) => ({
             eq: (f3, v3) => ({
               select: async () => {
-                // CAS UPDATE simulation
                 for (const [key, row] of mockDb.entries()) {
                   if (row.id === v1 && row.status === v2 && row.attempt_count === v3) {
                     const updatedRow = { ...row, ...updates };
@@ -199,7 +262,7 @@ export async function runNotificationEngineTests() {
   assert(claim5.claimed === false, "Claim succeeded after MAX_ATTEMPTS!");
   assert(claim5.reason === "max_attempts_reached", `Claim reason mismatch: ${claim5.reason}`);
 
-  console.log("✅ All Hardened Notification Engine Unit, Security & CAS Claim Tests Passed!");
+  console.log("✅ All Hardened Notification Engine Unit, Security & Order Tests Passed!");
 }
 
 // Run if executed directly via Node

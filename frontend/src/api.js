@@ -1987,12 +1987,13 @@ export const api = {
 
   async listPushSubscriptions(profileIds = []) {
     const client = requireSupabase();
-    let query = client.from("push_subscriptions").select("*");
+    let query = client.from("push_subscriptions").select("id, profile_id");
     if (profileIds.length > 0) {
       query = query.in("profile_id", profileIds);
     }
     return readMany(query);
   },
+
 
   async sendTestPushNotification() {
     const client = requireSupabase();
