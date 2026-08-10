@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { Bell, BellOff, BellRing, Loader2 } from "lucide-react";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "BChz-bc_HZwtRJCNMu7aM6KeFhjYP8FX6RWaZq_EJX2hdxmB_9y5t8WsSu2UVi_e8a5D7vZ9XhXWHSPVtxwTqos";
 
@@ -60,7 +61,7 @@ export default function PushNotifications({ profile }) {
       setMessage("Notificaciones activadas");
     } catch (err) {
       if (err.name === "NotAllowedError") {
-        setMessage("Permiso denegado. Activá las notificaciones en tu navegador.");
+        setMessage("Permiso denegado en tu navegador.");
       } else {
         setMessage("Error al activar notificaciones");
       }
@@ -88,19 +89,69 @@ export default function PushNotifications({ profile }) {
     }
   }
 
+  async function handleSendTestPush() {
+    if (!profile) return;
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await api.sendTestPushNotification(profile.id);
+      setMessage(res.message || "Notificación de prueba enviada");
+    } catch (err) {
+      setMessage(`Error: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (!isSupported) return null;
 
   return (
-    <div className="push-notifications">
+    <div className="push-notifications" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
       <button
         type="button"
-        className={`secondary-button ${isSubscribed ? "subscribed" : ""}`}
+        className={`f5-icon-btn ${isSubscribed ? "is-active" : ""}`}
         onClick={isSubscribed ? unsubscribe : subscribe}
         disabled={loading}
+        title={isSubscribed ? "Notificaciones Web Push activas (clic para desactivar)" : "Activar notificaciones Web Push"}
+        aria-label={isSubscribed ? "Desactivar notificaciones Web Push" : "Activar notificaciones Web Push"}
+        style={{
+          width: "38px",
+          height: "38px",
+          borderRadius: "var(--r-sm)",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: isSubscribed ? "rgba(16, 185, 129, 0.15)" : "var(--surface-2)",
+          border: isSubscribed ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid var(--border-subtle)",
+          color: isSubscribed ? "var(--primary)" : "var(--text-secondary)",
+          cursor: "pointer",
+          transition: "all 180ms ease"
+        }}
       >
-        {loading ? "..." : isSubscribed ? "🔔 Notificaciones activas" : "🔔 Activar notificaciones"}
+        {loading ? (
+          <Loader2 size={18} style={{ animation: "f5-spin-anim 1s linear infinite" }} />
+        ) : isSubscribed ? (
+          <BellRing size={18} />
+        ) : (
+          <Bell size={18} />
+        )}
       </button>
-      {message && <small className="push-message">{message}</small>}
+
+      {message && (
+        <span
+          className="push-message"
+          style={{
+            fontSize: "0.75rem",
+            color: "var(--text-secondary)",
+            background: "var(--surface-2)",
+            padding: "0.2rem 0.5rem",
+            borderRadius: "var(--r-sm)",
+            border: "1px solid var(--border-subtle)"
+          }}
+        >
+          {message}
+        </span>
+      )}
     </div>
   );
 }

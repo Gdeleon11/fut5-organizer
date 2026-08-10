@@ -1994,6 +1994,28 @@ export const api = {
     return readMany(query);
   },
 
+  async sendTestPushNotification(profileId) {
+    const client = requireSupabase();
+    const { data: { session } } = await client.auth.getSession();
+    const token = session?.access_token;
+
+    const response = await fetch(`/api/notifications/test-push?profile_id=${profileId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || errorData.message || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+
   // Match Stats API
   async listGroupMatchPlayerStats(groupId) {
     const client = requireSupabase();

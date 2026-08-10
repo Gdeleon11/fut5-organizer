@@ -1,0 +1,101 @@
+import { createClient } from "@supabase/supabase-js";
+import { sendPushNotification } from "../_lib/notifications/pushSender.js";
+
+export default async function handler(req, res) {
+  if (req.method !== "POST" && req.method !== "GET") {
+    return res.status(405).json({ error: "Method not allowed. Use POST or GET." });
+  }
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const anonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const supabase = createClient(supabaseUrl, serviceRoleKey || anonKey);
+
+  // Authenticate user via Authorization header Bearer token or profile_id param
+  const authHeader = req.headers.authorization;
+  let userProfileId = req.query?.profile_id || req.body?.profile_id;
+
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (!authError && user) {
+      userProfileId = user.id;
+    }
+  }
+
+  if (!userProfileId) {
+    return res.status(401).json({
+      error: "Unauthorized. Please provide a valid Authorization Bearer token or authenticated profile_id.",
+    });
+  }
+
+  try {
+    // Fetch profile and active push subscriptions
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, full_name, nickname")
+      .eq("id", userProfileId)
+      .single();
+
+    const { data: subscriptions, error: subError } = await supabase
+      .from("push_subscriptions")
+      .select("*")
+      .eq("profile_id", userProfileId);
+
+    if (subError) {
+      return res.status(500).json({ error: `Failed to fetch push subscriptions: ${subError.message}` });
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No active push subscriptions found for this profile. Please subscribe in your browser first.",
+        subscriptions_found: 0,
+      });
+    }
+
+    const payload = {
+      title: "⚽ Notificación de prueba F5Manager",
+      body: `¡Hola ${profile?.nickname || profile?.full_name || "jugador"}! Tu navegador recibe notificaciones Web Push correctamente.`,
+      url: "/partidos",
+      tag: `test-push-${Date.now()}`,
+      data: { test: true },
+    };
+
+    const results = [];
+    let sentCount = 0;
+    let expiredCount = 0;
+
+    for (const sub of subscriptions) {
+      const delivery = await sendPushNotification(sub, payload);
+
+      if (delivery.success) {
+        sentCount++;
+      } else if (delivery.isExpired) {
+        expiredCount++;
+        // Auto-clean expired subscription
+        await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+      }
+
+      results.push({
+        endpoint_short: sub.endpoint.substring(0, 40) + "...",
+        success: delivery.success,
+        statusCode: delivery.statusCode,
+        isExpired: delivery.isExpired,
+        error: delivery.error,
+      });
+    }
+
+    return res.status(200).json({
+      success: sentCount > 0,
+      message: sentCount > 0 ? "Test push notification sent successfully!" : "Failed to deliver push notification.",
+      sent_count: sentCount,
+      expired_count: expiredCount,
+      total_subscriptions: subscriptions.length,
+      results,
+    });
+  } catch (err) {
+    console.error("[api/notifications/test-push] Error:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+}
