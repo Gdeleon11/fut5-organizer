@@ -422,15 +422,16 @@ export default function App() {
   }
 
   const navItems = useMemo(() => [
-    { id: "matches", label: "Partidos", mobileLabel: "Partidos", icon: <Home size={20} /> },
-    { id: "reservations", label: "Reservas", mobileLabel: "Reservas", icon: <CalendarDays size={20} /> },
-    { id: "cashier", label: "Cobros & Caja", mobileLabel: "Cobros", icon: <CreditCard size={20} /> },
-    { id: "players", label: "Jugadores", mobileLabel: "Jugadores", icon: <Users size={20} /> },
-    { id: "profile", label: "Mi FIFA Card", mobileLabel: "Mi FIFA", icon: <UserCircle size={20} /> },
+    { id: "matches", label: "Partidos", mobileLabel: "Partidos", icon: <Home size={18} /> },
+    { id: "reservations", label: "Reservas", mobileLabel: "Reservas", icon: <CalendarDays size={18} /> },
+    { id: "cashier", label: "Cobros", mobileLabel: "Cobros", icon: <CreditCard size={18} /> },
+    { id: "players", label: "Jugadores", mobileLabel: "Jugadores", icon: <Users size={18} /> },
+    { id: "profile", label: "Mi FIFA", mobileLabel: "Mi FIFA", icon: <UserCircle size={18} /> },
     ...(isSuperAdmin ? [
-      { id: "tournaments", label: "Torneos", mobileLabel: "Torneos", icon: <Trophy size={20} /> },
+      { id: "tournaments", label: "Torneos", mobileLabel: "Torneos", icon: <Trophy size={18} /> },
     ] : []),
   ], [isSuperAdmin]);
+
 
   const sortedMatches = useMemo(
     () => [...matches]

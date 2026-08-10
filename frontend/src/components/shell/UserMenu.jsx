@@ -47,14 +47,44 @@ export function UserMenu({
       >
         <Avatar profile={profile} size={32} />
         <div style={{ textAlign: "left" }} className="desktop-only-user-text">
-          <span style={{ fontWeight: "700", color: "#ffffff", display: "block", fontSize: "0.82rem", lineHeight: "1.1" }}>
+          <span
+            style={{
+              fontWeight: "700",
+              color: "#ffffff",
+              display: "block",
+              fontSize: "0.82rem",
+              lineHeight: "1.1",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "130px",
+            }}
+          >
             {displayName(profile)}
           </span>
-          <span style={{ color: "var(--text-muted)", fontSize: "0.68rem", display: "block" }}>
+          <span
+            style={{
+              color: "var(--text-muted)",
+              fontSize: "0.68rem",
+              display: "block",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              maxWidth: "130px",
+            }}
+          >
             {preferredPositionShort} · OVR {userRating}
           </span>
         </div>
-        <ChevronDown size={14} style={{ color: "var(--text-muted)", transition: "transform 180ms ease", transform: isOpen ? "rotate(180deg)" : "none" }} />
+        <ChevronDown
+          size={14}
+          style={{
+            color: "var(--text-muted)",
+            transition: "transform 180ms ease",
+            transform: isOpen ? "rotate(180deg)" : "none",
+            flexShrink: 0,
+          }}
+        />
       </button>
 
       {/* Dropdown Panel */}
@@ -101,7 +131,7 @@ export function UserMenu({
             <span>Actualizar Datos</span>
           </button>
 
-          <div style={{ height: "1px", background: "var(--border-subtle)", margin: "0.2rem 0" }} />
+          <div style={{ height: "1px", background: "var(--border-subtle)", margin: "0.25rem 0" }} />
 
           <button
             type="button"
