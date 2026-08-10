@@ -6569,13 +6569,210 @@ small, .muted {
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 
-@media (max-width: 640px) {
-  .f5-history-row {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.85rem;
+/* --- App Shell UI V2 Classes --- */
+.f5-app-header {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  background: rgba(13, 20, 16, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0.65rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.f5-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.f5-brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  object-fit: cover;
+  border: 1px solid var(--border-subtle);
+}
+
+.f5-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.f5-brand-name {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.f5-brand-sub {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.f5-desktop-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.f5-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--r-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 180ms ease;
+  min-height: 38px;
+}
+
+.f5-nav-item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.f5-nav-item.is-active {
+  color: var(--primary);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.f5-shell-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.f5-group-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.f5-group-select-wrapper select {
+  appearance: none;
+  background: var(--surface-2);
+  color: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-sm);
+  padding: 0.45rem 1.8rem 0.45rem 2rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+
+.f5-group-select-wrapper select:hover {
+  border-color: var(--primary);
+}
+
+.f5-group-select-icon {
+  position: absolute;
+  left: 0.65rem;
+  pointer-events: none;
+  color: var(--primary);
+}
+
+.f5-group-select-arrow {
+  position: absolute;
+  right: 0.65rem;
+  pointer-events: none;
+  color: var(--text-muted);
+}
+
+.f5-user-menu-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 0.25rem 0.65rem 0.25rem 0.35rem;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+.f5-user-menu-trigger:hover {
+  background: var(--surface-3);
+  border-color: var(--border-hover);
+}
+
+.f5-user-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 0.65rem;
+  min-width: 230px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.f5-user-menu-header {
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 0.25rem;
+}
+
+.f5-user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms ease;
+}
+
+.f5-user-menu-item:hover {
+  background: var(--surface-2);
+}
+
+.f5-user-menu-item.is-danger {
+  color: var(--danger);
+}
+
+.f5-user-menu-item.is-danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+@media (max-width: 767px) {
+  .f5-desktop-nav {
+    display: none;
   }
 }
+
 
 
 

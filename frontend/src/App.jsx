@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, CalendarHeart, Home, Users, CreditCard, Shield, Trophy, UserCircle, BookOpen } from "lucide-react";
 import { api } from "./api.js";
-import Avatar from "./components/Avatar.jsx";
-import PushNotifications from "./components/PushNotifications.jsx";
-import ThemeSwitcher from "./components/ThemeSwitcher.jsx";
 import SectionHero from "./components/SectionHero.jsx";
 import AdBanner from "./components/AdBanner.jsx";
+
 import PostMatchSurveyModal from "./components/PostMatchSurveyModal.jsx";
 import AuthScreen from "./pages/AuthScreen.jsx";
 import GroupOnboardingPage from "./pages/GroupOnboardingPage.jsx";
@@ -35,6 +33,8 @@ import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
 import { activeReservationStatus, canUseReservationAssistant } from "./reservationAssistant.js";
 import { canAccessMatch, collectGroupTags } from "./tags.js";
 import { classNames, displayName, formatMatchDate, profileComplete, roleLabel } from "./utils.js";
+import { AppHeader, MobileBottomNav, DevRoleBanner } from "./components/shell/index.js";
+
 
 function ConfigMissing() {
   return (
@@ -151,20 +151,8 @@ export default function App() {
   const [groupExpenses, setGroupExpenses] = useState([]);
   const [simHasGeneratedTeams, setSimHasGeneratedTeams] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-
-  // When clicking outside the profile menu, close it
-  useEffect(() => {
-    if (!showProfileMenu) return;
-    const handleClick = (e) => {
-      if (!e.target.closest('.user-profile-dropdown-container')) {
-        setShowProfileMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showProfileMenu]);
   const [isDemoMode, setIsDemoMode] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -2078,200 +2066,39 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* ── SIMULADOR DE ROLES BANNER ── */}
+      {/* ── MODO DESARROLLO / SIMULADOR DE ROLES BANNER ── */}
       {isDemoMode && (
-        <div style={{
-          background: "linear-gradient(90deg, #064e3b, #047857)",
-          color: "#ffffff",
-          padding: "0.5rem 1rem",
-          fontSize: "0.85rem",
-          fontWeight: "bold",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "0.5rem",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: "#10b981" }} />
-            <span>SIMULADOR DE ROLES: Estás probando como:</span>
-            <span style={{
-              background: "#ef4444",
-              color: "#ffffff",
-              padding: "2px 8px",
-              borderRadius: "12px",
-              fontSize: "0.75rem",
-              textTransform: "uppercase"
-            }}>
-              {myRole === "super_admin" ? "👑 SUPER ADMIN" : myRole === "admin" ? "📋 ADMIN" : "🏃 JUGADOR"}
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <span>Cambiar a:</span>
-            <select
-              aria-label="Simular Rol"
-              value={myRole}
-              onChange={(e) => {
-                const chosenRole = e.target.value;
-                setDevRoleOverride(chosenRole);
-                const roleProfileMap = {
-                  super_admin: "e62c1146-24be-47a3-83f1-778848d7d001",
-                  admin: "e62c1146-24be-47a3-83f1-778848d7d002",
-                  player: "e62c1146-24be-47a3-83f1-778848d7d003"
-                };
-                const profileId = roleProfileMap[chosenRole];
-                const matched = profiles.find((p) => p.id === profileId);
-                if (matched) setProfile(matched);
-              }}
-              style={{
-                background: "rgba(0,0,0,0.3)",
-                color: "#ffffff",
-                border: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: "6px",
-                padding: "2px 8px",
-                fontSize: "0.8rem",
-                fontWeight: "bold",
-                outline: "none"
-              }}
-            >
-              <option value="super_admin">Guille de León (Super Admin)</option>
-              <option value="admin">Ale (Admin)</option>
-              <option value="player">Javi B (Jugador)</option>
-            </select>
-          </div>
-        </div>
+        <DevRoleBanner
+          myRole={myRole}
+          setDevRoleOverride={setDevRoleOverride}
+          setProfile={setProfile}
+          profiles={profiles}
+        />
       )}
 
-      <header className="topbar">
-        <div className="identity-block">
-          <img className="topbar-logo" src="/brand/f5manager-logo.jpg" alt="F5Manager" />
-          <div className="brand-text">
-            <span className="brand-title" style={{ fontSize: "1.25rem", fontWeight: "800", color: "#ffffff", display: "block", lineHeight: "1.1" }}>F5Manager</span>
-            <span className="brand-subtitle" style={{ fontSize: "0.65rem", fontWeight: "bold", color: "var(--primary)", display: "block", textTransform: "uppercase", letterSpacing: "0.08em" }}>Chamuscas Inteligentes</span>
-          </div>
-        </div>
 
-        {/* Navigation tabs inside header (desktop) */}
-        <nav className="tabs top-tabs" aria-label="Principal" style={{ margin: 0, border: "none", gap: "1rem" }}>
-          {navItems.map((item) => (
-            <button className={classNames("tab", page === item.id && "is-active")}
-              key={item.id} type="button" onClick={() => goToPage(item.id)}
-              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              {item.icon && <span style={{ display: "flex", opacity: 0.8 }}>{item.icon}</span>}
-              {item.label}
-            </button>
-          ))}
-        </nav>
+      {/* ── APP HEADER / TOPBAR V2 ── */}
+      <AppHeader
+        navItems={navItems}
+        activePage={page}
+        goToPage={goToPage}
+        memberships={memberships}
+        activeGroupId={activeGroupId}
+        switchGroup={switchGroup}
+        profile={profile}
+        preferredPositionShort={preferredPositionShort}
+        userRating={userRating}
+        refresh={refresh}
+        signOut={signOut}
+      />
 
-        <div className="topbar-actions">
-          {memberships.length > 0 && (
-            <select aria-label="Grupo activo" className="group-select"
-              value={activeGroupId} onChange={(e) => switchGroup(e.target.value)}>
-              {memberships.map((m) => (
-                <option key={m.group_id} value={m.group_id}>
-                  {m.groups?.name || "Chamusca"}
-                </option>
-              ))}
-            </select>
-          )}
-          
-          <div className="desktop-actions-inline">
-            <PushNotifications profile={profile} />
-            <button className="ghost-button" type="button" onClick={refresh}>Actualizar</button>
-          </div>
-          
-          {/* User profile details on far right */}
-          {profile && (
-            <div className="user-profile-dropdown-container" style={{ position: "relative", marginLeft: "0.5rem" }}>
-              <div 
-                className="user-profile-widget" 
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: "0.6rem", 
-                  cursor: "pointer",
-                  padding: "0.25rem",
-                  borderRadius: "var(--radius)",
-                  background: showProfileMenu ? "rgba(255,255,255,0.1)" : "transparent",
-                  transition: "background 0.2s"
-                }}
-              >
-                <div style={{ textAlign: "right" }} className="desktop-only-user-text">
-                  <span style={{ fontWeight: "bold", color: "#ffffff", display: "block", fontSize: "0.85rem", lineHeight: "1.2" }}>{displayName(profile)}</span>
-                  <span style={{ color: "var(--muted)", fontSize: "0.7rem", display: "block" }}>
-                    {preferredPositionShort} · OVR {userRating}
-                  </span>
-                </div>
-                <Avatar profile={profile} size={36} />
-              </div>
-
-              {/* Dropdown Menu */}
-              {showProfileMenu && (
-                <div 
-                  className="profile-dropdown-menu"
-                  style={{
-                    position: "absolute",
-                    top: "calc(100% + 0.5rem)",
-                    right: 0,
-                    background: "var(--surface-1)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "var(--radius)",
-                    padding: "0.5rem",
-                    minWidth: "200px",
-                    boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-                    zIndex: 100,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "0.25rem"
-                  }}
-                >
-                  <div style={{ padding: "0.5rem", borderBottom: "1px solid rgba(255,255,255,0.1)", marginBottom: "0.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Tema</span>
-                    <ThemeSwitcher />
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      refresh();
-                    }}
-                    style={{ background: "transparent", border: "none", color: "var(--text)", padding: "0.5rem", textAlign: "left", cursor: "pointer", borderRadius: "0.25rem" }}
-                    onMouseOver={(e) => e.currentTarget.style.background = "var(--surface-0)"}
-                    onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
-                    className="mobile-only-refresh"
-                  >
-                    Actualizar Datos
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      signOut();
-                    }}
-                    style={{ background: "transparent", border: "none", color: "var(--danger)", padding: "0.5rem", textAlign: "left", cursor: "pointer", borderRadius: "0.25rem" }}
-                    onMouseOver={(e) => e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)"}
-                    onMouseOut={(e) => e.currentTarget.style.background = "transparent"}
-                  >
-                    Cerrar Sesión
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
-
-      {/* Navigation tabs bottom (mobile) */}
-      <nav className="bottom-nav" aria-label="Principal móvil">
-        {navItems.map((item) => (
-          <button className={classNames("bottom-nav-item", page === item.id && "is-active")}
-            key={item.id} type="button" ref={(node) => { mobileNavRefs.current[item.id] = node; }}
-            onClick={() => goToPage(item.id)} title={item.label}>
-            <span className="tab-icon">{item.icon}</span>
-            <span className="tab-label">{item.mobileLabel || item.label}</span>
-          </button>
-        ))}
-      </nav>
+      {/* ── MOBILE BOTTOM NAVIGATION V2 ── */}
+      <MobileBottomNav
+        navItems={navItems}
+        activePage={page}
+        goToPage={goToPage}
+        mobileNavRefs={mobileNavRefs}
+      />
 
       <SectionHero
         page={page}
