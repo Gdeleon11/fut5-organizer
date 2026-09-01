@@ -328,6 +328,9 @@ export default function CourtReservationPage({
   const [recentlyCreated, setRecentlyCreated] = useState([]);
   const [copiedId, setCopiedId] = useState(null);
   const [view, setView] = useState("cards"); // "cards" | "list"
+  const [rangeFilter, setRangeFilter] = useState("3"); // "3" | "10" | "all"
+  const [expandedPending, setExpandedPending] = useState(false);
+  const [expandedConfirmed, setExpandedConfirmed] = useState(false);
 
   async function loadReservations() {
     if (!activeGroupId || isDemoMode) return;
@@ -543,6 +546,12 @@ export default function CourtReservationPage({
 
   const confirmed = reservations.filter((r) => r.status === "confirmed");
   confirmed.sort((a, b) => (b.reservation_date || "").localeCompare(a.reservation_date || ""));
+
+  const effectivePendingLimit = rangeFilter === "3" && !expandedPending ? 3 : rangeFilter === "10" && !expandedPending ? 10 : pending.length;
+  const visiblePending = pending.slice(0, effectivePendingLimit);
+
+  const effectiveConfirmedLimit = rangeFilter === "3" && !expandedConfirmed ? 3 : rangeFilter === "10" && !expandedConfirmed ? 10 : confirmed.length;
+  const visibleConfirmed = confirmed.slice(0, effectiveConfirmedLimit);
 
   const assistedReservations = matches
     .filter((match) => match.requires_reservation)
@@ -836,33 +845,157 @@ export default function CourtReservationPage({
       {view === "cards" && (
         reservations.length > 0 && (
           <section id="seguimiento-panel" className="panel">
-            <div className="section-heading">
+            <div className="section-heading" style={{ flexWrap: "wrap", gap: "0.75rem" }}>
               <div>
                 <h2>Seguimiento</h2>
                 <small>{pending.length} pendientes · {confirmed.length} confirmadas</small>
               </div>
-              <span className="count-pill">{reservations.length}</span>
+              <div className="toolbar-row" style={{ marginLeft: "auto", flexWrap: "wrap", gap: "0.5rem" }}>
+                <div className="range-filter-control seg-control" role="group" aria-label="Rango de reservas">
+                  <button
+                    className={classNames("seg-btn", rangeFilter === "3" && "is-active")}
+                    type="button"
+                    onClick={() => { setRangeFilter("3"); setExpandedPending(false); setExpandedConfirmed(false); }}
+                    title="Mostrar las últimas 3 por categoría"
+                  >
+                    Últimas 3
+                  </button>
+                  <button
+                    className={classNames("seg-btn", rangeFilter === "10" && "is-active")}
+                    type="button"
+                    onClick={() => { setRangeFilter("10"); setExpandedPending(false); setExpandedConfirmed(false); }}
+                    title="Mostrar las últimas 10 por categoría"
+                  >
+                    Últimas 10
+                  </button>
+                  <button
+                    className={classNames("seg-btn", rangeFilter === "all" && "is-active")}
+                    type="button"
+                    onClick={() => { setRangeFilter("all"); setExpandedPending(true); setExpandedConfirmed(true); }}
+                    title="Mostrar todas las reservas"
+                  >
+                    Todas ({reservations.length})
+                  </button>
+                </div>
+                <span className="count-pill">{reservations.length}</span>
+              </div>
             </div>
-            <div className="reservation-card-grid">
-              {[...pending, ...confirmed].map((r) => (
-                <ReservationCard
-                  key={r.id}
-                  reservation={r}
-                  isAdmin={isAdmin}
-                  isSuperAdmin={isSuperAdmin}
-                  currentUserId={currentUserId}
-                  onConfirm={handleConfirm}
-                  onDelete={handleDelete}
-                  onUploadProof={handleUploadProof}
-                  onCopyLink={copyLink}
-                  copiedId={copiedId}
-                  isNewlyCreated={newlyCreatedSet.has(r.id)}
-                />
-              ))}
-            </div>
+
+            {/* Sub-sección Pendientes de Confirmar */}
+            {pending.length > 0 && (
+              <div className="reservation-subgroup">
+                <div className="reservation-subgroup-heading">
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <h3 style={{ fontSize: "1rem", fontWeight: "700", color: "var(--text-primary)", margin: 0 }}>Pendientes de confirmar</h3>
+                    <span className="count-pill is-pending">{pending.length}</span>
+                  </div>
+                  {pending.length > visiblePending.length && (
+                    <small className="muted" style={{ fontSize: "0.78rem" }}>
+                      Mostrando {visiblePending.length} de {pending.length}
+                    </small>
+                  )}
+                </div>
+                <div className="reservation-card-grid">
+                  {visiblePending.map((r) => (
+                    <ReservationCard
+                      key={r.id}
+                      reservation={r}
+                      isAdmin={isAdmin}
+                      isSuperAdmin={isSuperAdmin}
+                      currentUserId={currentUserId}
+                      onConfirm={handleConfirm}
+                      onDelete={handleDelete}
+                      onUploadProof={handleUploadProof}
+                      onCopyLink={copyLink}
+                      copiedId={copiedId}
+                      isNewlyCreated={newlyCreatedSet.has(r.id)}
+                    />
+                  ))}
+                </div>
+                {pending.length > visiblePending.length && (
+                  <div className="reservation-expand-footer">
+                    <button
+                      type="button"
+                      className="secondary-button expand-reservations-btn"
+                      onClick={() => setExpandedPending(true)}
+                    >
+                      Ver todas las pendientes ({pending.length}) ▾
+                    </button>
+                  </div>
+                )}
+                {expandedPending && pending.length > 3 && rangeFilter === "3" && (
+                  <div className="reservation-expand-footer">
+                    <button
+                      type="button"
+                      className="ghost-button expand-reservations-btn"
+                      onClick={() => setExpandedPending(false)}
+                    >
+                      Ver menos pendientes ▴
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sub-sección Reservas Confirmadas */}
+            {confirmed.length > 0 && (
+              <div className="reservation-subgroup" style={{ marginTop: pending.length > 0 ? "1.75rem" : 0 }}>
+                <div className="reservation-subgroup-heading">
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <h3 style={{ fontSize: "1rem", fontWeight: "700", color: "var(--text-primary)", margin: 0 }}>Reservas confirmadas</h3>
+                    <span className="count-pill is-confirmed" style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--primary)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>{confirmed.length}</span>
+                  </div>
+                  {confirmed.length > visibleConfirmed.length && (
+                    <small className="muted" style={{ fontSize: "0.78rem" }}>
+                      Mostrando {visibleConfirmed.length} de {confirmed.length}
+                    </small>
+                  )}
+                </div>
+                <div className="reservation-card-grid">
+                  {visibleConfirmed.map((r) => (
+                    <ReservationCard
+                      key={r.id}
+                      reservation={r}
+                      isAdmin={isAdmin}
+                      isSuperAdmin={isSuperAdmin}
+                      currentUserId={currentUserId}
+                      onConfirm={handleConfirm}
+                      onDelete={handleDelete}
+                      onUploadProof={handleUploadProof}
+                      onCopyLink={copyLink}
+                      copiedId={copiedId}
+                      isNewlyCreated={newlyCreatedSet.has(r.id)}
+                    />
+                  ))}
+                </div>
+                {confirmed.length > visibleConfirmed.length && (
+                  <div className="reservation-expand-footer">
+                    <button
+                      type="button"
+                      className="secondary-button expand-reservations-btn"
+                      onClick={() => setExpandedConfirmed(true)}
+                    >
+                      Ver todas las confirmadas ({confirmed.length}) ▾
+                    </button>
+                  </div>
+                )}
+                {expandedConfirmed && confirmed.length > 3 && rangeFilter === "3" && (
+                  <div className="reservation-expand-footer">
+                    <button
+                      type="button"
+                      className="ghost-button expand-reservations-btn"
+                      onClick={() => setExpandedConfirmed(false)}
+                    >
+                      Ver menos confirmadas ▴
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         )
       )}
+
 
       {reservations.length === 0 && !loading && !showForm && (
         <section className="panel">
