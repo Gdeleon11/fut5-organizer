@@ -1650,6 +1650,37 @@ small, .muted {
   align-items: start;
 }
 
+.reservation-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reservation-subgroup-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 0.15rem;
+}
+
+.reservation-expand-footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.6rem;
+}
+
+.expand-reservations-btn {
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 1.1rem;
+  border-radius: var(--r-sm);
+  transition: all 180ms ease;
+}
+
+
 .reservation-form-block {
   display: grid;
   gap: 1rem;
