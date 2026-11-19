@@ -10,6 +10,7 @@ export function MobileBottomNav({
   activePage,
   goToPage,
   mobileNavRefs,
+  moreExtras = [],
 }) {
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const moreMenuRef = useRef(null);
@@ -31,7 +32,8 @@ export function MobileBottomNav({
   // If 5 items or fewer, render directly
   const hasMoreItems = navItems.length > 5;
   const mainItems = hasMoreItems ? navItems.slice(0, 4) : navItems;
-  const overflowItems = hasMoreItems ? navItems.slice(4) : [];
+  // Extra entries (e.g. Apariencia) are listed in "Más" whenever that menu exists.
+  const overflowItems = hasMoreItems ? [...navItems.slice(4), ...moreExtras] : [];
   const isOverflowActive = overflowItems.some((i) => i.id === activePage);
 
   return (

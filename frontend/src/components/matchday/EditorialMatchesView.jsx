@@ -132,7 +132,7 @@ export default function EditorialMatchesView({
   );
 }
 
-function EditorialHero({ entry, actions }) {
+export function EditorialHero({ entry, actions }) {
   const { state, parts, roster, capacity, confirmedCount, free } = entry;
   const busy = actions.busyId === entry.id;
   const slots = Math.max(capacity, roster.length);

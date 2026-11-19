@@ -14,6 +14,9 @@ async function openProfile(page) {
     await page.locator('button[title="Más opciones"]:visible').first().click();
     await page.locator("button:visible").filter({ hasText: /^Mi FIFA$/ }).first().click();
   }
+  // Profile → "Apariencia · Cambiar diseño" shortcut → dedicated /apariencia screen
+  await page.locator("button.md-appearance-shortcut:visible").click();
+  await expect(page).toHaveURL(/\/apariencia/);
   await expect(page.locator("#apariencia")).toBeVisible();
 }
 
@@ -119,4 +122,65 @@ test.describe("F5 Matchday — dos experiencias y paletas", () => {
       await goMatches(page);
     });
   }
+});
+
+test.describe("F5 Matchday — acceso al selector de Apariencia", () => {
+  test("desktop sidebar / mobile profile menu show a labelled Apariencia entry that opens /apariencia", async ({ page, isMobile }) => {
+    await enterDemo(page);
+    if (!isMobile) {
+      const entry = page.locator(".md-side button.md-appearance-entry");
+      await expect(entry).toBeVisible();
+      await expect(entry).toContainText("Apariencia");
+      await entry.click();
+    } else {
+      await page.locator(".f5-app-header button[aria-label='Menú de usuario']").first().click();
+      await page.locator("button:visible").filter({ hasText: /^Apariencia$/ }).first().click();
+    }
+    await expect(page).toHaveURL(/\/apariencia/);
+    await expect(page.locator("h1#md-appearance-title")).toHaveText("Apariencia");
+    await expect(page.locator("[data-preview=editorial]")).toBeAttached();
+    await expect(page.locator("[data-preview=command]")).toBeAttached();
+    await expect(page.locator(".md-design-opt.is-selected")).toContainText("Activo");
+  });
+
+  test("mobile Más menu lists Apariencia (when the menu exists)", async ({ page, isMobile }) => {
+    test.skip(!isMobile, "bottom navigation only on mobile");
+    await enterDemo(page); // demo user is Super Admin ⇒ 6 items ⇒ "Más" menu
+    await page.locator('button[title="Más opciones"]:visible').first().click();
+    await page.locator("button:visible").filter({ hasText: /^Apariencia$/ }).first().click();
+    await expect(page).toHaveURL(/\/apariencia/);
+  });
+
+  test("Sports Command Center + F5 Neon shows the tactical pitch with confirmed players, and Editorial comes back keeping the palette", async ({ page }) => {
+    await enterDemo(page);
+    await page.goto("/apariencia").catch(() => {});
+    if (!(await page.locator("#apariencia").count())) {
+      await enterDemo(page);
+      await openProfile(page);
+    }
+    await page.locator("label.md-design-opt", { hasText: "Sports Command Center" }).click();
+    await page.locator("label.md-palette-opt", { hasText: "F5 Neon" }).click();
+    await expect(page.locator(".md-appearance-current")).toContainText("Sports Command Center");
+    await expect(page.locator(".md-appearance-current")).toContainText("F5 Neon");
+    await goMatches(page);
+    await expect(page.locator("html")).toHaveAttribute("data-f5-design", "command");
+    await expect(page.locator("html")).toHaveAttribute("data-f5-palette", "neon");
+    const arena = page.locator(".mdc-arena");
+    await expect(arena).toBeVisible();
+    const ring = (await page.locator(".mdc-ring b").innerText()).trim(); // e.g. "7/15"
+    const confirmed = Number(ring.split("/")[0]);
+    expect(confirmed).toBeGreaterThan(0);
+    await expect(page.locator(".mdc-lineup .mdc-tok.on")).toHaveCount(confirmed);
+    await expect(page.locator(".mdc-lineup .mdc-tok.me")).toHaveCount(1);
+    await expect(page.locator(".mdc-lineup")).toContainText("Guille"); // demo player names on the tokens
+
+    await openProfile(page);
+    await page.locator("label.md-design-opt", { hasText: "Matchday Editorial" }).click();
+    await goMatches(page);
+    await expect(page.locator("html")).toHaveAttribute("data-f5-design", "editorial");
+    await expect(page.locator("html")).toHaveAttribute("data-f5-palette", "neon");
+    await expect(page.locator(".mde-hero")).toBeVisible();
+    const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("f5_appearance_v1")));
+    expect(stored).toMatchObject({ design: "editorial", palette: "neon" });
+  });
 });

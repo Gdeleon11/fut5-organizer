@@ -3,7 +3,9 @@ import FifaCard from "../components/FifaCard.jsx";
 import SkillDistribution from "../components/SkillDistribution.jsx";
 import { POSITION_OPTIONS, SKILL_OPTIONS, ROLE_LABELS } from "../constants.js";
 import { displayName } from "../utils.js";
-import AppearanceSettings from "../components/AppearanceSettings.jsx";
+import { Palette, ChevronRight } from "lucide-react";
+import { useAppearance } from "../appearance/AppearanceProvider.jsx";
+import { DESIGNS, PALETTES } from "../appearance/appearance.js";
 
 const SPANISH_POSITION_OPTIONS = [
   { id: "Flexible", label: "Flexible" },
@@ -29,6 +31,7 @@ export default function MyFifaCardPage({
   onCreateGroup, // Crear grupo
   onDeleteAccount,
   onSignOut,
+  onOpenAppearance,
 }) {
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [nickname, setNickname] = useState(profile?.nickname || "");
@@ -156,6 +159,7 @@ export default function MyFifaCardPage({
 
   return (
     <div className="page-grid my-fifa-card-page">
+      {onOpenAppearance && <AppearanceShortcut onOpen={onOpenAppearance} />}
       {/* Left Column: FUT Card and dynamic stats */}
       <section className="panel" style={{ flex: "1 1 320px", display: "flex", flexDirection: "column", alignItems: "center" }}>
         <p className="eyebrow">Tu Carta Oficial FUT F5</p>
@@ -385,7 +389,27 @@ export default function MyFifaCardPage({
 
       </div>
 
-      <AppearanceSettings />
     </div>
+  );
+}
+
+/** Visible entry to Apariencia at the top of the profile (the full selector lives at /apariencia). */
+function AppearanceShortcut({ onOpen }) {
+  const { design, palette } = useAppearance();
+  const d = DESIGNS.find((x) => x.id === design);
+  const p = PALETTES.find((x) => x.id === palette);
+  return (
+    <button type="button" className="md-appearance-shortcut" onClick={onOpen}>
+      <Palette size={20} aria-hidden="true" />
+      <span>
+        <b>Apariencia</b>
+        <small>
+          {d?.label} · {p?.label}
+        </small>
+      </span>
+      <span className="md-appearance-shortcut-cta">
+        Cambiar diseño <ChevronRight size={16} aria-hidden="true" />
+      </span>
+    </button>
   );
 }

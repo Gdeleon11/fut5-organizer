@@ -200,7 +200,7 @@ export default function CommandMatchesView({
   );
 }
 
-function CommandArena({ entry, actions }) {
+export function CommandArena({ entry, actions }) {
   const { state, parts, roster, capacity, confirmedCount, free } = entry;
   const busy = actions.busyId === entry.id;
   const total = Math.max(capacity, roster.length);

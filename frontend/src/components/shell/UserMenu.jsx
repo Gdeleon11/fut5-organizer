@@ -115,7 +115,7 @@ export function UserMenu({
             className="f5-user-menu-item"
             onClick={() => {
               setIsOpen(false);
-              goToPage("profile", "apariencia");
+              goToPage("appearance");
             }}
           >
             <Palette size={16} className="f5-text-info" />

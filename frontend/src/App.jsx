@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, CalendarHeart, Home, Users, CreditCard, Shield, Trophy, UserCircle, BookOpen } from "lucide-react";
+import { CalendarDays, CalendarHeart, Home, Users, CreditCard, Shield, Trophy, UserCircle, BookOpen, Palette } from "lucide-react";
 import { api } from "./api.js";
 import SectionHero from "./components/SectionHero.jsx";
 import AdBanner from "./components/AdBanner.jsx";
@@ -22,6 +22,7 @@ import CashierPage from "./pages/CashierPage.jsx";
 import PlayersPage from "./pages/PlayersPage.jsx";
 import MyFifaCardPage from "./pages/MyFifaCardPage.jsx";
 import ProfileForm from "./pages/ProfileForm.jsx";
+import AppearanceSettings from "./components/AppearanceSettings.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import BlogPage from "./pages/BlogPage.jsx";
 import BlogPostPage from "./pages/BlogPostPage.jsx";
@@ -64,6 +65,7 @@ const PAGE_PATHS = {
   leaderboard: "/estadisticas",
   cashier: "/cobros-caja",
   profile: "/perfil",
+  appearance: "/apariencia",
   groups: "/grupos",
   reservations: "/reservas",
   players: "/jugadores",
@@ -576,6 +578,7 @@ export default function App() {
       "groups",
       "team",
       "leaderboard",
+      "appearance",
       "blog",
       "blog-post",
       "nosotros",
@@ -685,6 +688,10 @@ export default function App() {
   function goToPage(nextPage, anchorId) {
     setSelectedMatchId(null);
     setPage(nextPage);
+    if (!anchorId && typeof window !== "undefined" && typeof window.scrollTo === "function") {
+      // New section starts at the top (previously kept the old page's scroll position).
+      window.scrollTo({ top: 0, left: 0 });
+    }
     if (anchorId && typeof window !== "undefined") {
       // Wait for the target page to render, then bring the section into view.
       window.setTimeout(() => {
@@ -2142,7 +2149,7 @@ export default function App() {
         />
       </div>
 
-      {page !== "matches" && (
+      {page !== "matches" && page !== "appearance" && (
         <SectionHero
           page={page}
           showArtwork={
@@ -2277,8 +2284,14 @@ export default function App() {
             onCreateFine={createFine}
           />
         )}
+        {page === "appearance" && (
+          <div className="md-appearance-page">
+            <AppearanceSettings asPage />
+          </div>
+        )}
         {page === "profile" && (
           <MyFifaCardPage
+            onOpenAppearance={() => goToPage("appearance")}
             profile={currentPlayer}
             profiles={profiles}
             ratingMap={ratingMap}
@@ -2396,6 +2409,7 @@ export default function App() {
       {/* ── MOBILE BOTTOM NAVIGATION V2 ── */}
       <MobileBottomNav
         navItems={navItems}
+        moreExtras={[{ id: "appearance", label: "Apariencia", mobileLabel: "Apariencia", icon: <Palette size={18} /> }]}
         activePage={page}
         goToPage={goToPage}
         mobileNavRefs={mobileNavRefs}

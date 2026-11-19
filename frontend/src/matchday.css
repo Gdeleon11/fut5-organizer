@@ -602,7 +602,7 @@ html[data-f5-palette="light"] .mdc-tok.me { background: #5be584; color: #06210f;
   border: 1.5px solid var(--border); background: var(--surface-2); color: var(--text-primary);
 }
 .md-palette-opt { grid-template-columns: auto minmax(0, 1fr); align-items: center; }
-.md-design-opt, .md-palette-opt, .md-design-opt *, .md-palette-opt * { text-transform: none; letter-spacing: normal; font-family: var(--md-ui, "Inter", sans-serif); }
+.md-design-opt, .md-palette-opt, .md-opt-text, .md-opt-text * { text-transform: none; letter-spacing: normal; font-family: var(--md-ui, "Inter", sans-serif); }
 .md-design-opt.is-selected, .md-palette-opt.is-selected { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.22); }
 .md-design-opt input, .md-palette-opt input { position: absolute; opacity: 0; inline-size: 1px; block-size: 1px; }
 .md-design-opt:has(input:focus-visible), .md-palette-opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; }
@@ -748,4 +748,62 @@ html[data-f5-palette] .f5-sticky-cta { background: color-mix(in oklab, var(--md-
     display: flex; align-items: center; justify-content: center; width: 48px; height: 32px; border-radius: 16px; font-size: 1.3rem;
   }
   html[data-f5-palette] .bottom-nav-item .tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ============================================================
+   Apariencia — access & discoverability
+   ============================================================ */
+.md-side-prefs { inline-size: 100%; margin-block: 14px 8px; padding-block-start: 12px; border-block-start: 1px solid var(--md-line); }
+.md-side-prefs .md-label { padding-inline: 12px; }
+.md-appearance-entry .md-nav-text { display: grid; gap: 2px; line-height: 1.15; }
+.md-appearance-entry .md-nav-text small { font: 500 11.5px var(--md-ui); color: var(--md-text-3); letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-inline-size: 150px; }
+.md-side.is-rail .md-side-prefs { padding-block-start: 10px; }
+
+.md-appearance-page { max-inline-size: 1080px; margin-inline: auto; }
+.md-appearance-page .md-appearance { padding: clamp(16px, 2.6vw, 28px); }
+.md-appearance-head h1 { margin: 0; font: 600 clamp(28px, 3vw, 36px) var(--md-cond, "Oswald"); letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-primary); }
+.md-appearance-current { margin: 10px 0 0; font-size: 14px; color: var(--text-secondary); }
+.md-appearance-current b { color: var(--text-primary); }
+.md-choice-note { margin: -4px 0 10px; font-size: 12.5px; color: var(--text-muted); }
+.md-appearance .md-design-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.md-active-chip {
+  display: inline-flex; align-items: center; gap: 4px; margin-inline-start: 8px; padding: 2px 8px; border-radius: 99px;
+  font: 700 11px var(--md-ui, "Inter"); letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--accent); color: var(--md-accent-ink, #04220f);
+}
+.md-opt-text b .md-active-chip svg { color: inherit; }
+
+/* Real, inert, scaled-down render of each design's hero */
+.md-preview {
+  display: block; position: relative; overflow: hidden; inline-size: 100%; border-radius: 10px;
+  border: 1px solid var(--md-line); background: var(--md-bg); pointer-events: none; user-select: none;
+}
+.md-preview-stage { display: block; position: absolute; inset-block-start: 0; inset-inline-start: 0; transform-origin: top left; padding: 10px; }
+.md-preview .mde-hero { padding-block: 22px; }
+
+/* Profile shortcut */
+.md-appearance-shortcut {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; inline-size: 100%; padding: 14px 16px; min-height: 0;
+  border-radius: 14px; border: 1px solid var(--md-line-2, var(--border)); background: var(--md-surface, var(--surface-1));
+  color: var(--text-primary); text-align: start; cursor: pointer; font-family: var(--md-ui, "Inter"); text-transform: none; letter-spacing: normal;
+}
+.md-appearance-shortcut:hover:not(:disabled) { border-color: var(--accent); background: var(--md-surface, var(--surface-1)); transform: none; color: var(--text-primary); }
+.md-appearance-shortcut > svg { color: var(--accent); flex: none; }
+.md-appearance-shortcut > span:first-of-type { display: grid; gap: 2px; flex: 1; min-inline-size: 0; }
+.md-appearance-shortcut b { font-size: 15px; }
+.md-appearance-shortcut small { color: var(--text-secondary); font-size: 13px; }
+.md-appearance-shortcut-cta { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-size: 13.5px; color: var(--accent); white-space: nowrap; }
+
+/* Previews keep the real typography of each design even inside the legacy .panel */
+.md-preview .mde-venue, .md-preview .mde-day, .md-preview .mde-time, .md-preview .mde-count b, .md-preview .mde-status b { font-family: var(--md-cond); }
+.md-preview .mde-venue { text-transform: uppercase; color: var(--md-text); }
+.md-preview .mdc-venue, .md-preview .mdc-clock, .md-preview .mdc-quorum p b, .md-preview .mdc-ring b, .md-preview .mdc-st b { font-family: var(--md-score); }
+.md-preview .mdc-venue { text-transform: uppercase; color: var(--md-text); }
+.md-preview .md-btn, .md-preview .mdc-cta { pointer-events: none; }
+
+/* Bottom nav (all mobile widths): a tapped item kept the legacy green hover fill. */
+@media (max-width: 899px) {
+  html[data-f5-palette] .bottom-nav-item:hover:not(:disabled),
+  html[data-f5-palette] .bottom-nav-item:focus:not(:focus-visible) { background: transparent; transform: none; }
+  html[data-f5-palette] .bottom-nav-item.is-active:hover:not(:disabled) { color: var(--md-accent); }
 }

@@ -4,6 +4,8 @@ import Avatar from "../Avatar.jsx";
 import GroupSwitcher from "./GroupSwitcher.jsx";
 import PushNotifications from "../PushNotifications.jsx";
 import { displayName } from "../../utils.js";
+import { useAppearance } from "../../appearance/AppearanceProvider.jsx";
+import { DESIGNS, PALETTES } from "../../appearance/appearance.js";
 
 function useMediaQuery(query) {
   const get = () => (typeof window !== "undefined" && window.matchMedia ? window.matchMedia(query).matches : false);
@@ -87,6 +89,9 @@ export function AppSidebar({
     };
   }, [groupOpen]);
 
+  const { design: currentDesign, palette: currentPalette } = useAppearance();
+  const designLabel = (DESIGNS.find((d) => d.id === currentDesign)?.label || "").replace("Sports ", "");
+  const paletteLabel = PALETTES.find((p) => p.id === currentPalette)?.label || "";
   const activeGroup = memberships.find((m) => m.group_id === activeGroupId) || memberships[0];
   const groupName = activeGroup?.groups?.name || "Grupo";
   const name = displayName(profile);
@@ -169,6 +174,29 @@ export function AppSidebar({
         </ul>
       </nav>
 
+      {/* Preferencias: labelled entry so changing design/palette is easy to find */}
+      <div className="md-side-prefs">
+        {!isRail && <span className="md-label">Preferencias</span>}
+        <button
+          type="button"
+          className={`md-nav-btn md-appearance-entry${activePage === "appearance" ? " is-active" : ""}`}
+          aria-current={activePage === "appearance" ? "page" : undefined}
+          aria-label={isRail ? `Apariencia: ${designLabel} · ${paletteLabel}` : undefined}
+          data-tip={`Apariencia · ${designLabel}`}
+          onClick={() => goToPage("appearance")}
+        >
+          <span className="md-nav-ic" aria-hidden="true">
+            <Palette size={20} />
+          </span>
+          <span className="md-nav-text">
+            Apariencia
+            <small>
+              {designLabel} · {paletteLabel}
+            </small>
+          </span>
+        </button>
+      </div>
+
       <div className="md-dock">
         {!isRail && (
           <div className="md-push">
@@ -181,15 +209,6 @@ export function AppSidebar({
               <Bell size={18} aria-hidden="true" />
             </button>
           )}
-          <button
-            type="button"
-            className="md-tool"
-            data-tip="Apariencia"
-            aria-label="Apariencia"
-            onClick={() => goToPage("profile", "apariencia")}
-          >
-            <Palette size={18} aria-hidden="true" />
-          </button>
           <button type="button" className="md-tool" data-tip="Mis grupos" aria-label="Mis grupos" onClick={() => goToPage("groups")}>
             <Layers size={18} aria-hidden="true" />
           </button>
