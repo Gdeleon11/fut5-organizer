@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
 import Avatar from "../Avatar.jsx";
-import ThemeSwitcher from "../ThemeSwitcher.jsx";
 import { displayName } from "../../utils.js";
 import { ChevronDown, RefreshCw, LogOut, UserCircle, Palette } from "lucide-react";
 
@@ -111,13 +110,17 @@ export function UserMenu({
             <span>Mi FIFA Card</span>
           </button>
 
-          <div className="f5-user-menu-item" style={{ justifyContent: "space-between", cursor: "default" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-              <Palette size={16} className="f5-text-info" />
-              <span>Tema</span>
-            </div>
-            <ThemeSwitcher />
-          </div>
+          <button
+            type="button"
+            className="f5-user-menu-item"
+            onClick={() => {
+              setIsOpen(false);
+              goToPage("profile", "apariencia");
+            }}
+          >
+            <Palette size={16} className="f5-text-info" />
+            <span>Apariencia</span>
+          </button>
 
           <button
             type="button"
