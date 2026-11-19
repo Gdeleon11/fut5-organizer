@@ -1,30 +1,23 @@
 import { useState, useMemo, useEffect } from "react";
-import { Star, X } from "lucide-react";
+import { Crown, Minus, Plus, Shield, Star, X } from "lucide-react";
 import { api } from "../api.js";
 import Avatar from "./Avatar.jsx";
 import { displayName } from "../utils.js";
 
 // A simpler inline StarRating for the modal
-function ModalStarRating({ value, onChange }) {
+function ModalStarRating({ value, onChange, label }) {
   return (
-    <div style={{ display: "flex", gap: "0.25rem" }}>
+    <div className="md-stars" role="group" aria-label={label || "Calificación"}>
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
           type="button"
+          className={star <= value ? "is-on" : ""}
+          aria-label={`${star} ${star === 1 ? "estrella" : "estrellas"}`}
+          aria-pressed={star <= value}
           onClick={() => onChange(star)}
-          style={{
-            background: "none",
-            border: "none",
-            padding: "0.2rem",
-            cursor: "pointer",
-            color: star <= value ? "#f59e0b" : "var(--border)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}
         >
-          <Star size={18} fill={star <= value ? "#f59e0b" : "transparent"} />
+          <Star size={18} fill={star <= value ? "currentColor" : "transparent"} />
         </button>
       ))}
     </div>
@@ -91,169 +84,91 @@ export default function PostMatchSurveyModal({
     onClose();
   };
 
-  // Overlay to block interactions outside
+  const stepper = (label, value, setValue) => (
+    <span className="mdd-stepper" role="group" aria-label={label}>
+      <small>{label}</small>
+      <button type="button" aria-label={`Restar ${label}`} onClick={() => setValue(Math.max(0, value - 1))} disabled={value <= 0}>
+        <Minus size={16} aria-hidden="true" />
+      </button>
+      <b>{value}</b>
+      <button type="button" aria-label={`Sumar ${label}`} onClick={() => setValue(value + 1)}>
+        <Plus size={16} aria-hidden="true" />
+      </button>
+    </span>
+  );
+
+  // Overlay blocks interactions outside (same behaviour as before)
   return (
-    <div style={{
-      position: "fixed",
-      top: 0, left: 0, right: 0, bottom: 0,
-      background: "rgba(0, 0, 0, 0.75)",
-      backdropFilter: "blur(4px)",
-      zIndex: 9999,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "1rem"
-    }}>
-      <div className="panel" style={{
-        width: "100%",
-        maxWidth: "460px",
-        background: "var(--surface-1)",
-        position: "relative",
-        boxShadow: "0 20px 40px rgba(0,0,0,0.6)",
-        maxHeight: "90vh",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        padding: 0
-      }}>
-        {/* Close Button */}
-        <button 
-          onClick={onClose}
-          style={{
-            position: "absolute",
-            top: "1rem",
-            right: "1rem",
-            background: "transparent",
-            border: "none",
-            color: "var(--text-muted)",
-            cursor: "pointer",
-            zIndex: 10
-          }}
-        >
-          <X size={20} />
-        </button>
+    <div className="md-modal-overlay md-survey">
+      <div className="md-modal" role="dialog" aria-modal="true" aria-labelledby="md-survey-title" style={{ position: "relative" }}>
+        <header className="md-modal-head">
+          <div>
+            <p className="eyebrow">Encuesta post-partido · Paso {step} de 2</p>
+            <h2 id="md-survey-title">{match.title || "Partido"}</h2>
+            <small>{step === 1 ? "Registra tu desempeño para el ranking global." : "Califica a tus compañeros de partido."}</small>
+          </div>
+          <button type="button" className="md-icon-btn" aria-label="Cerrar encuesta" onClick={onClose}>
+            <X size={20} aria-hidden="true" />
+          </button>
+        </header>
 
-        <div style={{ padding: "1.5rem", borderBottom: "1px solid rgba(255,255,255,0.05)", flexShrink: 0 }}>
-          <p className="eyebrow" style={{ color: "var(--primary)", margin: "0 0 0.5rem 0" }}>ENCUESTA POST-PARTIDO</p>
-          <h2 style={{ margin: "0 0 0.25rem 0", fontSize: "1.2rem", fontWeight: "600" }}>{match.title || "Partido"}</h2>
-          <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", margin: 0 }}>
-            {step === 1 ? "Registra tu desempeño para el ranking global." : "Califica a tus compañeros de partido."}
-          </p>
-        </div>
-
-        <div style={{ padding: "1.5rem", overflowY: "auto", flexGrow: 1 }}>
+        <div className="md-modal-body">
           {step === 1 && (
-            <form onSubmit={handleSaveStats} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-              <div style={{ display: "flex", gap: "1rem" }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>⚽ Goles</label>
-                  <input 
-                    type="number" 
-                    min="0" 
-                    value={goals} 
-                    onChange={(e) => setGoals(parseInt(e.target.value) || 0)}
-                    style={{
-                      width: "100%",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: "1px solid rgba(255,255,255,0.1)",
-                      color: "white",
-                      fontSize: "1.5rem",
-                      padding: "0.25rem 0",
-                      textAlign: "center"
-                    }}
-                  />
-                </div>
-                
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "0.25rem", display: "block" }}>👟 Asistencias</label>
-                  <input 
-                    type="number" 
-                    min="0" 
-                    value={assists} 
-                    onChange={(e) => setAssists(parseInt(e.target.value) || 0)}
-                    style={{
-                      width: "100%",
-                      background: "transparent",
-                      border: "none",
-                      borderBottom: "1px solid rgba(255,255,255,0.1)",
-                      color: "white",
-                      fontSize: "1.5rem",
-                      padding: "0.25rem 0",
-                      textAlign: "center"
-                    }}
-                  />
-                </div>
+            <form id="md-survey-form" onSubmit={handleSaveStats}>
+              <div className="md-survey-stats">
+                {stepper("Goles", goals, setGoals)}
+                {stepper("Asistencias", assists, setAssists)}
               </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}>
-                  <input 
-                    type="checkbox" 
-                    checked={cleanSheet} 
-                    onChange={(e) => setCleanSheet(e.target.checked)}
-                    style={{ width: "1.2rem", height: "1.2rem", accentColor: "var(--primary)" }}
-                  />
-                  <span style={{ fontSize: "0.9rem" }}>🛡️ Mantuve la valla invicta</span>
+              <div className="md-survey-checks">
+                <label className={`mdd-toggle${cleanSheet ? " is-on" : ""}`}>
+                  <input type="checkbox" checked={cleanSheet} onChange={(e) => setCleanSheet(e.target.checked)} />
+                  <Shield size={14} aria-hidden="true" /> Mantuve la valla invicta
                 </label>
-
-                <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", cursor: "pointer" }}>
-                  <input 
-                    type="checkbox" 
-                    checked={mvp} 
-                    onChange={(e) => setMvp(e.target.checked)}
-                    style={{ width: "1.2rem", height: "1.2rem", accentColor: "var(--primary)" }}
-                  />
-                  <span style={{ fontSize: "0.9rem" }}>⭐ Fui elegido MVP del partido</span>
+                <label className={`mdd-toggle${mvp ? " is-on" : ""}`}>
+                  <input type="checkbox" checked={mvp} onChange={(e) => setMvp(e.target.checked)} />
+                  <Crown size={14} aria-hidden="true" /> Fui el MVP del partido
                 </label>
-              </div>
-
-              <div style={{ marginTop: "1.5rem" }}>
-                <button type="submit" disabled={saving} style={{ width: "100%" }}>
-                  {saving ? "Guardando..." : "Siguiente →"}
-                </button>
               </div>
             </form>
           )}
 
           {step === 2 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            <div>
               {teammates.length === 0 ? (
-                <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "1rem 0" }}>No hay otros jugadores registrados en este partido.</p>
+                <p className="mdd-empty">No hay otros jugadores registrados en este partido.</p>
               ) : (
-                teammates.map(p => {
+                teammates.map((p) => {
                   const currentVote = userVoteMap?.get(p.id) || 0;
                   return (
-                    <div key={p.id} style={{ 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "space-between",
-                      padding: "0.5rem 0",
-                      borderBottom: "1px solid rgba(255,255,255,0.03)"
-                    }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                        <Avatar profile={p} size={32} />
-                        <div>
-                          <span style={{ fontWeight: "500", fontSize: "0.9rem", display: "block" }}>{displayName(p)}</span>
-                          <span style={{ color: "var(--text-muted)", fontSize: "0.7rem", display: "block" }}>{p.preferred_position || "Jugador"}</span>
-                        </div>
+                    <div key={p.id} className="md-survey-row">
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", minWidth: 0 }}>
+                        <Avatar profile={p} size="sm" />
+                        <span>
+                          {displayName(p)}
+                          <small>{p.preferred_position || "Jugador"}</small>
+                        </span>
                       </div>
-                      <ModalStarRating 
-                        value={currentVote} 
-                        onChange={(val) => onVote && onVote(p.id, val)}
-                      />
+                      <ModalStarRating value={currentVote} label={`Calificación para ${displayName(p)}`} onChange={(val) => onVote && onVote(p.id, val)} />
                     </div>
                   );
                 })
               )}
-              
-              <div style={{ marginTop: "1.5rem", display: "flex", gap: "1rem" }}>
-                <button className="ghost-button" onClick={() => setStep(1)} style={{ flex: 1 }}>Atrás</button>
-                <button onClick={handleFinish} style={{ flex: 2 }}>Finalizar Encuesta</button>
-              </div>
             </div>
           )}
         </div>
+
+        <footer className="md-modal-foot">
+          {step === 1 ? (
+            <button type="submit" form="md-survey-form" className="md-btn md-btn-accent" disabled={saving}>
+              {saving ? "Guardando…" : "Siguiente"}
+            </button>
+          ) : (
+            <>
+              <button type="button" className="md-btn md-btn-ghost" onClick={() => setStep(1)}>Atrás</button>
+              <button type="button" className="md-btn md-btn-accent" onClick={handleFinish}>Finalizar encuesta</button>
+            </>
+          )}
+        </footer>
       </div>
     </div>
   );

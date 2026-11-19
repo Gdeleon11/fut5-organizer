@@ -1,18 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link2 } from "lucide-react";
 import { api } from "../api.js";
 import { generateBalancedTeams, fairnessScore } from "../teamGeneration.js";
 import { distributeTeamsWithAI } from "../groq.js";
 import { copyToClipboard, displayName } from "../utils.js";
-
-// UI V2 Design System & Subcomponents
-import { MatchHero } from "../components/match/MatchHero.jsx";
-import { MatchTabs } from "../components/match/MatchTabs.jsx";
-import { MatchMatchTab } from "../components/match/MatchMatchTab.jsx";
-import { MatchPlayersTab } from "../components/match/MatchPlayersTab.jsx";
-import { MatchTeamsTab } from "../components/match/MatchTeamsTab.jsx";
-import { MatchAdminPanel } from "../components/match/MatchAdminPanel.jsx";
-import { MatchStatsEditor } from "../components/match/MatchStatsEditor.jsx";
+import { useAppearance } from "../appearance/AppearanceProvider.jsx";
+import { buildMatchDetailModel } from "../matchday/matchDetailModel.js";
+import { useMatchActions } from "../components/matchday/shared.jsx";
+import { EditorialMatchDetail, CommandMatchDetail } from "../components/matchdetail/MatchDetailViews.jsx";
+import { AdminTools, FifaModal, StatsModal, useFifaModal } from "../components/matchdetail/DetailBlocks.jsx";
 import { Toast } from "../components/ui/Toast.jsx";
 
 export default function MatchDetail({
@@ -45,7 +40,12 @@ export default function MatchDetail({
   matchStats = [],
   onSaveStats,
   onBack,
+  forceDesign,
 }) {
+  const { design: preferredDesign } = useAppearance();
+  const design = forceDesign || preferredDesign;
+  const fifa = useFifaModal();
+  const [guestLinkCopied, setGuestLinkCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("partido");
   const [teamInstructions, setTeamInstructions] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -290,128 +290,93 @@ export default function MatchDetail({
     }
   }
 
-  // Floating button guest link action
+  // Guest link (was a floating button; now an inline action on the roster)
   const handleCopyGuestLink = async () => {
     const link = api.generateGuestLink(match?.id);
     try {
       await copyToClipboard(link);
+      setGuestLinkCopied(true);
+      window.setTimeout(() => setGuestLinkCopied(false), 1800);
       setToastMessage({ variant: "success", text: "Enlace de invitado copiado al portapapeles ✓" });
     } catch (err) {}
   };
 
+  const vm = useMemo(() => {
+    const model = buildMatchDetailModel({
+      match, attendances, guests, profile, profileById, ratingMap, teams, matchStats, selectedVenue, clearance, fineAmount,
+    });
+    return model ? { ...model, rawTeams: teams || [] } : null;
+  }, [match, attendances, guests, profile, profileById, ratingMap, teams, matchStats, selectedVenue, clearance, fineAmount]);
+
+  // In the detail screen "Ver partido" is redundant; "Ver resumen" jumps to the result section.
+  const entry = useMemo(() => {
+    if (!vm) return null;
+    const st = vm.state;
+    const strip = (a) => (a && (a.kind === "open" || (a.kind === "summary" && !vm.isClosed)) ? null : a);
+    return { ...vm.entry, state: { ...st, primary: strip(st.primary), secondary: strip(st.secondary) } };
+  }, [vm]);
+
+  const actions = useMatchActions({
+    onConfirm: () => onConfirm?.(),
+    onCancel: () => onCancel?.(),
+    onJoinWaitlist: () => onJoinWaitlist?.(),
+    onOpenMatch: () => document.getElementById("resumen")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+  });
+
+  if (!vm) return null;
+
+  const didParticipate = (attendances || []).some(
+    (a) => a.profile_id === profile?.id && ["confirmed", "checked_in"].includes(a.status),
+  );
+
+  const shared = {
+    isAdmin,
+    roster: { onOpenPlayer: (p) => p && fifa.open(p), onCopyGuestLink: handleCopyGuestLink, guestLinkCopied },
+    summary: { profile, matchStats, currentMatchStats, didParticipate },
+  };
+
+  const admin = isAdmin ? (
+    <AdminTools
+      vm={vm}
+      attendances={attendances}
+      profiles={profiles}
+      profileById={profileById}
+      guests={guests}
+      onGenerateTeams={onGenerateTeams}
+      onAIDistribute={handleAIDistribute}
+      aiLoading={aiLoading}
+      aiError={aiError}
+      teamInstructions={teamInstructions}
+      setTeamInstructions={setTeamInstructions}
+      onOpenStats={() => setIsEditingStats(true)}
+      onCheckIn={onCheckIn}
+      onMarkNoShow={onMarkNoShow}
+      onReconfirm={onReconfirm}
+      onAddGuest={onAddGuest}
+      onDeleteGuest={onDeleteGuest}
+      onUpdateGuestRating={onUpdateGuestRating}
+      onDeleteMatch={onDeleteMatch}
+    />
+  ) : null;
+
+  const View = design === "command" ? CommandMatchDetail : EditorialMatchDetail;
+
   return (
-    <div className="f5-match-container">
-      {/* Toast Feedback */}
+    <div className={`md-matches md-design-${design}`} data-design={design} data-view="match-detail">
       {toastMessage && (
-        <Toast
-          variant={toastMessage.variant}
-          message={toastMessage.text}
-          onClose={() => setToastMessage(null)}
-        />
+        <Toast variant={toastMessage.variant} message={toastMessage.text} onClose={() => setToastMessage(null)} />
       )}
-
-      {/* ── HERO MATCH CARD ── */}
-      <MatchHero
-        match={match}
-        confirmedCount={confirmedCount}
-        myAttendance={myAttendance}
-        onConfirm={onConfirm}
-        onCancel={onCancel}
-        onJoinWaitlist={onJoinWaitlist}
-        onBack={onBack}
-        attendances={attendances}
-        selectedVenue={selectedVenue}
+      <View vm={vm} entry={entry} actions={actions} onBack={onBack} shared={shared} admin={admin} />
+      <StatsModal
+        open={isEditingStats && isAdmin}
+        statsForm={statsForm}
+        updateStatField={updateStatField}
+        onSave={handleSaveStats}
+        saving={savingStats}
+        onClose={() => setIsEditingStats(false)}
+        title={`${vm.title} · ${vm.parts.longLabel}`}
       />
-
-      {/* ── ADMIN PANEL (Progressive Disclosure) ── */}
-      {isAdmin && (
-        <MatchAdminPanel
-          match={match}
-          isAdmin={isAdmin}
-          attendances={attendances}
-          guests={guests}
-          profileById={profileById}
-          profiles={profiles}
-          confirmedCount={confirmedCount}
-          onGenerateTeams={onGenerateTeams}
-          handleAIDistribute={handleAIDistribute}
-          aiLoading={aiLoading}
-          aiError={aiError}
-          teamInstructions={teamInstructions}
-          setTeamInstructions={setTeamInstructions}
-          onCheckIn={onCheckIn}
-          onMarkNoShow={onMarkNoShow}
-          onReconfirm={onReconfirm}
-          onAddGuest={onAddGuest}
-          onDeleteGuest={onDeleteGuest}
-          onUpdateGuestRating={onUpdateGuestRating}
-          onDeleteMatch={onDeleteMatch}
-          setIsEditingStats={setIsEditingStats}
-        />
-      )}
-
-      {/* ── STATS EDITOR (When toggled by admin) ── */}
-      {isEditingStats && isAdmin && (
-        <MatchStatsEditor
-          statsForm={statsForm}
-          updateStatField={updateStatField}
-          handleSaveStats={handleSaveStats}
-          savingStats={savingStats}
-          onCancel={() => setIsEditingStats(false)}
-        />
-      )}
-
-      {/* ── TABS NAVIGATION ── */}
-      <MatchTabs
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        confirmedCount={confirmedPlayers.length}
-        teamsCount={(teams || []).length}
-      />
-
-      {/* ── TAB CONTENTS ── */}
-      {activeTab === "partido" && (
-        <MatchMatchTab
-          match={match}
-          selectedVenue={selectedVenue}
-          profile={profile}
-          attendances={attendances}
-          matchStats={matchStats}
-          confirmedCount={confirmedCount}
-          onSaveStats={onSaveStats}
-          currentMatchStats={currentMatchStats}
-        />
-      )}
-
-      {activeTab === "jugadores" && (
-        <MatchPlayersTab
-          confirmedPlayers={confirmedPlayers}
-          attendances={attendances}
-          profileById={profileById}
-          ratingMap={ratingMap}
-          maxPlayers={match?.max_players || 15}
-        />
-      )}
-
-      {activeTab === "equipos" && (
-        <MatchTeamsTab
-          match={match}
-          teams={teams}
-          isAdmin={isAdmin}
-          ratingMap={ratingMap}
-          skills={skills}
-          matchStats={matchStats}
-        />
-      )}
-
-      {/* Floating Action Button for guest link */}
-      <button
-        onClick={handleCopyGuestLink}
-        title="Copiar enlace para invitados"
-        className="f5-floating-btn"
-      >
-        <Link2 size={24} />
-      </button>
+      <FifaModal player={fifa.player} onClose={fifa.close} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
     </div>
   );
 }

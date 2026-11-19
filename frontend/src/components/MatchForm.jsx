@@ -127,9 +127,11 @@ export default function MatchForm({
   }
 
   return (
-    <form className="form-grid" onSubmit={submit}>
-      {formError && <p className="form-message">{formError}</p>}
-      <label>
+    <form className="form-grid md-form" onSubmit={submit}>
+      {formError && <p className="form-message" role="alert">{formError}</p>}
+      <fieldset className="md-form-group">
+      <legend>Cuándo y dónde</legend>
+      <label className="md-form-wide">
         Nombre
         <input value={form.title} onChange={(e) => updateForm({ title: e.target.value })} />
       </label>
@@ -164,6 +166,10 @@ export default function MatchForm({
         </label>
       )}
 
+      </fieldset>
+
+      <fieldset className="md-form-group">
+      <legend>Cupos y costo</legend>
       <label>
         Costo de cancha (Q)
         <input min="0" step="1" type="number" value={form.court_cost}
@@ -188,7 +194,9 @@ export default function MatchForm({
         </select>
       </label>
 
-      <div className="form-wide tag-selector">
+      </fieldset>
+
+      <div className="form-wide tag-selector md-form-group">
         <div>
           <strong>Visible para</strong>
           <small>Sin tags = todo el grupo. Con tags = solo esos subgrupos pueden verlo y apuntarse.</small>
@@ -226,7 +234,7 @@ export default function MatchForm({
       </div>
 
       {canUseReservationAssistant && (
-        <div className="form-wide reservation-assistant-fields">
+        <div className="form-wide reservation-assistant-fields md-form-group">
           <label className="toggle-row">
             <span>
               <strong>Este partido requiere reserva</strong>
@@ -306,12 +314,14 @@ export default function MatchForm({
         </div>
       )}
 
-      <button type="submit">{isEdit ? "Guardar cambios" : "Crear partido"}</button>
-      {onCancel && (
-        <button className="secondary-button" type="button" onClick={onCancel}>
-          Cancelar
-        </button>
-      )}
+      <div className="md-form-actions">
+        {onCancel && (
+          <button className="md-btn md-btn-ghost" type="button" onClick={onCancel}>
+            Cancelar
+          </button>
+        )}
+        <button className="md-btn md-btn-accent" type="submit">{isEdit ? "Guardar cambios" : "Crear partido"}</button>
+      </div>
     </form>
   );
 }

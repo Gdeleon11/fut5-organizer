@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import "./themes.css";
 import "./matchday.css";
+import "./matchdetail.css";
 import App from "./App.jsx";
 import { AppearanceProvider } from "./appearance/AppearanceProvider.jsx";
 

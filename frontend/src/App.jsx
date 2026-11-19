@@ -2149,7 +2149,7 @@ export default function App() {
         />
       </div>
 
-      {page !== "matches" && page !== "appearance" && (
+      {!["matches", "match", "appearance"].includes(page) && (
         <SectionHero
           page={page}
           showArtwork={
