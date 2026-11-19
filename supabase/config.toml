@@ -382,6 +382,14 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
 
+# User-invoked Edge Function: enforce gateway JWT verification + in-function admin check
+[functions.send-match-reminder]
+verify_jwt = true
+
+# Cron-invoked Edge Function: authenticated via constant-time CRON_SECRET header (no user JWT)
+[functions.check-upcoming-matches]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

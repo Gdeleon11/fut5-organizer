@@ -6881,14 +6881,50 @@ small, .muted {
 }
 
 @media (max-width: 899px) {
+  html,
+  body {
+    overflow-x: clip;
+    max-width: 100%;
+  }
+  .f5-app-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-inline: 0.75rem;
+  }
+  .f5-shell-actions {
+    flex-wrap: wrap;
+    max-width: 100%;
+    gap: 0.4rem;
+  }
+  .f5-shell-actions .push-notifications {
+    display: none;
+  }
   .f5-desktop-nav {
     display: none !important;
   }
   .bottom-nav {
+    position: fixed !important;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1100 !important;
     display: flex !important;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: #090e17;
+    padding: 0.5rem 0.25rem calc(0.5rem + env(safe-area-inset-bottom));
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.55);
+    isolation: isolate;
+  }
+  .bottom-nav-item {
+    min-height: 44px;
+    position: relative;
+    z-index: 1;
   }
   .app {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom)) !important;
   }
 }
 

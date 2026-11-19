@@ -8,7 +8,7 @@ import { displayName, positionLabel } from "../utils.js";
 
 const TEAM_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#eab308", "#f97316", "#a855f7", "#1f2937", "#ffffff"];
 
-export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, skills, onResultChange, onBack }) {
+export default function SimPage({ activeGroupId, profiles, ratingMap, isAdmin, isSuperAdmin, skills, onResultChange, onBack }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
@@ -90,6 +90,7 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
         skills: selectedSkills,
         instructions: aiInstructions,
         teamCount: Math.max(2, Math.ceil(selected.length / 5)),
+        groupId: activeGroupId,
       });
       const playerMap = new Map(selected.map((p) => [p.id, p]));
       const teamCount = Math.max(2, Math.ceil(selected.length / 5));
@@ -146,6 +147,21 @@ export default function SimPage({ profiles, ratingMap, isAdmin, isSuperAdmin, sk
 
       setResult({ team_count: teams.length, confirmed_player_count: selected.length, teams });
     } catch (err) {
+      try {
+        const selected = activePlayers.filter((p) => selectedIds.has(p.id));
+        if (selected.length >= 10) {
+          const fallback = generateBalancedTeams(selected);
+          fallback.teams = fallback.teams.map((team, i) => ({
+            ...team,
+            color: TEAM_COLORS[i % TEAM_COLORS.length],
+          }));
+          setResult(fallback);
+          setError(`IA no disponible (${err.message}). Se usó el balanceador automático.`);
+          return;
+        }
+      } catch {
+        // fallback failed too; surface original error
+      }
       setError(err.message);
     } finally {
       setAiLoading(false);

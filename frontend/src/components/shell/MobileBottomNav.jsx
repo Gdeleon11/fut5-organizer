@@ -49,7 +49,7 @@ export function MobileBottomNav({
             borderRadius: "var(--r-md)",
             padding: "0.5rem",
             boxShadow: "0 10px 25px rgba(0,0,0,0.6)",
-            zIndex: 100,
+            zIndex: 1150,
             display: "flex",
             flexDirection: "column",
             gap: "0.35rem",

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "../supabaseClient.js";
 import { api } from "../api.js";
 
 export default function ReservePage({ token }) {
@@ -14,58 +13,28 @@ export default function ReservePage({ token }) {
     async function load() {
       try {
         const rawTokens = (token || "").split(/[_,\+]/).filter(Boolean);
-        const targetIds = rawTokens.map((t) => {
-          if (t.includes("-")) return t;
-          return [
-            t.slice(0, 8), t.slice(8, 12), t.slice(12, 16),
-            t.slice(16, 20), t.slice(20),
-          ].join("-");
-        });
-
-        if (targetIds.length === 0) {
+        if (rawTokens.length === 0) {
           setError("Link inválido.");
           setLoading(false);
           return;
         }
 
-        // 1. Fetch primary reservation(s) matching targetIds
-        const { data: primaryData, error: primaryErr } = await supabase
-          .from("court_reservations")
-          .select("id, group_id, venue, reservation_date, reservation_time, notes, status, proof_url, assigned_to, assigned_profile:profiles!assigned_to(full_name)")
-          .in("id", targetIds);
-
-        if (primaryErr || !primaryData || primaryData.length === 0) {
+        const rows = await api.getPublicReservationsByTokens(rawTokens);
+        if (!rows || rows.length === 0) {
           setError("Link inválido o reserva no encontrada.");
           setLoading(false);
           return;
         }
 
-        let allList = [...primaryData];
-        const assignedTo = primaryData[0]?.assigned_to;
-        const groupId = primaryData[0]?.group_id;
-
-        // 2. Fetch any other pending reservations assigned to the same player in this group
-        if (assignedTo && groupId) {
-          const { data: siblingData } = await supabase
-            .from("court_reservations")
-            .select("id, group_id, venue, reservation_date, reservation_time, notes, status, proof_url, assigned_to, assigned_profile:profiles!assigned_to(full_name)")
-            .eq("group_id", groupId)
-            .eq("assigned_to", assignedTo)
-            .eq("status", "pending");
-
-          if (siblingData && siblingData.length > 0) {
-            const existingIds = new Set(primaryData.map((r) => r.id));
-            siblingData.forEach((r) => {
-              if (!existingIds.has(r.id)) {
-                allList.push(r);
-              }
-            });
-          }
-        }
-
-        allList.sort((a, b) => (a.reservation_date || "").localeCompare(b.reservation_date || ""));
-        setReservations(allList);
-      } catch (err) {
+        const normalized = rows.map((r) => ({
+          ...r,
+          assigned_profile: r.assigned_display_name
+            ? { full_name: r.assigned_display_name }
+            : null,
+        }));
+        normalized.sort((a, b) => (a.reservation_date || "").localeCompare(b.reservation_date || ""));
+        setReservations(normalized);
+      } catch {
         setError("Link inválido o error al cargar reservas.");
       } finally {
         setLoading(false);
@@ -80,7 +49,7 @@ export default function ReservePage({ token }) {
     setError("");
     try {
       const url = await api.uploadReservationProof(reservationId, file);
-      await api.updateReservation(reservationId, { proof_url: url });
+      await api.submitReservationProofByToken(reservationId, url);
       setReservations((prev) => {
         const next = prev.map((r) => r.id === reservationId ? { ...r, proof_url: url } : r);
         if (next.every((r) => r.proof_url)) setSuccess(true);
@@ -104,7 +73,7 @@ export default function ReservePage({ token }) {
       // Update all pending reservations in list with the same proof URL
       for (const r of reservations) {
         if (!r.proof_url) {
-          await api.updateReservation(r.id, { proof_url: url });
+          await api.submitReservationProofByToken(r.id, url);
         }
       }
 

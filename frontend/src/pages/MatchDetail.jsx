@@ -175,6 +175,7 @@ export default function MatchDetail({
   async function handleAIDistribute() {
     setAiError("");
     setAiLoading(true);
+    let players = [];
     try {
       const confirmedAttendances = (attendances || []).filter(
         (a) => a && (a.status === "confirmed" || a.status === "checked_in")
@@ -205,7 +206,7 @@ export default function MatchDetail({
       (guests || []).forEach((g) => {
         confirmationTimes.set(g.id, new Date(g.updated_at || g.created_at || Date.now()).getTime());
       });
-      let players = [...registeredPlayers, ...guestPlayers].map((p) => ({
+      players = [...registeredPlayers, ...guestPlayers].map((p) => ({
         ...p,
         confirmed_at: confirmationTimes.get(p.id) || Date.now(),
       }));
@@ -220,6 +221,8 @@ export default function MatchDetail({
         skills: playerSkills,
         instructions: teamInstructions,
         teamCount,
+        groupId: match?.group_id,
+        matchId: match?.id,
       });
 
       if (penaltyTeam) {
@@ -266,7 +269,22 @@ export default function MatchDetail({
       onGenerateTeams({ aiTeams: { teams: aiTeams, team_count: aiTeams.length } });
       setToastMessage({ variant: "success", text: "Equipos generados con IA con éxito 🤖" });
     } catch (err) {
-      setAiError(err.message);
+      if (players.length >= 10) {
+        const fallback = generateBalancedTeams(players);
+        onGenerateTeams({
+          aiTeams: {
+            teams: fallback.teams.map((team) => ({
+              name: team.name,
+              playerIds: team.players.map((player) => player.id),
+            })),
+            team_count: fallback.team_count,
+          },
+          aiFallback: true,
+        });
+        setAiError(`IA no disponible (${err.message}). Se usó el balanceador automático.`);
+      } else {
+        setAiError(err.message);
+      }
     } finally {
       setAiLoading(false);
     }

@@ -1,19 +1,31 @@
 import { normalizeRating } from "./teamGeneration.js";
+import { supabase } from "./supabaseClient.js";
 
-const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
-const GROQ_MODEL = "llama-3.1-8b-instant";
+export async function distributeTeamsWithAI({
+  players,
+  skills = [],
+  instructions = "",
+  teamCount,
+  groupId,
+  matchId,
+  accessToken,
+  fetchImpl = globalThis.fetch,
+}) {
+  if (!groupId) {
+    throw new Error("Falta el identificador del grupo para usar el balanceo con IA.");
+  }
 
-export async function distributeTeamsWithAI({ players, skills, instructions, teamCount }) {
-  const primaryUrl = import.meta.env.VITE_PRIMARY_LLM_URL;
-  const primaryKey = import.meta.env.VITE_PRIMARY_LLM_KEY;
-  const primaryModel = import.meta.env.VITE_PRIMARY_LLM_MODEL || "local-model";
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-  if (!apiKey && !primaryUrl) {
-    throw new Error("Faltan las credenciales: configura VITE_GROQ_API_KEY o VITE_PRIMARY_LLM_URL en el archivo .env");
+  let token = accessToken || "";
+  if (!token && supabase) {
+    const { data: sessionData } = await supabase.auth.getSession();
+    token = sessionData?.session?.access_token || "";
+  }
+  if (!token) {
+    throw new Error("Debes iniciar sesión como administrador del grupo para usar la IA.");
   }
 
   const playerList = players.map((p) => {
-    const playerSkills = skills.filter((s) => s.player_id === p.id).map((s) => s.skill);
+    const playerSkills = (skills || []).filter((s) => s.player_id === p.id).map((s) => s.skill);
     return {
       id: p.id,
       name: p.full_name || p.nickname || "Jugador",
@@ -26,7 +38,7 @@ export async function distributeTeamsWithAI({ players, skills, instructions, tea
       skills: playerSkills,
     };
   });
-  let sizesText = "";
+
   let sizesExplanation = "";
   if (teamCount) {
     const targetSizes = [];
@@ -36,8 +48,7 @@ export async function distributeTeamsWithAI({ players, skills, instructions, tea
       targetSizes.push(size);
       remaining -= size;
     }
-    sizesText = targetSizes.join(", ");
-    sizesExplanation = `Las cantidades de jugadores por equipo deben ser EXACTAMENTE las siguientes: ${sizesText}.`;
+    sizesExplanation = `Las cantidades de jugadores por equipo deben ser EXACTAMENTE las siguientes: ${targetSizes.join(", ")}.`;
   }
 
   const systemPrompt = `Eres un asistente experto en fútbol. Tu trabajo es distribuir jugadores en equipos equilibrados.
@@ -72,76 +83,46 @@ No agregues texto explicativo ni formato Markdown adicional fuera del JSON.`;
 
   const userPrompt = `${instructions ? `INSTRUCCIONES DEL USUARIO: ${instructions}\n\n` : ""}JUGADORES:\n${JSON.stringify(playerList, null, 2)}`;
 
-  async function callLLM(url, key, model, jsonMode = true) {
-    const body = {
-      model,
+  const res = await fetchImpl("/api/llm-proxy", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      groupId,
+      ...(matchId ? { matchId } : {}),
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       temperature: 0.3,
-    };
-    if (jsonMode) {
-      body.response_format = { type: "json_object" };
-    }
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(key ? { Authorization: `Bearer ${key}` } : {}),
-      },
-      body: JSON.stringify(body),
-    });
+      max_tokens: 1500,
+      json_mode: true,
+    }),
+  });
 
-    if (!res.ok) {
-      const error = await res.json().catch(() => ({}));
-      throw new Error(error.error?.message || `Error del LLM: ${res.status}`);
-    }
-    return res.json();
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.error?.message || error.error || `Error del servicio de IA (${res.status})`);
   }
 
-  let data;
-  try {
-    if (primaryUrl) {
-      console.log("Intentando LLM primario vía proxy:", primaryModel);
-      try {
-        data = await callLLM("/api/llm-proxy", "", primaryModel, true);
-      } catch (jsonErr) {
-        console.warn("LLM primario no soporta json_mode, reintentando sin:", jsonErr.message);
-        data = await callLLM("/api/llm-proxy", "", primaryModel, false);
-      }
-    } else {
-      throw new Error("No primary URL");
-    }
-  } catch (error) {
-    console.warn("Fallo el LLM primario, usando Groq como respaldo:", error.message);
-    if (apiKey) {
-      data = await callLLM(GROQ_API_URL, apiKey, GROQ_MODEL, true);
-    } else {
-      throw new Error("El LLM primario falló y no hay VITE_GROQ_API_KEY configurada.");
-    }
-  }
-
+  const data = await res.json();
   const content = data?.choices?.[0]?.message?.content;
   if (!content) throw new Error("El modelo no devolvió respuesta");
 
   let result;
   try {
     result = JSON.parse(content);
-  } catch (parseErr) {
-    console.warn("AI raw response (JSON parse error):", content);
+  } catch {
     throw new Error("La IA no devolvió JSON válido");
   }
   if (!result.teams || !Array.isArray(result.teams)) {
-    console.warn("AI raw response (invalid format):", JSON.stringify(result));
     throw new Error("Formato de respuesta inválido");
   }
 
-  return result.teams.map((team) => {
-    const ids = team.player_ids || team.playerIds || [];
-    return {
-      name: team.name,
-      playerIds: ids,
-    };
-  });
+  return result.teams.map((team) => ({
+    name: team.name,
+    playerIds: team.player_ids || team.playerIds || [],
+  }));
 }

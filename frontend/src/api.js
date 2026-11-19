@@ -63,6 +63,48 @@ function fileExtension(file, fallback = "jpg") {
   }
 }
 
+export function extractStorageObjectPath(bucket, urlOrPath) {
+  if (!urlOrPath || typeof urlOrPath !== "string") return "";
+  const clean = urlOrPath.replace(/%0A/g, "").trim();
+  if (!clean || clean.startsWith("data:")) return "";
+  const marker = `/storage/v1/object/`;
+  const idx = clean.indexOf(marker);
+  if (idx !== -1) {
+    const rest = clean.slice(idx + marker.length).split("?")[0];
+    // Matches public/<bucket>/<path>, sign/<bucket>/<path>, or authenticated/<bucket>/<path>
+    const match = rest.match(/^(?:public|sign|authenticated)\/([^/]+)\/(.+)$/);
+    if (match && match[1] === bucket) {
+      return decodeURIComponent(match[2]);
+    }
+    return "";
+  }
+  if (/^https?:\/\//i.test(clean)) return "";
+  return clean.replace(/^\/+/, "");
+}
+
+async function resolvePaymentProofUrl(client, urlOrPath, expiresIn = 3600) {
+  if (!urlOrPath) return null;
+  if (String(urlOrPath).startsWith("data:")) return urlOrPath;
+  const objectPath = extractStorageObjectPath("payment-proofs", urlOrPath);
+  if (!objectPath) return urlOrPath;
+  const { data, error } = await client.storage
+    .from("payment-proofs")
+    .createSignedUrl(objectPath, expiresIn);
+  if (error || !data?.signedUrl) return urlOrPath;
+  return data.signedUrl;
+}
+
+async function hydratePaymentProofUrls(client, payments = []) {
+  if (!Array.isArray(payments) || payments.length === 0) return payments;
+  return Promise.all(
+    payments.map(async (p) => {
+      if (!p?.proof_url) return p;
+      const signed = await resolvePaymentProofUrl(client, p.proof_url);
+      return { ...p, proof_url: signed };
+    }),
+  );
+}
+
 function safeContentType(file, fallback = "image/jpeg") {
   if (file.type && file.type !== "") return file.type;
   const ext = fileExtension(file);
@@ -255,25 +297,10 @@ export const api = {
   async searchGroups(query) {
     const client = requireSupabase();
     const term = query.trim();
-    if (!term) return [];
-
-    if (/^[0-9a-f-]{20,}$/i.test(term)) {
-      return readMany(
-        client
-          .from("groups")
-          .select("id, name, description, created_at")
-          .eq("id", term)
-          .limit(5),
-      );
-    }
+    if (term.length < 2) return [];
 
     return readMany(
-      client
-        .from("groups")
-        .select("id, name, description, created_at")
-        .ilike("name", `%${term}%`)
-        .order("created_at", { ascending: false })
-        .limit(8),
+      client.rpc("search_groups_public", { p_query: term }),
     );
   },
 
@@ -944,7 +971,11 @@ export const api = {
       .eq("match_id", matchId)
       .maybeSingle();
 
-    return data || null;
+    if (!data) return null;
+    if (Array.isArray(data.match_fee_payments)) {
+      data.match_fee_payments = await hydratePaymentProofUrls(client, data.match_fee_payments);
+    }
+    return data;
   },
 
   /**
@@ -1045,12 +1076,19 @@ export const api = {
   async listCollections(groupId) {
     const client = requireSupabase();
 
-    return readMany(
+    const rows = await readMany(
       client
         .from("collections")
         .select("*, collection_payments(*)")
         .eq("group_id", groupId)
         .order("created_at", { ascending: false }),
+    );
+
+    return Promise.all(
+      rows.map(async (col) => ({
+        ...col,
+        collection_payments: await hydratePaymentProofUrls(client, col.collection_payments || []),
+      })),
     );
   },
 
@@ -1825,35 +1863,39 @@ export const api = {
     return `${origin}/guest/${token}`;
   },
 
+  async getPublicMatchForGuest(token) {
+    const client = requireSupabase();
+    const rows = await readMany(
+      client.rpc("get_public_match_for_guest", { p_token: token }),
+    );
+    return rows[0] || null;
+  },
+
   async registerGuest(token, name) {
     const client = requireSupabase();
-    const hex = token;
-    const matchId = [
-      hex.slice(0, 8), hex.slice(8, 12), hex.slice(12, 16),
-      hex.slice(16, 20), hex.slice(20),
-    ].join("-");
+    const rows = await readMany(
+      client.rpc("register_guest_for_match", { p_token: token, p_name: name }),
+    );
+    if (!rows[0]) throw new Error("Error al registrarse como invitado.");
+    return rows[0];
+  },
 
-    const { data: match, error: matchError } = await client
-      .from("matches")
-      .select("id, group_id")
-      .eq("id", matchId)
-      .maybeSingle();
+  async getPublicReservationsByTokens(tokens = []) {
+    const client = requireSupabase();
+    return readMany(
+      client.rpc("get_public_reservations_by_tokens", { p_tokens: tokens }),
+    );
+  },
 
-    if (matchError || !match) throw new Error("Partido no encontrado.");
-
-    const { data, error } = await client
-      .from("guest_players")
-      .insert({
-        match_id: matchId,
-        group_id: match.group_id || null,
-        name,
-        rating: 2,
-      })
-      .select("*")
-      .single();
-
-    if (error) throw new Error("Error al registrarse: " + error.message);
-    return data;
+  async submitReservationProofByToken(token, proofUrl) {
+    const client = requireSupabase();
+    const rows = await readMany(
+      client.rpc("submit_reservation_proof_by_token", {
+        p_token: token,
+        p_proof_url: proofUrl,
+      }),
+    );
+    return rows[0] || null;
   },
 
   // ---------------------------------------------------------------------------

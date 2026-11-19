@@ -10,18 +10,22 @@
 
 const DAY_MS = 86400000;
 
+function toIsoDate(date) {
+  return date.toISOString().split("T")[0];
+}
+
 function nextDateAfter(startDate, dayOfWeek, afterDate) {
-  const start = new Date(startDate + "T12:00:00");
-  const after = new Date(afterDate + "T12:00:00");
+  const start = startDate instanceof Date ? new Date(startDate.getTime()) : new Date(`${startDate}T12:00:00Z`);
+  const after = afterDate instanceof Date ? new Date(afterDate.getTime()) : new Date(`${afterDate}T12:00:00Z`);
   const dayMap = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6 };
   const targetDay = dayMap[dayOfWeek] ?? 1;
-  const diff = ((targetDay - after.getDay()) % 7 + 7) % 7 || 7;
+  const diff = ((targetDay - after.getUTCDay()) % 7 + 7) % 7 || 7;
   const next = new Date(after.getTime() + diff * DAY_MS);
   if (next < start) {
-    const fix = ((targetDay - start.getDay()) % 7 + 7) % 7 || 7;
-    return new Date(start.getTime() + fix * DAY_MS);
+    const fix = ((targetDay - start.getUTCDay()) % 7 + 7) % 7 || 7;
+    return toIsoDate(new Date(start.getTime() + fix * DAY_MS));
   }
-  return next;
+  return toIsoDate(next);
 }
 
 function addDays(date, days) {

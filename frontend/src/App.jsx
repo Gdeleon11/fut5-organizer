@@ -568,7 +568,24 @@ export default function App() {
   }, [session?.user?.id]);
 
   useEffect(() => {
-    if (!navItems.some((i) => i.id === page) && page !== "match") setPage("matches");
+    const allowedPages = new Set([
+      ...navItems.map((i) => i.id),
+      "match",
+      "groups",
+      "team",
+      "leaderboard",
+      "blog",
+      "blog-post",
+      "nosotros",
+      "caracteristicas",
+      "faq",
+      "privacy",
+      "terms",
+      "contact",
+      "landing",
+      "auth",
+    ]);
+    if (!allowedPages.has(page)) setPage("matches");
   }, [navItems, page]);
 
   useEffect(() => {
@@ -844,7 +861,7 @@ export default function App() {
         window.localStorage.setItem("fut5_active_group_id", membership.group_id);
       await loadData(profile, membership.group_id);
       setNotice("Grupo creado. Ya sos Super Admin de esta chamusca.");
-      setPage("admin");
+      setPage("matches");
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }
@@ -881,7 +898,7 @@ export default function App() {
     setNotice(""); setError("");
     if (!clearance.clear && !isAdmin) {
       setError(`Necesitás finiquito para sumarte. Pendiente: ${new Intl.NumberFormat(undefined, { style: "currency", currency: "GTQ" }).format(clearance.total)}.`);
-      setPage("fees");
+      setPage("cashier");
       return;
     }
     if (!canAccessMatch(match, currentPlayer, isAdmin)) {
@@ -1963,6 +1980,7 @@ export default function App() {
         onMockLogin={() => {
           setIsDemoMode(true);
           loadMockData();
+          setPage("matches");
         }}
       />
     );
@@ -2023,6 +2041,7 @@ export default function App() {
         onMockLogin={() => {
           setIsDemoMode(true);
           loadMockData();
+          setPage("matches");
         }}
       />
     );
@@ -2093,14 +2112,6 @@ export default function App() {
         signOut={signOut}
       />
 
-      {/* ── MOBILE BOTTOM NAVIGATION V2 ── */}
-      <MobileBottomNav
-        navItems={navItems}
-        activePage={page}
-        goToPage={goToPage}
-        mobileNavRefs={mobileNavRefs}
-      />
-
       <SectionHero
         page={page}
         showArtwork={
@@ -2126,6 +2137,7 @@ export default function App() {
         {page === "matches" && (
           isSimulating ? (
             <SimPage
+              activeGroupId={activeGroupId}
               profiles={profiles}
               ratingMap={ratingMap}
               isAdmin={isAdmin}
@@ -2312,12 +2324,6 @@ export default function App() {
           <TournamentPage activeGroupId={activeGroupId} profiles={profiles} ratingMap={ratingMap}
             isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} isDemoMode={isDemoMode} />
         )}
-        {page === "superadmin" && isSuperAdmin && (
-          <SuperAdminPage fines={fines} profiles={profiles} ratingMap={ratingMap}
-            settings={settings} onAssignRating={assignRating}
-            onUpdateMember={updateGroupMember} onUpdateRole={updateMemberRole}
-            onUpdateSettings={updateSettings} onRemoveMember={removeGroupMember} />
-        )}
       </main>
 
       <footer style={{
@@ -2351,6 +2357,14 @@ export default function App() {
       </footer>
 
       <AdBanner sticky={true} />
+
+      {/* ── MOBILE BOTTOM NAVIGATION V2 ── */}
+      <MobileBottomNav
+        navItems={navItems}
+        activePage={page}
+        goToPage={goToPage}
+        mobileNavRefs={mobileNavRefs}
+      />
 
       {activeSurveyMatch && (
         <PostMatchSurveyModal 
