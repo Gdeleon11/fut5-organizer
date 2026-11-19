@@ -81,9 +81,12 @@ describe("MatchDetail experiences", () => {
       const dialog = screen.getByRole("dialog", { name: /Estadísticas del partido/ });
       fireEvent.click(screen.getAllByRole("button", { name: "Sumar Goles" })[0]);
       fireEvent.click(screen.getAllByRole("button", { name: "Sumar Goles" })[0]);
+      fireEvent.click(screen.getAllByRole("button", { name: "Sumar Asist." })[0]);
+      fireEvent.click(screen.getAllByRole("checkbox", { name: "MVP" })[0]);
+      fireEvent.click(screen.getAllByRole("checkbox", { name: "Valla" })[0]);
       expect(dialog.querySelector(".mdd-stats-board b").textContent).toBe("2");
       await act(async () => { fireEvent.click(screen.getByRole("button", { name: /Guardar estadísticas/ })); });
-      expect(onSaveStats).toHaveBeenCalledWith("m1", expect.arrayContaining([expect.objectContaining({ goals: 2 })]));
+      expect(onSaveStats).toHaveBeenCalledWith("m1", expect.arrayContaining([expect.objectContaining({ goals: 2, assists: 1, mvp: true, clean_sheet: true })]));
     });
   }
 

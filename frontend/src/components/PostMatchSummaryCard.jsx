@@ -59,9 +59,12 @@ export default function PostMatchSummaryCard({ match, stats = [], confirmedCount
         <div><small>Asistencia</small><strong>{confirmedCount}</strong></div>
         <div><small>Goles</small><strong>{goals}</strong></div>
         <div><small>Asistencias</small><strong>{assists}</strong></div>
-        <div><small>MVP</small><strong>{mvp?.name || "-"}</strong></div>
+        <div className="summary-mvp"><small>MVP</small><strong>{mvp?.name || "-"}</strong></div>
       </div>
-      <textarea readOnly value={summaryText} />
+      <details className="summary-preview">
+        <summary>Ver texto para compartir</summary>
+        <pre>{summaryText}</pre>
+      </details>
       <button type="button" onClick={copySummary}>Copiar resumen</button>
     </div>
   );

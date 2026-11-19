@@ -34,7 +34,8 @@ export default function PostMatchSurveyModal({
   onSaveStats,
   onNotice,
   onVote,
-  userVoteMap
+  userVoteMap,
+  savePlayerStats = api.saveSinglePlayerMatchStats
 }) {
   const [step, setStep] = useState(1);
   const [goals, setGoals] = useState(0);
@@ -56,7 +57,7 @@ export default function PostMatchSurveyModal({
     e.preventDefault();
     setSaving(true);
     try {
-      await api.saveSinglePlayerMatchStats(match.id, match.group_id || activeGroupId, profile.id, {
+      await savePlayerStats(match.id, match.group_id || activeGroupId, profile.id, {
         goals,
         assists,
         clean_sheet: cleanSheet,

@@ -45,68 +45,22 @@ export default function SelfStatsCard({ match, profile, matchStats, activeGroupI
   };
 
   return (
-    <div className="panel" style={{ background: "linear-gradient(135deg, var(--surface-1) 0%, var(--surface-2) 100%)", borderLeft: "4px solid var(--accent)", marginBottom: "1.5rem" }}>
-      <div className="section-heading" style={{ marginBottom: "1rem" }}>
-        <div>
-          <p className="eyebrow" style={{ color: "var(--accent)" }}>TU RENDIMIENTO</p>
-          <h3 style={{ margin: 0 }}>¡Sube tus estadísticas!</h3>
+    <section className="self-performance">
+      <header className="section-heading">
+        <div><p className="eyebrow">Rendimiento individual</p><h3>Mi partido</h3></div>
+        {hasSaved && <span className="count-pill">Guardado</span>}
+      </header>
+      <form onSubmit={handleSave}>
+        <div className="performance-inputs">
+          <label>Goles<input type="number" min="0" value={goals} onChange={e => setGoals(parseInt(e.target.value) || 0)} /></label>
+          <label>Asistencias<input type="number" min="0" value={assists} onChange={e => setAssists(parseInt(e.target.value) || 0)} /></label>
         </div>
-        {hasSaved && <span className="count-pill">Guardado ✅</span>}
-      </div>
-      
-      <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: "1rem" }}>
-        Registra tu rendimiento en este partido. Ayuda a mantener el ranking global actualizado.
-      </p>
-
-      <form onSubmit={handleSave} className="grid" style={{ gap: "1rem", gridTemplateColumns: "1fr 1fr" }}>
-        <div className="field">
-          <label>⚽ Goles</label>
-          <input 
-            type="number" 
-            min="0" 
-            value={goals} 
-            onChange={(e) => setGoals(parseInt(e.target.value) || 0)} 
-          />
+        <div className="md-survey-checks">
+          <label className={`mdd-toggle${cleanSheet ? " is-on" : ""}`}><input type="checkbox" checked={cleanSheet} onChange={e => setCleanSheet(e.target.checked)} /> Valla invicta</label>
+          <label className={`mdd-toggle${mvp ? " is-on" : ""}`}><input type="checkbox" checked={mvp} onChange={e => setMvp(e.target.checked)} /> MVP del partido</label>
         </div>
-        
-        <div className="field">
-          <label>👟 Asistencias</label>
-          <input 
-            type="number" 
-            min="0" 
-            value={assists} 
-            onChange={(e) => setAssists(parseInt(e.target.value) || 0)} 
-          />
-        </div>
-
-        <div className="field" style={{ gridColumn: "1 / -1" }}>
-          <label className="checkbox-label" style={{ padding: "0.5rem", background: "var(--surface-0)", borderRadius: "var(--radius)", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <input 
-              type="checkbox" 
-              checked={cleanSheet} 
-              onChange={(e) => setCleanSheet(e.target.checked)} 
-            />
-            🛡️ Valla Invicta (Porteros o defensas)
-          </label>
-        </div>
-
-        <div className="field" style={{ gridColumn: "1 / -1" }}>
-          <label className="checkbox-label" style={{ padding: "0.5rem", background: "var(--surface-0)", borderRadius: "var(--radius)", display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <input 
-              type="checkbox" 
-              checked={mvp} 
-              onChange={(e) => setMvp(e.target.checked)} 
-            />
-            ⭐ Fui elegido MVP del partido
-          </label>
-        </div>
-
-        <div className="field" style={{ gridColumn: "1 / -1", marginTop: "0.5rem" }}>
-          <button type="submit" disabled={saving}>
-            {saving ? "Guardando..." : "Guardar mis estadísticas"}
-          </button>
-        </div>
+        <button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar mis estadísticas"}</button>
       </form>
-    </div>
+    </section>
   );
 }

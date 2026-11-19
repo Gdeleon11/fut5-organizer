@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./local-demo.js";
 
 function visibleButton(page, name) {
   return page.locator("button:visible").filter({ hasText: name }).first();

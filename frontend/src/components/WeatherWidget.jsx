@@ -28,8 +28,9 @@ export default function WeatherWidget({ venue, date, time, lat, lng }) {
 
   return (
     <div className={`weather-widget ${isRainy ? "is-rainy" : ""} ${isHot ? "is-hot" : ""} ${isCold ? "is-cold" : ""}`}>
-      <span className="weather-icon">{weather.icon}</span>
+      <span aria-hidden="true" className="weather-icon">{weather.icon}</span>
       <div className="weather-info">
+        <small>Pronóstico de cancha</small>
         <strong>{temp}°C{feelsLike !== temp ? ` (sens. ${feelsLike}°)` : ""}</strong>
         <small>
           {weather.description}
@@ -39,13 +40,13 @@ export default function WeatherWidget({ venue, date, time, lat, lng }) {
       </div>
       <div className="weather-details">
         {showRainChance && <span className="weather-detail">🌧️ {rainChance}%</span>}
-        <span className="weather-detail">💨 {weather.wind_speed || weather.wind_max} km/h</span>
+        <span className="weather-detail">Viento {weather.wind_speed ?? weather.wind_max} km/h</span>
         {weather.humidity != null && <span className="weather-detail">Humedad {weather.humidity}%</span>}
         <button
           className="ghost-button"
           type="button"
           onClick={() => setReloadKey((k) => k + 1)}
-          title="Actualizar"
+          aria-label="Actualizar pronóstico" title="Actualizar pronóstico"
           style={{ minHeight: "auto", padding: "0.2rem 0.4rem", fontSize: "0.85rem" }}
         >
           🔄

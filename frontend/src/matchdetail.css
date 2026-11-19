@@ -88,7 +88,7 @@
 
 /* Summary */
 .mdd-scoreline, .mdd-stats-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--md-line); border: 1px solid var(--md-line); border-radius: 14px; overflow: hidden; margin-block: 14px; }
-.mdd-stats-board { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 20px 4px; }
+.mdd-stats-board { flex-shrink: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 20px 4px; }
 .mdd-scoreline > div, .mdd-stats-board > div { display: grid; gap: 4px; padding: 14px 16px; background: var(--md-surface); }
 .mdd-scoreline b, .mdd-stats-board b { font: 600 34px/1 var(--md-cond); color: var(--md-text); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mdd-scoreline .is-mvp b, .mdd-stats-board .is-mvp b { font-size: 22px; color: var(--md-accent); }
@@ -200,8 +200,9 @@ html[data-f5-design="command"] .md-modal { border-radius: 24px; }
 .mdd-stepper button { inline-size: 30px; block-size: 30px; min-height: 0; padding: 0; display: grid; place-items: center; border-radius: 8px; border: 1px solid var(--md-line-2); background: none; color: var(--md-text); cursor: pointer; }
 .mdd-stepper button:hover:not(:disabled) { background: color-mix(in oklab, var(--md-accent) 16%, transparent); color: var(--md-text); transform: none; }
 .mdd-stepper b { text-align: center; font: 600 18px var(--md-cond); font-variant-numeric: tabular-nums; }
-.mdd-toggle { display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; min-height: 32px; border-radius: 99px; border: 1px solid var(--md-line-2); font: 600 12px var(--md-ui); color: var(--md-text-2); cursor: pointer; }
-.mdd-toggle input { position: absolute; opacity: 0; inline-size: 1px; block-size: 1px; }
+.mdd-toggle { position: relative; display: inline-flex; align-items: center; gap: 5px; padding: 0 10px; min-height: 32px; border-radius: 99px; border: 1px solid var(--md-line-2); font: 600 12px var(--md-ui); color: var(--md-text-2); cursor: pointer; }
+.mdd-toggle input { position: absolute; inset: 0; margin: 0; opacity: 0; inline-size: 100%; block-size: 100%; cursor: pointer; }
+@media (pointer: coarse) { .mdd-toggle { min-height: 44px; } }
 .mdd-toggle.is-on { background: var(--md-accent); color: var(--md-accent-ink); border-color: transparent; }
 .mdd-toggle:has(input:focus-visible) { outline: 2px solid var(--md-accent); outline-offset: 2px; }
 
@@ -347,3 +348,19 @@ html[data-f5-design="editorial"] .md-create h2 { font: 600 clamp(30px, 3vw, 42px
   .mdd-stats-rows .mdd-toggle { grid-row: auto; justify-content: center; }
   .mdd-stats-board b { font-size: 26px; }
 }
+
+/* Post-match reports and venue forecast use the active appearance tokens. */
+.self-performance, .summary-preview { padding: 1rem; border-block-start: 1px solid var(--border); }
+.self-performance form { display: grid; gap: 1rem; }
+.performance-inputs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
+.performance-inputs input { display: block; width: 100%; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.summary-preview summary { cursor: pointer; }
+.summary-preview pre { white-space: pre-wrap; font: inherit; }
+.mdd .weather-widget { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .75rem; }
+.mdd .weather-info { display: grid; }
+.mdd .weather-info strong { font-size: 1.6rem; }
+.mdd .weather-details { grid-column: 1/-1; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.mdd-editorial .post-match-stats { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); }
+.mdd-editorial .summary-mvp { grid-column: 1/-1; border-block-start: 1px solid var(--border); }
+.mdd-command :is(.post-match-stats,.performance-inputs) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .5rem; }
+.mdd-command :is(.post-match-stats > div,.performance-inputs > label,.weather-details) { padding: .75rem; background: var(--surface-2); border-radius: .5rem; }

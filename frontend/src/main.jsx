@@ -8,14 +8,15 @@ import App from "./App.jsx";
 import { AppearanceProvider } from "./appearance/AppearanceProvider.jsx";
 
 // DEV-only states gallery (QA/screenshots). Dead-code-eliminated in production builds.
-const DevGallery =
+const qa = import.meta.env.DEV && new URLSearchParams(location.search).has("f5-match-demo");
+const DevGallery = qa ? React.lazy(() => import("./dev/MatchDemo.jsx")) :
   import.meta.env.DEV && new URLSearchParams(window.location.search).has("f5-gallery")
     ? React.lazy(() => import("./dev/MatchdayStatesGallery.jsx"))
     : null;
 
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <AppearanceProvider>
+    <AppearanceProvider client={qa ? null : undefined}>
       {DevGallery ? (
         <React.Suspense fallback={null}>
           <DevGallery />

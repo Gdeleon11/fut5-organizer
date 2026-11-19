@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./local-demo.js";
 
 // Isolated demo mode only: no Supabase session, no backend writes.
 async function enterDemo(page) {

@@ -285,7 +285,9 @@ export default function SimPage({ activeGroupId, profiles, ratingMap, isAdmin, i
           {result.fairness_score != null ? ` · diferencial ${result.fairness_score}` : ""}
         </small>
       </div>
-      {isCommand && pitchTeams.length >= 2 && <TeamsPitch teams={pitchTeams} onOpenPlayer={(p) => p && fifa.open(p)} />}
+      {isCommand && pitchTeams.filter((_, index) => index % 2 === 0).map((team, pair) => (
+        <TeamsPitch key={team.key} teams={pitchTeams.slice(pair * 2, pair * 2 + 2)} onOpenPlayer={(p) => p && fifa.open(p)} />
+      ))}
       <div className={`mdd-team-grid cols-${Math.min(pitchTeams.length, 3)}`}>
         {result.teams.map((team, i) => (
           <article key={team.name} className="mdd-team" style={{ "--team": team.color || "#22c55e" }}>

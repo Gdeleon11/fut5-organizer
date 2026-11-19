@@ -1,8 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./local-demo.js";
 
 // Entrega 1 — match experience. Isolated demo mode only (local data, no backend writes).
+const capturePalette = process.env.F5_CAPTURE_PALETTE;
+
 async function enterDemo(page, design) {
-  await page.addInitScript((d) => localStorage.setItem("f5_appearance_v1", JSON.stringify({ design: d, palette: "neon", updatedAt: 1 })), design);
+  await page.addInitScript(pref => localStorage.setItem("f5_appearance_v1", JSON.stringify(pref)), { design, palette: capturePalette || "neon", updatedAt: 1 });
   await page.goto("/login");
   await page.getByRole("button", { name: /demo|demostración/i }).click();
   await expect(page.locator("[data-design]")).toBeVisible();
@@ -30,7 +32,7 @@ for (const design of ["editorial", "command"]) {
       expect(overflow).toBe(false);
     });
 
-    test("player opens the FIFA card; stats modal opens and closes with Escape", async ({ page }) => {
+    test("player opens the FIFA card; stats modal edits and closes with Escape", async ({ page }, info) => {
       await enterDemo(page, design);
       await openDetail(page);
       await page.locator("#equipos .mdd-team li button").first().click();
@@ -39,8 +41,32 @@ for (const design of ["editorial", "command"]) {
       await expect(page.locator(".fifa-modal-overlay")).toHaveCount(0);
       await page.getByRole("button", { name: /Cargar estadísticas/ }).click();
       await expect(page.getByRole("dialog", { name: /Estadísticas del partido/ })).toBeVisible();
+      const row = page.locator(".mdd-stats-rows li").last();
+      await row.getByLabel("Sumar Goles").click();
+      await row.getByLabel("Sumar Asist.").click();
+      await row.getByLabel("MVP", { exact: true }).check();
+      await row.getByLabel("Valla", { exact: true }).check();
+      await expect(row.getByLabel("MVP")).toBeChecked();
+      await expect(row.getByLabel("Valla")).toBeChecked();
+      await expect(row.locator(".mdd-stepper b")).toHaveText(["1", "1"]);
+      await page.screenshot({ path: info.outputPath("estadisticas.png") });
       await page.keyboard.press("Escape");
       await expect(page.getByRole("dialog", { name: /Estadísticas del partido/ })).toHaveCount(0);
+      if (capturePalette) {
+        await expect(page.locator("html")).toHaveAttribute("data-f5-palette", capturePalette);
+        await page.getByRole("button", { name: /Cargar estadísticas/ }).click();
+        await page.getByRole("button", { name: /Guardar estadísticas/ }).click();
+        for (const [name, selector] of [
+          ["resumen", ".post-match-card"], ["clima", ".weather-widget .weather-info"], ["rendimiento", ".self-performance"],
+        ]) {
+          await expect(page.locator(selector)).toBeVisible();
+          const panel = page.locator(name === "clima" ? ".weather-widget" : selector);
+          await panel.evaluate(el => el.scrollIntoView({ block: "center", behavior: "instant" }));
+          await expect(panel.getByRole("button").last()).toBeInViewport();
+          await panel.getByRole("button").last().click({ trial: true });
+          await panel.screenshot({ path: info.outputPath(name + ".png") });
+        }
+      }
     });
 
     test("back to Partidos, create form groups and tactical board", async ({ page }) => {
@@ -58,5 +84,31 @@ for (const design of ["editorial", "command"]) {
       await expect(page.locator(".msim-count b")).toHaveText("7");
       await expect(page.getByRole("button", { name: "Simular", exact: true })).toBeDisabled(); // demo has 7 < 10 players
     });
+  });
+}
+
+for (const design of ["editorial", "command"]) {
+  test(design + " simula dieciocho jugadores y completa la encuesta local", async ({ page }, info) => {
+    await page.addInitScript(pref => localStorage.setItem("f5_appearance_v1", JSON.stringify(pref)), { design, palette: capturePalette || "gold", updatedAt: 1 });
+    await page.goto("/?f5-match-demo");
+    if (capturePalette) await expect(page.locator("html")).toHaveAttribute("data-f5-palette", capturePalette);
+    await page.getByText("Todos", { exact: true }).click();
+    await page.getByRole("button", { name: "Simular", exact: true }).click();
+    await expect(page.locator(".mdd-team li")).toHaveCount(18);
+    const team = page.locator(".mdd-team").first();
+    await team.getByLabel("Color Morado").click();
+    await expect(team.getByLabel("Color Morado")).toHaveClass(/is-selected/);
+    await page.locator(".msim-result").screenshot({ path: info.outputPath("pizarra.png") });
+    await team.locator("li button").first().click();
+    await expect(page.locator(".fifa-modal-overlay")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await page.getByText("Abrir encuesta de práctica").click();
+    await page.getByText("Siguiente").click();
+    const rating = page.getByRole("group", { name: "Calificación para Jugador 2", exact: true });
+    await rating.getByLabel("4 estrellas").click();
+    await expect(rating.locator("[aria-pressed=true]")).toHaveCount(4);
+    await page.screenshot({ path: info.outputPath("encuesta.png") });
+    await page.getByText("Finalizar encuesta").click();
+    await expect(page.getByRole("status")).toContainText("Gracias");
   });
 }
