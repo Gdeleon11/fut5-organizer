@@ -33,7 +33,8 @@ import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
 import { activeReservationStatus, canUseReservationAssistant } from "./reservationAssistant.js";
 import { canAccessMatch, collectGroupTags } from "./tags.js";
 import { classNames, displayName, formatMatchDate, profileComplete, roleLabel } from "./utils.js";
-import { AppHeader, MobileBottomNav, DevRoleBanner } from "./components/shell/index.js";
+import { AppHeader, AppSidebar, MobileBottomNav, DevRoleBanner } from "./components/shell/index.js";
+import { AppearanceScope, useAppearance } from "./appearance/AppearanceProvider.jsx";
 
 
 function ConfigMissing() {
@@ -130,6 +131,7 @@ export default function App() {
   const [memberships, setMemberships] = useState([]);
   const [activeGroupId, setActiveGroupId] = useState("");
   const [page, setPage] = useState(initialRoute.page);
+  const { design: appearanceDesign } = useAppearance();
   const [selectedMatchId, setSelectedMatchId] = useState(initialRoute.matchId);
   const [selectedBlogSlug, setSelectedBlogSlug] = useState(initialRoute.slug || "");
   const [matches, setMatches] = useState([]);
@@ -680,9 +682,16 @@ export default function App() {
   function myAttendance(matchId) {
     return attendances.find((a) => a.match_id === matchId && a.profile_id === profile?.id);
   }
-  function goToPage(nextPage) {
+  function goToPage(nextPage, anchorId) {
     setSelectedMatchId(null);
     setPage(nextPage);
+    if (anchorId && typeof window !== "undefined") {
+      // Wait for the target page to render, then bring the section into view.
+      window.setTimeout(() => {
+        const el = document.getElementById(anchorId);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    }
   }
   function openMatch(matchId) { setSelectedMatchId(matchId); setPage("match"); }
 
@@ -2085,7 +2094,8 @@ export default function App() {
   const userRating = ratingMap.get(currentPlayer?.id)?.rating || 70;
 
   return (
-    <div className="app">
+    <div className={`app md-app md-design-${appearanceDesign}`}>
+      <AppearanceScope />
       {/* ── MODO DESARROLLO / SIMULADOR DE ROLES BANNER ── */}
       {isDemoMode && (
         <DevRoleBanner
@@ -2097,8 +2107,10 @@ export default function App() {
       )}
 
 
-      {/* ── APP HEADER / TOPBAR V2 ── */}
-      <AppHeader
+      <div className="md-shell">
+      {/* ── DESKTOP SIDEBAR (≥ 900px) — variant follows the chosen design ── */}
+      <AppSidebar
+        variant={appearanceDesign}
         navItems={navItems}
         activePage={page}
         goToPage={goToPage}
@@ -2112,16 +2124,36 @@ export default function App() {
         signOut={signOut}
       />
 
-      <SectionHero
-        page={page}
-        showArtwork={
-          page === "team"
-            ? myGeneratedTeamsCount > 0
-            : page === "sim"
-              ? simHasGeneratedTeams
-              : true
-        }
-      />
+      <div className="md-workspace">
+      {/* ── MOBILE / TABLET TOPBAR (< 900px) ── */}
+      <div className="md-mobile-top">
+        <AppHeader
+          navItems={navItems}
+          activePage={page}
+          goToPage={goToPage}
+          memberships={memberships}
+          activeGroupId={activeGroupId}
+          switchGroup={switchGroup}
+          profile={profile}
+          preferredPositionShort={preferredPositionShort}
+          userRating={userRating}
+          refresh={refresh}
+          signOut={signOut}
+        />
+      </div>
+
+      {page !== "matches" && (
+        <SectionHero
+          page={page}
+          showArtwork={
+            page === "team"
+              ? myGeneratedTeamsCount > 0
+              : page === "sim"
+                ? simHasGeneratedTeams
+                : true
+          }
+        />
+      )}
 
       {error && <div className="alert error">{error}</div>}
       {notice && <div className="alert success">{notice}</div>}
@@ -2172,6 +2204,7 @@ export default function App() {
               clearance={clearance}
               guests={guests}
               onOpenPizarra={() => setIsSimulating(true)}
+              groupName={activeGroup?.name || ""}
             />
           )
         )}
@@ -2357,6 +2390,8 @@ export default function App() {
       </footer>
 
       <AdBanner sticky={true} />
+      </div>
+      </div>
 
       {/* ── MOBILE BOTTOM NAVIGATION V2 ── */}
       <MobileBottomNav

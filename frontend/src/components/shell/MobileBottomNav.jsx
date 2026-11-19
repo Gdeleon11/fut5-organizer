@@ -98,6 +98,7 @@ export function MobileBottomNav({
               key={item.id}
               type="button"
               className={`bottom-nav-item ${isActive ? "is-active" : ""}`}
+              aria-current={isActive ? "page" : undefined}
               ref={(node) => {
                 if (mobileNavRefs && mobileNavRefs.current) {
                   mobileNavRefs.current[item.id] = node;

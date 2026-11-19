@@ -3,6 +3,7 @@ import FifaCard from "../components/FifaCard.jsx";
 import SkillDistribution from "../components/SkillDistribution.jsx";
 import { POSITION_OPTIONS, SKILL_OPTIONS, ROLE_LABELS } from "../constants.js";
 import { displayName } from "../utils.js";
+import AppearanceSettings from "../components/AppearanceSettings.jsx";
 
 const SPANISH_POSITION_OPTIONS = [
   { id: "Flexible", label: "Flexible" },
@@ -383,6 +384,8 @@ export default function MyFifaCardPage({
         </div>
 
       </div>
+
+      <AppearanceSettings />
     </div>
   );
 }

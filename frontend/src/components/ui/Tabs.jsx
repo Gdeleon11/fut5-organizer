@@ -34,8 +34,8 @@ export function Tabs({
                   fontSize: "0.7rem",
                   padding: "0.1rem 0.4rem",
                   borderRadius: "10px",
-                  background: isActive ? "var(--primary)" : "rgba(255,255,255,0.1)",
-                  color: isActive ? "#000" : "var(--text-secondary)",
+                  background: isActive ? "var(--primary)" : "color-mix(in oklab, var(--text-secondary) 14%, transparent)",
+                  color: isActive ? "var(--md-accent-ink, #000)" : "var(--text-secondary)",
                   fontWeight: "700"
                 }}
               >

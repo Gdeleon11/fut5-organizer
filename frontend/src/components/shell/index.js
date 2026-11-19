@@ -1,4 +1,5 @@
 export { AppHeader } from "./AppHeader.jsx";
+export { AppSidebar } from "./AppSidebar.jsx";
 export { DesktopNav } from "./DesktopNav.jsx";
 export { GroupSwitcher } from "./GroupSwitcher.jsx";
 export { UserMenu } from "./UserMenu.jsx";
