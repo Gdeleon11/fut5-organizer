@@ -23,10 +23,10 @@ export const PALETTES = [
   { id: "neon", label: "F5 Neon", scheme: "dark", swatch: ["#0d0f0e", "#5be584", "#f2f4f3"] },
   { id: "midnight", label: "Midnight Blue", scheme: "dark", swatch: ["#0b1020", "#6cb4ff", "#eef3ff"] },
   { id: "gold", label: "Elite Gold", scheme: "dark", swatch: ["#0f0d0a", "#e7bf5f", "#f6f1e6"] },
-  { id: "light", label: "Club Light", scheme: "light", swatch: ["#f5f7f4", "#0f7a3d", "#121a15"] },
+  { id: "light", label: "Club Light", scheme: "light", swatch: ["#f4f6f3", "#0a6633", "#111a14"] },
 ];
 
-export const DEFAULT_APPEARANCE = Object.freeze({ design: "editorial", palette: "neon", updatedAt: 0 });
+export const DEFAULT_APPEARANCE = Object.freeze({ design: "editorial", palette: "neon", updatedAt: 0, userId: null });
 
 export const STORAGE_KEY = "f5_appearance_v1";
 export const METADATA_KEY = "f5_appearance";
@@ -60,6 +60,8 @@ export function normalizeAppearance(raw) {
     design: isDesign(raw.design) ? raw.design : DEFAULT_APPEARANCE.design,
     palette: isPalette(raw.palette) ? raw.palette : DEFAULT_APPEARANCE.palette,
     updatedAt: Number.isFinite(updatedAt) && updatedAt > 0 ? updatedAt : 0,
+    // Which signed-in user this browser copy belongs to (null = chosen while signed out).
+    userId: typeof raw.userId === "string" && raw.userId ? raw.userId : null,
   };
 }
 
@@ -105,6 +107,30 @@ export function pickNewest(local, remote) {
   if (!remote) return l;
   const r = normalizeAppearance(remote);
   return r.updatedAt > l.updatedAt ? r : l;
+}
+
+/** Payload stored in the user's auth metadata (no device-local fields). */
+export function toRemote(value) {
+  const v = normalizeAppearance(value);
+  return { design: v.design, palette: v.palette, updatedAt: v.updatedAt };
+}
+
+/**
+ * Decides what a device should show once a user is known.
+ * - A local copy owned by a different user is ignored (shared device): never leaks
+ *   one account's preference into another.
+ * - Otherwise the newest timestamp wins; the result says whether to push it remotely.
+ */
+export function reconcileAppearance(local, remoteRaw, userId) {
+  const l = normalizeAppearance(local);
+  const r = remoteRaw ? normalizeAppearance(remoteRaw) : null;
+  const foreign = Boolean(l.userId && userId && l.userId !== userId);
+  if (foreign) {
+    return { value: { ...(r || DEFAULT_APPEARANCE), userId }, push: false };
+  }
+  if (r && r.updatedAt > l.updatedAt) return { value: { ...r, userId }, push: false };
+  if (l.updatedAt > (r?.updatedAt || 0)) return { value: { ...l, userId }, push: true };
+  return { value: { ...(r || l), userId }, push: false };
 }
 
 export function sameAppearance(a, b) {

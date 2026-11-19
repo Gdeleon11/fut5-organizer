@@ -170,7 +170,7 @@ function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, on
               target="_blank"
               rel="noopener noreferrer"
               className="secondary-button"
-              style={{ background: "#25D366", color: "#fff", border: "none", display: "inline-flex", alignItems: "center", gap: "0.35rem", textDecoration: "none" }}
+              style={{ background: "#25D366", color: "#06210f", border: "none", display: "inline-flex", alignItems: "center", gap: "0.35rem", textDecoration: "none" }}
             >
               💬 WhatsApp
             </a>
@@ -731,7 +731,7 @@ export default function CourtReservationPage({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="secondary-button"
-                          style={{ background: "#25D366", color: "#fff", border: "none", display: "inline-flex", alignItems: "center", gap: "0.35rem", textDecoration: "none" }}
+                          style={{ background: "#25D366", color: "#06210f", border: "none", display: "inline-flex", alignItems: "center", gap: "0.35rem", textDecoration: "none" }}
                         >
                           💬 WhatsApp
                         </a>
@@ -822,7 +822,7 @@ export default function CourtReservationPage({
                             target="_blank"
                             rel="noopener noreferrer"
                             className="secondary-button"
-                            style={{ background: "#25D366", color: "#fff", border: "none", display: "inline-flex", alignItems: "center", textDecoration: "none", padding: "0.2rem 0.5rem" }}
+                            style={{ background: "#25D366", color: "#06210f", border: "none", display: "inline-flex", alignItems: "center", textDecoration: "none", padding: "0.2rem 0.5rem" }}
                             title="Enviar por WhatsApp"
                           >
                             💬

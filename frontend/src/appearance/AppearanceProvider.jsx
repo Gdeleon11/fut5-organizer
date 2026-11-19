@@ -5,9 +5,10 @@ import {
   STORAGE_KEY,
   applyAppearance,
   normalizeAppearance,
-  pickNewest,
   readLocalAppearance,
+  reconcileAppearance,
   sameAppearance,
+  toRemote,
   writeLocalAppearance,
 } from "./appearance.js";
 
@@ -18,9 +19,11 @@ const SYNC_DEBOUNCE_MS = 450;
 /**
  * Holds the user's design + palette.
  * - Every change is applied and written to localStorage synchronously (no reload, no sign-out).
- * - When a real Supabase session exists, the value is mirrored to the user's own
- *   auth metadata (`auth.updateUser({ data })`) so it follows them across devices.
- *   Demo mode has no session, so nothing leaves the browser there.
+ * - With a real Supabase session the value is mirrored to the user's own auth metadata
+ *   (`auth.updateUser({ data: { f5_appearance } })`; Supabase merges `data` into the
+ *   existing metadata, other keys are kept). Other devices pick it up when they load or
+ *   refresh the session — this is not a live/realtime push.
+ * - Demo mode has no session, so nothing leaves the browser there.
  */
 export function AppearanceProvider({ children, client = supabase }) {
   const [appearance, setAppearanceState] = useState(() => readLocalAppearance());
@@ -30,36 +33,54 @@ export function AppearanceProvider({ children, client = supabase }) {
   const timerRef = useRef(null);
   const appearanceRef = useRef(appearance);
   appearanceRef.current = appearance;
+  const userRef = useRef(null);
+  userRef.current = user;
 
   const pushRemote = useCallback(
     (value) => {
-      if (!client || !user) return;
+      if (!client || !userRef.current) return;
       pendingRef.current = value;
       clearTimeout(timerRef.current);
       setSyncStatus("saving");
       timerRef.current = setTimeout(async () => {
         const toSave = pendingRef.current;
         try {
-          const { error } = await client.auth.updateUser({ data: { [METADATA_KEY]: toSave } });
+          const { error } = await client.auth.updateUser({ data: { [METADATA_KEY]: toRemote(toSave) } });
           if (error) throw error;
           if (pendingRef.current === toSave) setSyncStatus("synced");
         } catch {
+          // Local value stays applied; the next change (or next load) retries.
           setSyncStatus("error");
         }
       }, SYNC_DEBOUNCE_MS);
     },
-    [client, user],
+    [client],
   );
 
-  // Track the signed-in user (only to read/write their own metadata).
+  // Track the signed-in user. getSession() can hold a cached user whose metadata is
+  // stale (another device may have changed it), so we re-read it from Auth once.
   useEffect(() => {
     if (!client) return undefined;
     let alive = true;
     client.auth
       .getSession()
-      .then(({ data }) => alive && setUser(data?.session?.user || null))
+      .then(async ({ data }) => {
+        const sessionUser = data?.session?.user || null;
+        if (!alive) return;
+        if (!sessionUser) {
+          setUser(null);
+          return;
+        }
+        try {
+          const { data: fresh, error } = await client.auth.getUser();
+          if (alive) setUser(!error && fresh?.user ? fresh.user : sessionUser);
+        } catch {
+          if (alive) setUser(sessionUser); // offline: fall back to the cached copy
+        }
+      })
       .catch(() => {});
-    const { data } = client.auth.onAuthStateChange((_event, session) => {
+    const { data } = client.auth.onAuthStateChange((event, session) => {
+      if (event === "INITIAL_SESSION") return; // handled above with a fresh read
       setUser(session?.user || null);
     });
     return () => {
@@ -69,27 +90,26 @@ export function AppearanceProvider({ children, client = supabase }) {
   }, [client]);
 
   // Reconcile local vs remote whenever the user (or their metadata) changes.
+  const userId = user?.id || null;
+  const remoteStamp = Number(user?.user_metadata?.[METADATA_KEY]?.updatedAt) || 0;
   useEffect(() => {
     if (!user) {
       setSyncStatus("local");
       return;
     }
-    const remoteRaw = user.user_metadata?.[METADATA_KEY];
     const local = appearanceRef.current;
-    const remote = remoteRaw ? normalizeAppearance(remoteRaw) : null;
-    const winner = pickNewest(local, remote);
-    if (remote && winner.updatedAt > local.updatedAt) {
-      appearanceRef.current = winner;
-      if (!sameAppearance(winner, local)) setAppearanceState(winner);
-      writeLocalAppearance(winner);
-      setSyncStatus("synced");
-    } else if (local.updatedAt > (remote?.updatedAt || 0)) {
-      pushRemote(local);
-    } else {
-      setSyncStatus("synced");
+    const { value, push } = reconcileAppearance(local, user.user_metadata?.[METADATA_KEY], user.id);
+    const next = normalizeAppearance(value);
+    appearanceRef.current = next;
+    if (!sameAppearance(next, local) || next.updatedAt !== local.updatedAt || next.userId !== local.userId) {
+      setAppearanceState(next);
+      writeLocalAppearance(next);
     }
+    if (push) pushRemote(next);
+    else setSyncStatus("synced");
+    // Re-run only when the account or its stored preference timestamp changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [userId, remoteStamp]);
 
   // Keep other tabs of the same browser in sync live.
   useEffect(() => {
@@ -97,6 +117,7 @@ export function AppearanceProvider({ children, client = supabase }) {
       if (event.key !== STORAGE_KEY || !event.newValue) return;
       try {
         const next = normalizeAppearance(JSON.parse(event.newValue));
+        appearanceRef.current = next;
         setAppearanceState((current) => (sameAppearance(current, next) ? current : next));
       } catch {
         /* ignore malformed values */
@@ -110,8 +131,14 @@ export function AppearanceProvider({ children, client = supabase }) {
 
   const setAppearance = useCallback(
     (patch) => {
-      const next = normalizeAppearance({ ...appearanceRef.current, ...patch, updatedAt: Date.now() });
-      if (sameAppearance(next, appearanceRef.current)) return;
+      const current = appearanceRef.current;
+      const next = normalizeAppearance({
+        ...current,
+        ...patch,
+        updatedAt: Math.max(Date.now(), current.updatedAt + 1),
+        userId: userRef.current?.id || null,
+      });
+      if (sameAppearance(next, current)) return;
       appearanceRef.current = next;
       setAppearanceState(next);
       writeLocalAppearance(next);
@@ -140,7 +167,7 @@ export function AppearanceProvider({ children, client = supabase }) {
 const FALLBACK = {
   design: "editorial",
   palette: "neon",
-  appearance: { design: "editorial", palette: "neon", updatedAt: 0 },
+  appearance: { design: "editorial", palette: "neon", updatedAt: 0, userId: null },
   setAppearance: () => {},
   setDesign: () => {},
   setPalette: () => {},

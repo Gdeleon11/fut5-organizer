@@ -1,0 +1,403 @@
+{
+  "results": [
+    {
+      "id": "0",
+      "name": "Cuenta sintética A sin preferencia previa en Auth",
+      "ok": true,
+      "detail": {
+        "keys": [
+          "email_verified",
+          "full_name",
+          "nickname",
+          "phone",
+          "preferred_position",
+          "qa_marker",
+          "qa_nested"
+        ]
+      }
+    },
+    {
+      "id": "1-2",
+      "name": "Sesión de A abierta en escritorio y móvil; sin preferencia ⇒ valor predeterminado",
+      "ok": true,
+      "detail": {
+        "desktop": {
+          "design": "editorial",
+          "palette": "neon",
+          "view": "editorial",
+          "local": null
+        },
+        "mobile": {
+          "design": "editorial",
+          "palette": "neon",
+          "view": "editorial",
+          "local": null
+        }
+      }
+    },
+    {
+      "id": "3",
+      "name": "Escritorio aplica Command Center + Elite Gold al instante",
+      "ok": true,
+      "detail": {
+        "d1": {
+          "design": "command",
+          "palette": "gold",
+          "local": {
+            "design": "command",
+            "palette": "gold",
+            "updatedAt": 1795117740133
+          }
+        },
+        "syncText": "Guardado en tu cuenta: se aplica en todos tus dispositivos."
+      }
+    },
+    {
+      "id": "3b",
+      "name": "Dos clics seguidos generan una sola escritura (debounce)",
+      "ok": true,
+      "detail": {
+        "puts": 1
+      }
+    },
+    {
+      "id": "4",
+      "name": "Auth de staging guarda f5_appearance = command/gold",
+      "ok": true,
+      "detail": {
+        "f5_appearance": {
+          "design": "command",
+          "palette": "gold",
+          "updatedAt": 1795117740133
+        }
+      }
+    },
+    {
+      "id": "4b",
+      "name": "Los demás campos de user_metadata se conservan",
+      "ok": true,
+      "detail": {
+        "before": {
+          "email_verified": true,
+          "full_name": "QA Sintético A",
+          "nickname": "QA-A",
+          "phone": "0000-0001",
+          "preferred_position": "Midfielder",
+          "qa_marker": "keep-me-A",
+          "qa_nested": {
+            "a": 1
+          }
+        },
+        "after": {
+          "email_verified": true,
+          "f5_appearance": {
+            "design": "command",
+            "palette": "gold",
+            "updatedAt": 1795117740133
+          },
+          "full_name": "QA Sintético A",
+          "nickname": "QA-A",
+          "phone": "0000-0001",
+          "preferred_position": "Midfielder",
+          "qa_marker": "keep-me-A",
+          "qa_nested": {
+            "a": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "4c",
+      "name": "No se guardan campos locales del dispositivo (userId) en Auth",
+      "ok": true,
+      "detail": {
+        "design": "command",
+        "palette": "gold",
+        "updatedAt": 1795117740133
+      }
+    },
+    {
+      "id": "5",
+      "name": "Móvil al actualizar carga Command Center + Elite Gold",
+      "ok": false,
+      "detail": {
+        "design": "editorial",
+        "palette": "neon",
+        "view": "editorial",
+        "local": null
+      }
+    },
+    {
+      "id": "6",
+      "name": "Móvil cambia a Editorial + Club Light y se guarda en Auth",
+      "ok": true,
+      "detail": {
+        "local": {
+          "design": "editorial",
+          "palette": "light",
+          "local": {
+            "design": "editorial",
+            "palette": "light",
+            "updatedAt": 1795117744067
+          }
+        },
+        "remote": {
+          "design": "editorial",
+          "palette": "light",
+          "updatedAt": 1795117744067
+        }
+      }
+    },
+    {
+      "id": "6b",
+      "name": "Sin refrescar, escritorio mantiene su valor (no hay sincronización en tiempo real)",
+      "ok": true,
+      "detail": {
+        "design": "command",
+        "palette": "gold",
+        "view": "command",
+        "local": {
+          "design": "command",
+          "palette": "gold",
+          "updatedAt": 1795117740133
+        }
+      }
+    },
+    {
+      "id": "7",
+      "name": "Escritorio al actualizar recupera Editorial + Club Light",
+      "ok": false,
+      "detail": {
+        "design": "command",
+        "palette": "gold",
+        "view": "command",
+        "local": {
+          "design": "command",
+          "palette": "gold",
+          "updatedAt": 1795117740133
+        }
+      }
+    },
+    {
+      "id": "7b",
+      "name": "El valor antiguo del escritorio no sobrescribió el más reciente (sin escrituras al cargar)",
+      "ok": true,
+      "detail": {
+        "remote": {
+          "design": "editorial",
+          "palette": "light",
+          "updatedAt": 1795117744067
+        }
+      }
+    },
+    {
+      "id": "integ-loop",
+      "name": "Sin bucles: 0 llamadas a Auth en 8 s de inactividad",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "id": "10",
+      "name": "Con error de red: la paleta se aplica localmente, se informa el fallo y la app sigue navegable",
+      "ok": true,
+      "detail": {
+        "local": "midnight",
+        "remote": "light",
+        "errText": "Guardado en este dispositivo. No se pudo sincronizar con tu cuenta; se reintentará en el próximo cambio."
+      }
+    },
+    {
+      "id": "10b",
+      "name": "Al recuperar la red, el siguiente cambio sincroniza",
+      "ok": true,
+      "detail": {
+        "design": "command",
+        "palette": "light",
+        "updatedAt": 1795117758094
+      }
+    },
+    {
+      "id": "8",
+      "name": "Cerrar sesión e iniciar de nuevo conserva Editorial + Club Light (dispositivo nuevo, sin caché local)",
+      "ok": false,
+      "detail": {
+        "afterOut": {
+          "token": null,
+          "url": "/perfil",
+          "palAttr": null
+        },
+        "relogin": {
+          "design": "command",
+          "palette": "light",
+          "view": "command",
+          "local": {
+            "design": "command",
+            "palette": "light",
+            "updatedAt": 1795117758094
+          }
+        }
+      }
+    },
+    {
+      "id": "9",
+      "name": "Usuario B en el mismo navegador ve SUS preferencias (command/midnight), no las de A",
+      "ok": false,
+      "detail": {
+        "design": "command",
+        "palette": "light",
+        "view": "command",
+        "local": {
+          "design": "command",
+          "palette": "light",
+          "updatedAt": 1795117758094
+        }
+      }
+    },
+    {
+      "id": "9b",
+      "name": "Ni A ni B fueron sobrescritos al cambiar de cuenta",
+      "ok": false,
+      "detail": {
+        "A": {
+          "design": "command",
+          "palette": "light",
+          "updatedAt": 1795117758094
+        },
+        "B": {
+          "design": "command",
+          "palette": "light",
+          "updatedAt": 1795117758094
+        }
+      }
+    },
+    {
+      "id": "roles",
+      "name": "Metadata editable con 'role/is_admin' no otorga permisos (B sigue como jugador)",
+      "ok": true,
+      "detail": {
+        "adminButtons": 0,
+        "dbRole": "player"
+      }
+    },
+    {
+      "id": "prod",
+      "name": "Ninguna petición hacia producción",
+      "ok": true,
+      "detail": []
+    }
+  ],
+  "evidence": {
+    "prodRequests": [],
+    "consoleErrors": [
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "mobile: Failed to load resource: the server responded with a status of 400 ()",
+      "mobile: Failed to load resource: the server responded with a status of 400 ()",
+      "mobile: Failed to load resource: the server responded with a status of 400 ()",
+      "mobile: Failed to load resource: the server responded with a status of 400 ()",
+      "mobile: Failed to load resource: the server responded with a status of 400 ()",
+      "mobile: Failed to load resource: the server responded with a status of 400 ()",
+      "mobile: Failed to load resource: the server responded with a status of 400 ()",
+      "mobile: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+      "desktop: TypeError: Failed to fetch\n    at http://127.0.0.1:5175/node_modules/.vite/deps/@supabase_supabase-js.js?v=82cc71be:4018:23\n    at _handleRequest2 (http://127.0.0.1:5175/node_modules/.vite/deps/@supab",
+      "desktop-relogin: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop-relogin: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop-relogin: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop-relogin: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()",
+      "desktop: Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "authCalls": {
+      "desktop": [
+        {
+          "t": 1795117740590,
+          "m": "PUT",
+          "p": "/auth/v1/user"
+        },
+        {
+          "t": 1795117757297,
+          "m": "PUT",
+          "p": "/auth/v1/user"
+        },
+        {
+          "t": 1795117758547,
+          "m": "PUT",
+          "p": "/auth/v1/user"
+        },
+        {
+          "t": 1795117759080,
+          "m": "POST",
+          "p": "/auth/v1/logout"
+        },
+        {
+          "t": 1795117763997,
+          "m": "PUT",
+          "p": "/auth/v1/user"
+        }
+      ],
+      "mobile": [
+        {
+          "t": 1795117744524,
+          "m": "PUT",
+          "p": "/auth/v1/user"
+        }
+      ],
+      "desktop-relogin": []
+    },
+    "authCallsSummary": {
+      "desktop": {
+        "PUT /auth/v1/user": 4,
+        "POST /auth/v1/logout": 1
+      },
+      "mobile": {
+        "PUT /auth/v1/user": 1
+      },
+      "desktop-relogin": {}
+    },
+    "loadCallsDesktopBeforeIdle": 1
+  },
+  "finalMeta": {
+    "A": {
+      "email_verified": true,
+      "f5_appearance": {
+        "design": "command",
+        "palette": "light",
+        "updatedAt": 1795117758094
+      },
+      "full_name": "QA Sintético A",
+      "nickname": "QA-A",
+      "phone": "0000-0001",
+      "preferred_position": "Midfielder",
+      "qa_marker": "keep-me-A",
+      "qa_nested": {
+        "a": 1
+      }
+    },
+    "B": {
+      "email_verified": true,
+      "f5_appearance": {
+        "design": "command",
+        "palette": "light",
+        "updatedAt": 1795117758094
+      },
+      "full_name": "QA Sintético B",
+      "nickname": "QA-B",
+      "phone": "0000-0002",
+      "preferred_position": "Defender",
+      "qa_marker": "keep-me-B"
+    }
+  }
+}

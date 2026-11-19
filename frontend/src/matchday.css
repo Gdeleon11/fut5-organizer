@@ -52,7 +52,7 @@ html[data-f5-palette="light"] {
   --md-bg: #f4f6f3; --md-surface: #ffffff; --md-surface-2: #eef2ed; --md-surface-3: #e2e9e1;
   --md-line: rgba(14, 35, 20, 0.12); --md-line-2: rgba(14, 35, 20, 0.24);
   --md-text: #111a14; --md-text-2: #3f4c44; --md-text-3: #56645b;
-  --md-accent: #0f7a3d; --md-accent-ink: #ffffff; --md-accent-rgb: 15, 122, 61;
+  --md-accent: #0a6633; --md-accent-ink: #ffffff; --md-accent-rgb: 10, 102, 51;
   --md-info: #0f6b37; --md-warn: #8a5300; --md-bad: #b42318;
   --md-nav-bg: #ffffff; --md-pitch: #1b5a34;
   --md-tok: radial-gradient(circle at 30% 25%, #fff, #e3f6ea 45%, #a8dcbb);
@@ -91,7 +91,7 @@ html[data-f5-palette="light"] {
   --red-bg: #fdecea; --red-border: #f3b3ac; --yellow-bg: #fff6e0;
   --surface-danger-hover: #fde4e1; --share-bg: #e6f4ea; --share-bg-hover: #d4ecdc;
   --border-hover: rgba(14, 35, 20, 0.3);
-  --success: #0f7a3d;
+  --success: #0a6633;
   --info: #155e9c;
 }
 
@@ -689,3 +689,46 @@ html[data-f5-palette="light"] .md-workspace main [style*="color: white"]:not([st
   .mde-hero .mde-status p { margin-block-start: 4px; }
   .mde-hero .md-btn-primary { min-height: 52px; }
 }
+
+/* ============================================================
+   Club Light — legacy component fixes found by the contrast audit
+   (only active with data-f5-palette="light"; dark palettes unchanged)
+   ============================================================ */
+html[data-f5-palette="light"] { --green-200: #dcf3e4; }
+/* Default legacy <button> is accent-filled: white text on #0f7a3d (5.4:1) instead of black (3.9:1).
+   :where() keeps specificity equal to the base `button` rule, so classed buttons keep their colours. */
+:where(html[data-f5-palette="light"]) button { color: #fff; }
+:where(html[data-f5-palette="light"]) button:hover:not(:disabled) { color: var(--md-text); }
+html[data-f5-palette="light"] .f5-btn--primary { color: #fff; border-color: transparent; }
+html[data-f5-palette="light"] .f5-btn--primary:hover:not(:disabled) { color: #fff; background: var(--accent-dim); }
+/* Tabs: hovering the clicked tab no longer paints the legacy green hover fill (all palettes). */
+html[data-f5-palette] .tab-button:hover:not(:disabled) { background: none; color: var(--text-primary); }
+html[data-f5-palette] .tab-button.active:hover:not(:disabled) { color: var(--primary); }
+html[data-f5-palette="light"] .mde-slot.on { color: #0a5a2c; }
+html[data-f5-palette="light"] .mde-slot.on.me { color: var(--md-accent-ink); }
+html[data-f5-palette="light"] .status-pill.is-paid,
+html[data-f5-palette="light"] .confirmed-button,
+html[data-f5-palette="light"] .confirmed-button:hover:not(:disabled) { color: #0b5e2f; }
+html[data-f5-palette="light"] .stars { color: #7d8a81; }
+html[data-f5-palette="light"] .stars .is-filled { color: #8a5300; }
+html[data-f5-palette="light"] .podium-card.gold .podium-badge { color: #7a4f00; background: rgba(168, 106, 0, 0.12); }
+html[data-f5-palette="light"] .podium-card.silver .podium-badge { color: #3f4b55; background: rgba(63, 75, 85, 0.1); }
+html[data-f5-palette="light"] .podium-card.special .podium-badge { color: #6b21a8; background: rgba(107, 33, 168, 0.1); }
+html[data-f5-palette="light"] .skill-rank.diamond { color: #075985; }
+html[data-f5-palette="light"] .skill-rank.platinum { color: #3f5f66; }
+html[data-f5-palette="light"] .skill-rank.gold { color: #7a5600; }
+html[data-f5-palette="light"] .skill-rank.silver { color: #4b5560; }
+html[data-f5-palette="light"] .skill-rank.bronze { color: #8a4b12; }
+html[data-f5-palette="light"] .segmented-control button.is-active,
+html[data-f5-palette="light"] .vote-picker-btn.is-active { color: #fff; }
+html[data-f5-palette="light"] .edit-due-btn { color: var(--md-text); }
+html[data-f5-palette="light"] .guest-rating-btn.is-active { color: #fff; }
+/* Hero/glass cards had a fixed dark-green gradient: follow the palette instead. */
+html[data-f5-palette] .f5-card--hero {
+  background: linear-gradient(135deg, var(--md-surface-2), var(--md-surface));
+  border-color: var(--md-line-2);
+}
+html[data-f5-palette="light"] .f5-card--hero,
+html[data-f5-palette="light"] .f5-card { box-shadow: 0 8px 24px rgba(14, 35, 20, 0.08); }
+html[data-f5-palette] .f5-card--glass { background: color-mix(in oklab, var(--md-surface) 92%, transparent); }
+html[data-f5-palette] .f5-sticky-cta { background: color-mix(in oklab, var(--md-bg) 94%, transparent) !important; border-color: var(--md-line) !important; }

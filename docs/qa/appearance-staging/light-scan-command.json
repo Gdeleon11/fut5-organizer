@@ -1,0 +1,1588 @@
+{
+  "1280_partidos": {
+    "url": "/partidos",
+    "issues": []
+  },
+  "1280_partidos_crear": {
+    "url": "/partidos",
+    "issues": []
+  },
+  "1280_detalle_partido": {
+    "url": "/partidos/e62c1146-24be-47a3-83f1-778848d7d101",
+    "issues": []
+  },
+  "1280_detalle_equipos": {
+    "url": "/partidos/e62c1146-24be-47a3-83f1-778848d7d101",
+    "issues": []
+  },
+  "1280_detalle_partido_tab": {
+    "url": "/partidos/e62c1146-24be-47a3-83f1-778848d7d101",
+    "issues": []
+  },
+  "1280_detalle_admin": {
+    "url": "/partidos/e62c1146-24be-47a3-83f1-778848d7d101",
+    "issues": []
+  },
+  "1280_pizarra": {
+    "url": "/partidos",
+    "issues": []
+  },
+  "1280_reservas": {
+    "url": "/reservas",
+    "issues": []
+  },
+  "1280_cobros_caja": {
+    "url": "/cobros-caja",
+    "issues": []
+  },
+  "1280_cobros_cuotas": {
+    "url": "/cobros-caja",
+    "issues": []
+  },
+  "1280_cobros_multas": {
+    "url": "/cobros-caja",
+    "issues": []
+  },
+  "1280_jugadores": {
+    "url": "/jugadores",
+    "issues": [
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      }
+    ]
+  },
+  "1280_jugadores_tags": {
+    "url": "/jugadores",
+    "issues": []
+  },
+  "1280_jugadores_stats": {
+    "url": "/jugadores",
+    "issues": []
+  },
+  "1280_jugadores_ranking": {
+    "url": "/jugadores",
+    "issues": []
+  },
+  "1280_mi_fifa": {
+    "url": "/perfil",
+    "issues": []
+  },
+  "1280_torneos": {
+    "url": "/torneos",
+    "issues": []
+  },
+  "1280_grupos": {
+    "url": "/grupos",
+    "issues": []
+  },
+  "375_partidos": {
+    "url": "/partidos",
+    "issues": []
+  },
+  "375_partidos_crear": {
+    "url": "/partidos",
+    "issues": []
+  },
+  "375_detalle_partido": {
+    "url": "/partidos/e62c1146-24be-47a3-83f1-778848d7d101",
+    "issues": []
+  },
+  "375_detalle_equipos": {
+    "url": "/partidos/e62c1146-24be-47a3-83f1-778848d7d101",
+    "issues": []
+  },
+  "375_detalle_partido_tab": {
+    "url": "/partidos/e62c1146-24be-47a3-83f1-778848d7d101",
+    "issues": []
+  },
+  "375_detalle_admin": {
+    "url": "/partidos/e62c1146-24be-47a3-83f1-778848d7d101",
+    "issues": []
+  },
+  "375_pizarra": {
+    "url": "/partidos",
+    "issues": []
+  },
+  "375_reservas": {
+    "url": "/reservas",
+    "issues": []
+  },
+  "375_cobros_caja": {
+    "url": "/cobros-caja",
+    "issues": []
+  },
+  "375_cobros_cuotas": {
+    "url": "/cobros-caja",
+    "issues": []
+  },
+  "375_cobros_multas": {
+    "url": "/cobros-caja",
+    "issues": []
+  },
+  "375_jugadores": {
+    "url": "/jugadores",
+    "issues": [
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 3.19,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(238,242,237)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.12,
+        "need": 4.5,
+        "color": "rgb(138, 83, 0)",
+        "bg": "rgb(10,102,51)",
+        "cls": "is-filled",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 1.97,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(10,102,51)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      },
+      {
+        "text": "★",
+        "ratio": 2.91,
+        "need": 4.5,
+        "color": "rgb(125, 138, 129)",
+        "bg": "rgb(226,233,225)",
+        "cls": "",
+        "tag": "SPAN"
+      }
+    ]
+  },
+  "375_jugadores_tags": {
+    "url": "/jugadores",
+    "issues": []
+  },
+  "375_jugadores_stats": {
+    "url": "/jugadores",
+    "issues": []
+  },
+  "375_jugadores_ranking": {
+    "url": "/jugadores",
+    "issues": []
+  },
+  "375_mi_fifa": {
+    "url": "/perfil",
+    "issues": []
+  },
+  "375_torneos": {
+    "url": "/torneos",
+    "issues": []
+  },
+  "375_grupos": {
+    "url": "/torneos",
+    "issues": []
+  }
+}

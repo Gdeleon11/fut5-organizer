@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import {
   DEFAULT_APPEARANCE,
+  reconcileAppearance,
   STORAGE_KEY,
   LEGACY_THEME_KEY,
   applyAppearance,
@@ -45,7 +46,7 @@ describe("appearance preferences", () => {
 
   it("normalizes unknown values to defaults", () => {
     expect(normalizeAppearance({ design: "x", palette: "y" })).toEqual(DEFAULT_APPEARANCE);
-    expect(normalizeAppearance({ design: "command", palette: "gold", updatedAt: 5 })).toEqual({ design: "command", palette: "gold", updatedAt: 5 });
+    expect(normalizeAppearance({ design: "command", palette: "gold", updatedAt: 5 })).toEqual({ design: "command", palette: "gold", updatedAt: 5, userId: null });
     expect(normalizeAppearance(null)).toEqual(DEFAULT_APPEARANCE);
   });
 
@@ -53,8 +54,8 @@ describe("appearance preferences", () => {
     localStorage.setItem(LEGACY_THEME_KEY, "night");
     expect(readLocalAppearance().palette).toBe("midnight");
     writeLocalAppearance({ design: "command", palette: "light", updatedAt: 10 });
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY))).toEqual({ design: "command", palette: "light", updatedAt: 10 });
-    expect(readLocalAppearance()).toEqual({ design: "command", palette: "light", updatedAt: 10 });
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY))).toEqual({ design: "command", palette: "light", updatedAt: 10, userId: null });
+    expect(readLocalAppearance()).toEqual({ design: "command", palette: "light", updatedAt: 10, userId: null });
   });
 
   it("survives corrupted storage", () => {
@@ -65,6 +66,25 @@ describe("appearance preferences", () => {
   it("newest value wins between devices", () => {
     expect(pickNewest({ design: "editorial", palette: "neon", updatedAt: 1 }, { design: "command", palette: "gold", updatedAt: 2 }).design).toBe("command");
     expect(pickNewest({ design: "editorial", palette: "neon", updatedAt: 3 }, { design: "command", palette: "gold", updatedAt: 2 }).design).toBe("editorial");
+  });
+
+  it("never carries one user's local preference into another account (shared device)", () => {
+    const localA = { design: "command", palette: "gold", updatedAt: 500, userId: "A" };
+    expect(reconcileAppearance(localA, null, "B")).toEqual({ value: { ...DEFAULT_APPEARANCE, userId: "B" }, push: false });
+    expect(reconcileAppearance(localA, { design: "editorial", palette: "light", updatedAt: 3 }, "B").value).toMatchObject({ design: "editorial", palette: "light", userId: "B" });
+  });
+
+  it("does not overwrite a newer remote value with an older local one", () => {
+    const r = reconcileAppearance({ design: "command", palette: "gold", updatedAt: 10, userId: "A" }, { design: "editorial", palette: "light", updatedAt: 20 }, "A");
+    expect(r).toMatchObject({ value: { design: "editorial", palette: "light" }, push: false });
+    const l = reconcileAppearance({ design: "command", palette: "gold", updatedAt: 30, userId: "A" }, { design: "editorial", palette: "light", updatedAt: 20 }, "A");
+    expect(l).toMatchObject({ value: { design: "command", palette: "gold" }, push: true });
+    const anon = reconcileAppearance({ design: "command", palette: "gold", updatedAt: 30, userId: null }, undefined, "A");
+    expect(anon).toMatchObject({ value: { design: "command", userId: "A" }, push: true });
+  });
+
+  it("falls back to defaults when no preference exists anywhere", () => {
+    expect(reconcileAppearance(undefined, undefined, "A").value).toMatchObject({ design: "editorial", palette: "neon" });
   });
 
   it("applies and cleans up root attributes", () => {
@@ -85,6 +105,7 @@ describe("appearance preferences", () => {
     const client = {
       auth: {
         getSession: () => Promise.resolve({ data: { session: { user: { id: "u1", user_metadata: {} } } } }),
+        getUser: () => Promise.resolve({ data: { user: { id: "u1", user_metadata: { other: "keep" } } }, error: null }),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
         updateUser,
       },
@@ -106,7 +127,7 @@ describe("appearance preferences", () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY))).toMatchObject({ design: "command", palette: "gold" });
     await act(async () => { vi.advanceTimersByTime(600); });
     expect(updateUser).toHaveBeenCalledTimes(1);
-    expect(updateUser.mock.calls[0][0].data.f5_appearance).toMatchObject({ design: "command", palette: "gold" });
+    expect(updateUser.mock.calls[0][0].data).toEqual({ f5_appearance: { design: "command", palette: "gold", updatedAt: expect.any(Number) } });
     vi.useRealTimers();
   });
 
@@ -114,7 +135,9 @@ describe("appearance preferences", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ design: "editorial", palette: "neon", updatedAt: 1 }));
     const client = {
       auth: {
-        getSession: () => Promise.resolve({ data: { session: { user: { id: "u1", user_metadata: { f5_appearance: { design: "command", palette: "midnight", updatedAt: 99 } } } } } }),
+        // Cached session still carries old metadata; Auth (getUser) has the newer value.
+        getSession: () => Promise.resolve({ data: { session: { user: { id: "u1", user_metadata: { f5_appearance: { design: "editorial", palette: "gold", updatedAt: 2 } } } } } }),
+        getUser: () => Promise.resolve({ data: { user: { id: "u1", user_metadata: { f5_appearance: { design: "command", palette: "midnight", updatedAt: 99 } } } }, error: null }),
         onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
         updateUser: vi.fn(),
       },

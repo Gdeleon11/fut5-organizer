@@ -6,7 +6,7 @@ import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 const SYNC_LABEL = {
   local: "Guardado en este dispositivo.",
   saving: "Guardando en tu cuenta…",
-  synced: "Guardado en tu cuenta: se aplica en todos tus dispositivos.",
+  synced: "Guardado en tu cuenta. Tus otros dispositivos lo cargan al abrir o actualizar la app.",
   error: "Guardado en este dispositivo. No se pudo sincronizar con tu cuenta; se reintentará en el próximo cambio.",
 };
 
