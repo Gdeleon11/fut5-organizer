@@ -732,3 +732,20 @@ html[data-f5-palette="light"] .f5-card--hero,
 html[data-f5-palette="light"] .f5-card { box-shadow: 0 8px 24px rgba(14, 35, 20, 0.08); }
 html[data-f5-palette] .f5-card--glass { background: color-mix(in oklab, var(--md-surface) 92%, transparent); }
 html[data-f5-palette] .f5-sticky-cta { background: color-mix(in oklab, var(--md-bg) 94%, transparent) !important; border-color: var(--md-line) !important; }
+
+/* Bottom nav 720–899 px: the legacy item styles only existed below 720 px, so items
+   fell back to the global green <button>. Apply the same mobile item styling in that range. */
+@media (min-width: 720px) and (max-width: 899px) {
+  html[data-f5-palette] .bottom-nav-item {
+    display: flex; flex: 1 1 0; min-width: 0; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.25rem; background: transparent; border: none; box-shadow: none; transform: none;
+    padding: 0.25rem 0.15rem; font-family: var(--md-ui); font-size: 0.68rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  html[data-f5-palette] .bottom-nav-item:hover:not(:disabled) { background: transparent; transform: none; color: var(--md-text); }
+  html[data-f5-palette] .bottom-nav-item.is-active:hover:not(:disabled) { color: var(--md-accent); }
+  html[data-f5-palette] .bottom-nav-item .tab-icon {
+    display: flex; align-items: center; justify-content: center; width: 48px; height: 32px; border-radius: 16px; font-size: 1.3rem;
+  }
+  html[data-f5-palette] .bottom-nav-item .tab-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}

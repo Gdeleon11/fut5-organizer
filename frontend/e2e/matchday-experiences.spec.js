@@ -77,6 +77,19 @@ test.describe("F5 Matchday — dos experiencias y paletas", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-f5-palette", /.+/);
   });
 
+  test("tablet 768 px: bottom navigation items are not painted as green buttons", async ({ page }) => {
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await enterDemo(page);
+    const items = await page.$$eval(".bottom-nav .bottom-nav-item", (els) =>
+      els.map((e) => ({ bg: getComputedStyle(e).backgroundColor, dir: getComputedStyle(e).flexDirection })),
+    );
+    expect(items.length).toBeGreaterThanOrEqual(4);
+    for (const i of items) {
+      expect(i.bg).toBe("rgba(0, 0, 0, 0)");
+      expect(i.dir).toBe("column");
+    }
+  });
+
   for (const design of ["editorial", "command"]) {
     test(`${design}: main action is reachable and not covered by the bottom nav`, async ({ page }) => {
       await page.addInitScript((d) => localStorage.setItem("f5_appearance_v1", JSON.stringify({ design: d, palette: "neon", updatedAt: 1 })), design);

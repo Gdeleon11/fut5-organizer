@@ -1,0 +1,61 @@
+[
+  {
+    "id": "prod-build-real-session-no-demo-banner",
+    "ok": true,
+    "d": {
+      "design": "editorial",
+      "palette": "light",
+      "banner": false,
+      "gallery": false
+    }
+  },
+  {
+    "id": "prod-build-dev-gallery-not-reachable",
+    "ok": true,
+    "d": {
+      "design": "editorial",
+      "palette": "light",
+      "banner": false,
+      "gallery": false
+    }
+  },
+  {
+    "id": "default-editorial-for-account-without-prefs",
+    "ok": true,
+    "d": {
+      "s": {
+        "design": "editorial",
+        "palette": "neon",
+        "banner": false,
+        "gallery": false
+      }
+    }
+  },
+  {
+    "id": "saved-choice-preserved-B",
+    "ok": true,
+    "d": {
+      "design": "command",
+      "palette": "midnight",
+      "banner": false,
+      "gallery": false
+    }
+  },
+  {
+    "id": "saved-choice-preserved-A",
+    "ok": true,
+    "d": {
+      "s": {
+        "design": "editorial",
+        "palette": "light",
+        "banner": false,
+        "gallery": false
+      },
+      "savedA": {
+        "design": "editorial",
+        "palette": "light",
+        "updatedAt": 1795117801336
+      }
+    }
+  }
+]

@@ -1,0 +1,171 @@
+[
+  {
+    "id": "staging-rest-no-4xx",
+    "ok": true,
+    "d": []
+  },
+  {
+    "id": "real-session-no-demo-banner(dev build)",
+    "ok": true,
+    "d": {
+      "banner": 0
+    }
+  },
+  {
+    "id": "bottomnav-editorial-768",
+    "ok": true,
+    "d": {
+      "nav": {
+        "display": "flex",
+        "top": 949
+      },
+      "items": [
+        {
+          "bg": "rgba(0, 0, 0, 0)",
+          "h": 58,
+          "dir": "column"
+        },
+        {
+          "bg": "rgba(0, 0, 0, 0)",
+          "h": 58,
+          "dir": "column"
+        }
+      ]
+    }
+  },
+  {
+    "id": "bottomnav-editorial-820",
+    "ok": true,
+    "d": {
+      "nav": {
+        "display": "flex",
+        "top": 949
+      },
+      "items": [
+        {
+          "bg": "rgba(0, 0, 0, 0)",
+          "h": 58,
+          "dir": "column"
+        },
+        {
+          "bg": "rgba(0, 0, 0, 0)",
+          "h": 58,
+          "dir": "column"
+        }
+      ]
+    }
+  },
+  {
+    "id": "bottomnav-command-768",
+    "ok": true,
+    "d": {
+      "nav": {
+        "display": "flex",
+        "top": 949
+      },
+      "items": [
+        {
+          "bg": "rgba(0, 0, 0, 0)",
+          "h": 58,
+          "dir": "column"
+        },
+        {
+          "bg": "rgba(0, 0, 0, 0)",
+          "h": 58,
+          "dir": "column"
+        }
+      ]
+    }
+  },
+  {
+    "id": "bottomnav-command-820",
+    "ok": true,
+    "d": {
+      "nav": {
+        "display": "flex",
+        "top": 949
+      },
+      "items": [
+        {
+          "bg": "rgba(0, 0, 0, 0)",
+          "h": 58,
+          "dir": "column"
+        },
+        {
+          "bg": "rgba(0, 0, 0, 0)",
+          "h": 58,
+          "dir": "column"
+        }
+      ]
+    }
+  },
+  {
+    "id": "dock-375-above-nav",
+    "ok": true,
+    "d": {
+      "dockTop": 631,
+      "dockBottom": 734,
+      "navTop": 736,
+      "ctaBottom": 724,
+      "lastContentBottom": 1688,
+      "vh": 812,
+      "scrollY": 0,
+      "maxScroll": 972
+    }
+  },
+  {
+    "id": "dock-375-content-reachable",
+    "ok": true,
+    "d": {
+      "lastInteractive": 343,
+      "dockTop": 631
+    }
+  },
+  {
+    "id": "dock-375-ledger-clickable",
+    "ok": true,
+    "d": {}
+  },
+  {
+    "id": "dock-375-form-submit-clickable",
+    "ok": true,
+    "d": {}
+  },
+  {
+    "id": "dock-412-above-nav",
+    "ok": true,
+    "d": {
+      "dockTop": 734,
+      "dockBottom": 837,
+      "navTop": 839,
+      "ctaBottom": 827,
+      "lastContentBottom": 1687,
+      "vh": 915,
+      "scrollY": 0,
+      "maxScroll": 868
+    }
+  },
+  {
+    "id": "dock-412-content-reachable",
+    "ok": true,
+    "d": {
+      "lastInteractive": 446,
+      "dockTop": 734
+    }
+  },
+  {
+    "id": "dock-412-ledger-clickable",
+    "ok": true,
+    "d": {}
+  },
+  {
+    "id": "dock-412-form-submit-clickable",
+    "ok": true,
+    "d": {}
+  },
+  {
+    "id": "dock-safe-area-css",
+    "ok": true,
+    "d": {}
+  }
+]
