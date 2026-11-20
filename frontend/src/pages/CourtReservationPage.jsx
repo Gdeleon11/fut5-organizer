@@ -414,7 +414,7 @@ export default function CourtReservationPage({
         };
 
         let res;
-        if (isDemoMode) {
+        if (import.meta.env.DEV && isDemoMode) {
           res = {
             id: `res-mock-${Date.now()}-${i}`,
             ...payload,
@@ -460,7 +460,7 @@ export default function CourtReservationPage({
   async function handleUploadProof(reservationId, file) {
     try {
       let url;
-      if (isDemoMode) {
+      if (import.meta.env.DEV && isDemoMode) {
         url = "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=300";
       } else {
         url = await api.uploadReservationProof(reservationId, file);
@@ -474,7 +474,7 @@ export default function CourtReservationPage({
     setError("");
     try {
       let match;
-      if (isDemoMode) {
+      if (import.meta.env.DEV && isDemoMode) {
         let allowedTags = [];
         let cleanTitle = `Partido en ${reservation.venue}`;
 

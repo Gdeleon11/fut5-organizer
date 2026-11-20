@@ -10,6 +10,7 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:5173",
     trace: "off",
     headless: true,
+    serviceWorkers: "block",
   },
   projects: [
     {
@@ -22,6 +23,7 @@ export default defineConfig({
     },
   ],
   webServer: {
+    env: { VITE_SUPABASE_URL: "", VITE_SUPABASE_ANON_KEY: "" },
     command: "npm run dev -- --port 5173 --strictPort",
     url: "http://127.0.0.1:5173",
     reuseExistingServer: !process.env.CI,

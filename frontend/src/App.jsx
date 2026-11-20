@@ -155,7 +155,8 @@ export default function App() {
   const [groupExpenses, setGroupExpenses] = useState([]);
   const [simHasGeneratedTeams, setSimHasGeneratedTeams] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
-  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoEnabled, setIsDemoMode] = useState(false);
+  const isDemoMode = import.meta.env.DEV && demoEnabled;
 
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
@@ -356,7 +357,7 @@ export default function App() {
   const activeMembership =
     memberships.find((m) => m.group_id === activeGroupId) || memberships[0] || null;
   const activeGroup = activeMembership?.groups || null;
-  const myRole = devRoleOverride || activeMembership?.role || "player";
+  const myRole = (import.meta.env.DEV && devRoleOverride) || activeMembership?.role || "player";
   const isSuperAdmin = myRole === "super_admin";
   const isAdmin = myRole === "admin" || isSuperAdmin;
   const isActiveMember = Boolean(activeMembership?.is_active);
@@ -1656,7 +1657,7 @@ export default function App() {
         match_id: attendance.match_id, reason: "no_show",
         amount: settings?.fine_amount || 50, status: "open",
       };
-      const fine = isDemoMode
+      const fine = import.meta.env.DEV && isDemoMode
         ? { id: `fine-demo-${Date.now()}`, ...finePayload }
         : await api.createFine(finePayload);
       setFines((c) => [fine, ...c]);
@@ -1986,19 +1987,19 @@ export default function App() {
     return <ReservePage token={reserveToken} />;
   }
 
+  const startLocalDemo = import.meta.env.DEV ? () => {
+    setIsDemoMode(true);
+    loadMockData();
+    setPage("matches");
+  } : undefined;
+
   // Render guards
   if (!sessionReady && !isDemoMode) return <ShellMessage title="Cargando" message="Revisando tu sesión..." />;
 
   // Render proof upload page (requires auth, so we prompt login first if no session)
   if (proofToken && !session && !isDemoMode) {
     return (
-      <AuthScreen
-        onMockLogin={() => {
-          setIsDemoMode(true);
-          loadMockData();
-          setPage("matches");
-        }}
-      />
+      <AuthScreen onMockLogin={startLocalDemo} />
     );
   }
   if (proofToken) {
@@ -2053,13 +2054,7 @@ export default function App() {
     }
     // Default to AuthScreen for unauthenticated users on /login or other non-public paths
     return (
-      <AuthScreen
-        onMockLogin={() => {
-          setIsDemoMode(true);
-          loadMockData();
-          setPage("matches");
-        }}
-      />
+      <AuthScreen onMockLogin={startLocalDemo} />
     );
   }
 

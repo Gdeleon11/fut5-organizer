@@ -136,7 +136,7 @@ export default function AuthScreen({ onMockLogin }) {
         <img className="auth-brand-mark" src="/brand/f5manager-logo.jpg" alt="F5Manager" />
         <div>
           <p className="eyebrow">f5manager</p>
-          <h1>{!hasSupabaseConfig ? "Modo Demo Sandbox" : isSignup ? "Crear cuenta" : "Entrar"}</h1>
+          <h1>{import.meta.env.DEV && !hasSupabaseConfig ? "Modo Demo Sandbox" : isSignup ? "Crear cuenta" : "Entrar"}</h1>
         </div>
 
         {!hasSupabaseConfig ? (
@@ -144,10 +144,10 @@ export default function AuthScreen({ onMockLogin }) {
             <div className="alert info" style={{ borderLeft: "4px solid var(--primary)", background: "rgba(16, 185, 129, 0.05)", padding: "1rem", borderRadius: "8px", fontSize: "0.9rem", textAlign: "left" }}>
               <strong style={{ color: "var(--primary)", display: "block", marginBottom: "0.25rem" }}>Base de datos desconectada</strong>
               <span style={{ color: "var(--text-muted)", lineHeight: "1.4" }}>
-                No se detectó configuración de Supabase. Puedes explorar la aplicación completa utilizando datos y simulación local en memoria.
+                {import.meta.env.DEV ? "Puedes explorar la aplicación con datos locales." : "El inicio de sesión no está disponible en este momento."}
               </span>
             </div>
-            {onMockLogin && (
+            {import.meta.env.DEV && onMockLogin && (
               <button
                 type="button"
                 className="primary-button"
@@ -229,7 +229,7 @@ export default function AuthScreen({ onMockLogin }) {
               </button>
             </form>
 
-            {onMockLogin && (
+            {import.meta.env.DEV && onMockLogin && (
               <div style={{ marginTop: "2rem", textAlign: "center", borderTop: "1px solid var(--border)", paddingTop: "1.5rem" }}>
                 <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.75rem" }}>
                   Entorno Local Detectado:
