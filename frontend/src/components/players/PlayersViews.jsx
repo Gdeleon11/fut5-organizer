@@ -215,8 +215,9 @@ export function PlayerView({
   const main = (
     <>
       <section className="pv-section" aria-labelledby="pv-stats-title">
-        <Head id="pv-stats-title" title="Estadísticas verificadas" icon={variant === "command" ? Trophy : null} meta="Registradas en partidos del grupo" />
-        <StatTiles stats={row} variant={variant} />
+        <Head id="pv-stats-title" title={variant === "command" ? "Cumplimiento y voto" : "Estadísticas verificadas"} icon={variant === "command" ? Trophy : null} meta={variant === "command" ? "Métricas principales en la cabecera" : "Registradas en partidos del grupo"} />
+        {/* Command shows the stat tiles once, in the hero; Editorial keeps them here */}
+        {variant !== "command" && <StatTiles stats={row} variant={variant} />}
         <ReliabilityLine stats={row} />
         {!isSelf && onVote && (
           <div className="pv-vote">

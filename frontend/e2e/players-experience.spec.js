@@ -26,7 +26,8 @@ for (const design of ["editorial", "command"]) {
       await page.locator(".pl-ed-row, .pl-cc-card").first().click();
       await expect(page.locator("[data-view=player]")).toBeVisible();
       await expect(page.locator(".pv-card .fifa-card, .pv-card [class*=fifa]").first()).toBeVisible();
-      await expect(page.getByText("Estadísticas verificadas")).toBeVisible();
+      await expect(page.locator("[data-view=player] .pf-tiles")).toHaveCount(1); // stats shown once (no duplicates)
+      await expect(page.locator("#pv-stats-title")).toBeVisible();
       await noOverflow(page);
       await page.locator(".mdd-back").first().click();
       await expect(page.locator("[data-view=players]")).toBeVisible();
