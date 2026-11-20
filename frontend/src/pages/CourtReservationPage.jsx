@@ -1,11 +1,35 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarDays, ChevronLeft, ChevronRight, ClipboardList, Copy, LayoutGrid, List, MapPin, MessageCircle, PlusCircle, RefreshCw, Trash2, Upload, X } from "lucide-react";
 import Avatar from "../components/Avatar.jsx";
 import CopyReservationTextButton from "../components/CopyReservationTextButton.jsx";
+import { Empty, Kpis, Section, Segmented, StatusChip } from "../components/finance/FinanceBlocks.jsx";
+import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 import { api } from "../api.js";
 import { activeReservationStatus, reservationStatusLabel } from "../reservationAssistant.js";
+import {
+  assistedReservationsFor,
+  groupReservationsByDate,
+  monthCalendar,
+  reservationDateLabel,
+  reservationToken,
+  reservationWhatsappText,
+  splitReservations,
+  visibleLimit,
+} from "../finance/financeModel.js";
 import { appOrigin, classNames, copyToClipboard, displayName } from "../utils.js";
 import { collectGroupTags } from "../tags.js";
 import VenuesPage from "./VenuesPage.jsx";
+
+const RES_TONE = { pending: "pending", confirmed: "paid", failed: "rejected", none: "forgiven" };
+const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+function WhatsAppLink({ href, compact }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="md-btn fx-wa" title="Enviar por WhatsApp">
+      <MessageCircle size={15} aria-hidden="true" />{compact ? <span className="sr-only">WhatsApp</span> : "WhatsApp"}
+    </a>
+  );
+}
 
 function ReservationRow({ index, venues, profiles, groupTags = [], onChange, onRemove }) {
   const [form, setForm] = useState({
@@ -16,7 +40,6 @@ function ReservationRow({ index, venues, profiles, groupTags = [], onChange, onR
     notes: "",
     allowed_tags: [],
   });
-
   const [selectedTags, setSelectedTags] = useState([]);
 
   function update(patch) {
@@ -26,86 +49,74 @@ function ReservationRow({ index, venues, profiles, groupTags = [], onChange, onR
   }
 
   return (
-    <div className="reservation-row">
-      <div className="reservation-row-header">
-        <strong>Reserva {index + 1}</strong>
+    <fieldset className="md-form-group rv-row">
+      <legend>
+        Reserva {index + 1}
         {index > 0 && (
-          <button className="ghost-button" type="button" onClick={() => onRemove(index)}>✕</button>
+          <button className="md-icon-btn" type="button" aria-label={`Quitar reserva ${index + 1}`} onClick={() => onRemove(index)}><X size={16} aria-hidden="true" /></button>
         )}
-      </div>
-      <div className="form-grid">
-        <label>
-          Cancha
-          {venues.length > 0 ? (
-            <select value={form.venue} onChange={(e) => update({ venue: e.target.value })}>
-              <option value="">Seleccionar</option>
-              {venues.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
-            </select>
-          ) : (
-            <input placeholder="Nombre de la cancha" value={form.venue} onChange={(e) => update({ venue: e.target.value })} />
-          )}
-        </label>
-        <label>
-          Fecha
-          <input type="date" value={form.reservation_date} onChange={(e) => update({ reservation_date: e.target.value })} />
-        </label>
-        <label>
-          Hora
-          <input type="time" value={form.reservation_time} onChange={(e) => update({ reservation_time: e.target.value })} />
-        </label>
-        <label>
-          Responsable
-          <select value={form.assigned_to} onChange={(e) => update({ assigned_to: e.target.value })}>
-            <option value="">Seleccionar jugador</option>
-            {profiles.filter((p) => p.membership_is_active !== false).map((p) => (
-              <option key={p.id} value={p.id}>{displayName(p)}</option>
-            ))}
+      </legend>
+      <label>
+        Cancha
+        {venues.length > 0 ? (
+          <select value={form.venue} onChange={(e) => update({ venue: e.target.value })}>
+            <option value="">Seleccionar</option>
+            {venues.map((v) => <option key={v.id} value={v.name}>{v.name}</option>)}
           </select>
-        </label>
-        <label>
-          Notas (opcional)
-          <input placeholder="Ej. Reservar cancha 2" value={form.notes} onChange={(e) => update({ notes: e.target.value })} />
-        </label>
-        <label style={{ gridColumn: "1 / -1" }}>
-          Restringir acceso por Tags (opcional)
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", margin: "0.25rem 0" }}>
-            {groupTags.map((tag) => {
-              const isSelected = selectedTags.includes(tag);
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => {
-                    const next = isSelected
-                      ? selectedTags.filter((t) => t !== tag)
-                      : [...selectedTags, tag];
-                    setSelectedTags(next);
-                    update({ allowed_tags: next });
-                  }}
-                  className={`tag-chip ${isSelected ? "is-active" : ""}`}
-                  style={{
-                    padding: "0.2rem 0.6rem",
-                    borderRadius: "15px",
-                    fontSize: "0.75rem",
-                    border: isSelected ? "1px solid var(--primary)" : "1px solid rgba(255,255,255,0.1)",
-                    background: isSelected ? "rgba(16, 185, 129, 0.15)" : "transparent",
-                    color: isSelected ? "var(--primary)" : "var(--text-muted)",
-                    cursor: "pointer"
-                  }}
-                >
-                  #{tag}
-                </button>
-              );
-            })}
-          </div>
-          {selectedTags.length === 0 && <small className="muted">Público para todo el grupo.</small>}
-        </label>
+        ) : (
+          <input placeholder="Nombre de la cancha" value={form.venue} onChange={(e) => update({ venue: e.target.value })} />
+        )}
+      </label>
+      <label>
+        Fecha
+        <input type="date" value={form.reservation_date} onChange={(e) => update({ reservation_date: e.target.value })} />
+      </label>
+      <label>
+        Hora
+        <input type="time" value={form.reservation_time} onChange={(e) => update({ reservation_time: e.target.value })} />
+      </label>
+      <label>
+        Responsable
+        <select value={form.assigned_to} onChange={(e) => update({ assigned_to: e.target.value })}>
+          <option value="">Seleccionar jugador</option>
+          {profiles.filter((p) => p.membership_is_active !== false).map((p) => (
+            <option key={p.id} value={p.id}>{displayName(p)}</option>
+          ))}
+        </select>
+      </label>
+      <label className="rv-wide">
+        Notas (opcional)
+        <input placeholder="Ej. Reservar cancha 2" value={form.notes} onChange={(e) => update({ notes: e.target.value })} />
+      </label>
+      <div className="rv-wide rv-tags">
+        <span className="fx-label">Restringir acceso por tags (opcional)</span>
+        <div className="rv-tag-list">
+          {groupTags.map((tag) => {
+            const isSelected = selectedTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                aria-pressed={isSelected}
+                onClick={() => {
+                  const next = isSelected ? selectedTags.filter((t) => t !== tag) : [...selectedTags, tag];
+                  setSelectedTags(next);
+                  update({ allowed_tags: next });
+                }}
+                className={`rv-tag ${isSelected ? "is-on" : ""}`}
+              >
+                #{tag}
+              </button>
+            );
+          })}
+        </div>
+        {selectedTags.length === 0 && <small>Público para todo el grupo.</small>}
       </div>
-    </div>
+    </fieldset>
   );
 }
 
-function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, onConfirm, onDelete, onUploadProof, onCopyLink, copiedId, isNewlyCreated }) {
+function ReservationCard({ reservation, variant, isAdmin, isSuperAdmin, currentUserId, onConfirm, onDelete, onUploadProof, onCopyLink, copiedId, isNewlyCreated }) {
   const [uploading, setUploading] = useState(false);
   const isAssigned = reservation.assigned_to === currentUserId;
   const canConfirm = isAdmin || isAssigned;
@@ -118,76 +129,64 @@ function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, on
     try { await onUploadProof(reservation.id, file); } finally { setUploading(false); }
   }
 
-  const dateStr = reservation.reservation_date
-    ? new Date(reservation.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" })
-    : "";
+  const dateStr = reservationDateLabel(reservation.reservation_date);
+  const stage = !isPending ? "confirmed" : reservation.proof_url ? "proof" : "waiting";
+  const stageLabel = { waiting: "Esperando comprobante", proof: "Comprobante listo", confirmed: "Partido creado" }[stage];
 
   return (
-    <article className={classNames("reservation-card", reservation.status === "confirmed" && "is-confirmed", isNewlyCreated && "is-newly-created")}>
-      <div className="reservation-header">
-        <div>
-          <strong>{reservation.venue}</strong>
+    <article className={classNames("rv-card", `is-${variant}`, `is-${stage}`, isNewlyCreated && "is-new")} aria-label={`Reserva ${reservation.venue} ${dateStr}`}>
+      <header className="rv-card-head">
+        <time className="rv-date" dateTime={reservation.reservation_date || undefined}>
+          <b>{reservation.reservation_date ? new Date(reservation.reservation_date + "T12:00:00").getDate() : "—"}</b>
+          <small>{reservation.reservation_date ? new Date(reservation.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { month: "short" }) : ""}</small>
+        </time>
+        <div className="rv-card-title">
+          <h3>{reservation.venue}</h3>
           <small>{dateStr}{reservation.reservation_time ? ` · ${reservation.reservation_time}` : ""}</small>
         </div>
-        <div style={{ display: "flex", gap: "0.3rem", alignItems: "center" }}>
-          {isNewlyCreated && (
-            <span className="status-pill" style={{ background: "var(--primary)", color: "#000", fontWeight: "bold" }}>
-              ¡Nueva!
-            </span>
-          )}
-          <span className={classNames("status-pill", isPending ? "is-pending" : "is-paid")}>
-            {isPending ? "Pendiente" : "Confirmada"}
-          </span>
-        </div>
-      </div>
+        <span className="rv-card-status">
+          {isNewlyCreated && <StatusChip tone="accent">¡Nueva!</StatusChip>}
+          <StatusChip tone={isPending ? "pending" : "paid"}>{isPending ? "Pendiente" : "Confirmada"}</StatusChip>
+        </span>
+      </header>
 
-      <div className="reservation-details">
-        <div className="reservation-assigned">
-          <small>Responsable:</small>
-          <div className="reservation-person">
-            <Avatar profile={reservation.assigned_profile} size="sm" />
-            <span>{displayName(reservation.assigned_profile)}</span>
-          </div>
-        </div>
-        {reservation.notes && <small className="reservation-notes">{reservation.notes}</small>}
+      <ol className="rv-steps" aria-label={`Estado: ${stageLabel}`}>
+        <li className="is-done">Asignada</li>
+        <li className={stage !== "waiting" ? "is-done" : "is-now"}>Comprobante</li>
+        <li className={stage === "confirmed" ? "is-done" : stage === "proof" ? "is-now" : ""}>Confirmada</li>
+      </ol>
+
+      <div className="rv-person">
+        <Avatar profile={reservation.assigned_profile} size="sm" />
+        <span><small>Responsable</small><b>{displayName(reservation.assigned_profile)}</b></span>
       </div>
+      {reservation.notes && <p className="rv-notes">{reservation.notes}</p>}
 
       {reservation.proof_url && (
-        <div className="reservation-proof">
-          <a href={reservation.proof_url} target="_blank" rel="noopener">
-            <img src={reservation.proof_url} alt="Comprobante" />
-          </a>
-        </div>
+        <a className="rv-proof" href={reservation.proof_url} target="_blank" rel="noopener">
+          <img src={reservation.proof_url} alt="Comprobante de la reserva" />
+        </a>
       )}
 
-      <div className="button-row reservation-actions">
+      <div className="rv-actions">
         {isPending && (
           <>
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(
-                `¡Hola ${displayName(reservation.assigned_profile)}! Te asigné la reserva de la cancha *${reservation.venue}* (${dateStr} ${reservation.reservation_time || ""}). Por favor subí tu comprobante acá:\n${appOrigin()}/reserve/${reservation.id.replace(/-/g, "")}`
-              )}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="secondary-button"
-              style={{ background: "#25D366", color: "#06210f", border: "none", display: "inline-flex", alignItems: "center", gap: "0.35rem", textDecoration: "none" }}
-            >
-              💬 WhatsApp
-            </a>
-            <button className="secondary-button" type="button" onClick={() => onCopyLink(reservation.id)}>
-              {copiedId === reservation.id ? "Copiado ✓" : "📋 Copiar Link"}
+            <WhatsAppLink href={`https://wa.me/?text=${encodeURIComponent(reservationWhatsappText(reservation, appOrigin(), dateStr))}`} />
+            <button className="md-btn md-btn-ghost" type="button" onClick={() => onCopyLink(reservation.id)}>
+              <Copy size={15} aria-hidden="true" />{copiedId === reservation.id ? "Copiado ✓" : "Copiar link"}
             </button>
           </>
         )}
         {isPending && canConfirm && (
           <>
             {!reservation.proof_url && (
-              <label className="secondary-button" style={{ cursor: "pointer" }}>
-                {uploading ? "Subiendo..." : "Subir comprobante"}
-                <input type="file" accept="image/*" onChange={handleUpload} style={{ display: "none" }} />
+              <label className="md-btn md-btn-ghost rv-upload">
+                <Upload size={15} aria-hidden="true" />{uploading ? "Subiendo…" : "Subir comprobante"}
+                <input type="file" accept="image/*" onChange={handleUpload} />
               </label>
             )}
             <button
+              className="md-btn md-btn-accent"
               type="button"
               onClick={() => onConfirm(reservation)}
               disabled={!reservation.proof_url}
@@ -198,64 +197,52 @@ function ReservationCard({ reservation, isAdmin, isSuperAdmin, currentUserId, on
           </>
         )}
         {isPending && isSuperAdmin && (
-          <button className="danger-button" type="button" onClick={() => { if (confirm("¿Eliminar?")) onDelete(reservation.id); }}>
-            Eliminar
+          <button className="md-btn md-btn-ghost fx-danger-text" type="button" onClick={() => { if (confirm("¿Eliminar?")) onDelete(reservation.id); }}>
+            <Trash2 size={15} aria-hidden="true" />Eliminar
           </button>
         )}
-        {!isPending && reservation.match_id && (
-          <small className="muted">Partido creado ✓</small>
-        )}
+        {!isPending && reservation.match_id && <small className="rv-done">Partido creado ✓</small>}
       </div>
     </article>
   );
 }
 
-function AssistedReservationCard({ match, profiles, attendances, canEdit, onUpdateMatch, onNotice }) {
+function AssistedStatusSelect({ status, onChange, compact }) {
+  return (
+    <select className={compact ? "rv-select is-compact" : "rv-select"} aria-label="Cambiar estado de la reserva" value={status} onChange={(e) => onChange(e.target.value)}>
+      <option value="pending">Pendiente</option>
+      <option value="confirmed">Confirmada</option>
+      <option value="failed">Fallida</option>
+    </select>
+  );
+}
+
+function AssistedReservationCard({ match, profiles, attendances, canEdit, onUpdateMatch, onNotice, variant }) {
   const status = activeReservationStatus(match);
   const owner = profiles.find((profile) => profile.id === match.reservation_owner_user_id);
 
   async function updateStatus(nextStatus) {
-    await onUpdateMatch(match.id, {
-      reservation_status: nextStatus,
-      requires_reservation: true,
-    });
+    await onUpdateMatch(match.id, { reservation_status: nextStatus, requires_reservation: true });
   }
 
   return (
-    <article className={classNames("reservation-card assisted-reservation-card", status === "confirmed" && "is-confirmed")}>
-      <div className="reservation-header">
-        <div>
-          <strong>{match.title || "Chamuscón"}</strong>
+    <article className={classNames("rv-card rv-assisted", `is-${variant}`, status === "confirmed" && "is-confirmed")} aria-label={`Reserva asistida ${match.title || "Chamuscón"}`}>
+      <header className="rv-card-head">
+        <span className="rv-badge"><ClipboardList size={18} aria-hidden="true" /></span>
+        <div className="rv-card-title">
+          <h3>{match.title || "Chamuscón"}</h3>
           <small>{match.venue || "Cancha pendiente"} · {match.preferred_time_range || match.start_time || "Horario pendiente"}</small>
         </div>
-        <span className={classNames("status-pill", status === "pending" && "is-pending", status === "confirmed" && "is-paid")}>
-          {reservationStatusLabel(status)}
-        </span>
+        <StatusChip tone={RES_TONE[status]}>{reservationStatusLabel(status)}</StatusChip>
+      </header>
+      <div className="rv-person">
+        <Avatar profile={owner} size="sm" />
+        <span><small>Responsable</small><b>{owner ? displayName(owner) : "Sin responsable"}</b></span>
       </div>
-      <div className="reservation-details">
-        <div className="reservation-assigned">
-          <small>Responsable:</small>
-          <div className="reservation-person">
-            <Avatar profile={owner} size="sm" />
-            <span>{owner ? displayName(owner) : "Sin responsable"}</span>
-          </div>
-        </div>
-        {match.reservation_notes && <small className="reservation-notes">{match.reservation_notes}</small>}
-      </div>
-      <div className="button-row reservation-actions">
-        <CopyReservationTextButton
-          match={match}
-          attendances={attendances}
-          profiles={profiles}
-          onCopied={onNotice}
-        />
-        {canEdit && (
-          <select value={status} onChange={(e) => updateStatus(e.target.value)}>
-            <option value="pending">Pendiente</option>
-            <option value="confirmed">Confirmada</option>
-            <option value="failed">Fallida</option>
-          </select>
-        )}
+      {match.reservation_notes && <p className="rv-notes">{match.reservation_notes}</p>}
+      <div className="rv-actions">
+        <CopyReservationTextButton match={match} attendances={attendances} profiles={profiles} onCopied={onNotice} className="md-btn md-btn-ghost" />
+        {canEdit && <AssistedStatusSelect status={status} onChange={updateStatus} />}
       </div>
     </article>
   );
@@ -264,37 +251,62 @@ function AssistedReservationCard({ match, profiles, attendances, canEdit, onUpda
 function AssistedHistoryRow({ match, profiles, canEdit, onUpdateMatch }) {
   const status = activeReservationStatus(match);
   const owner = profiles.find((profile) => profile.id === match.reservation_owner_user_id);
-  const isFailed = status === "failed";
+  return (
+    <li className="rv-hist">
+      <span className="rv-hist-main">
+        <b>{match.title || "Chamuscón"}</b>
+        <small>{match.venue || "Cancha pendiente"} · {match.preferred_time_range || match.start_time || "Horario pendiente"}{owner ? ` · ${displayName(owner)}` : ""}</small>
+      </span>
+      <StatusChip tone={RES_TONE[status]}>{reservationStatusLabel(status)}</StatusChip>
+      {canEdit && <AssistedStatusSelect compact status={status} onChange={(v) => onUpdateMatch(match.id, { reservation_status: v, requires_reservation: true })} />}
+    </li>
+  );
+}
+
+function ReservationCalendar({ variant, anchor, setAnchor, reservations, assisted, selectedDay, setSelectedDay }) {
+  const cal = useMemo(() => monthCalendar(anchor, { reservations, assisted }), [anchor, reservations, assisted]);
+  const todayKey = new Date().toLocaleDateString("en-CA");
+  const monthItems = cal.cells.filter((c) => c.inMonth && c.items.length);
+  const shift = (n) => { setAnchor(new Date(anchor.getFullYear(), anchor.getMonth() + n, 1)); setSelectedDay(null); };
 
   return (
-    <div className="assisted-history-row">
-      <div className="assisted-history-info">
-        <strong>{match.title || "Chamuscón"}</strong>
-        <small>
-          {match.venue || "Cancha pendiente"} · {match.preferred_time_range || match.start_time || "Horario pendiente"}
-          {owner ? ` · ${displayName(owner)}` : ""}
-        </small>
+    <div className={`rv-cal is-${variant}`}>
+      <div className="rv-cal-bar">
+        <button className="md-icon-btn" type="button" aria-label="Mes anterior" onClick={() => shift(-1)}><ChevronLeft size={18} aria-hidden="true" /></button>
+        <h3 aria-live="polite">{cal.label}</h3>
+        <button className="md-icon-btn" type="button" aria-label="Mes siguiente" onClick={() => shift(1)}><ChevronRight size={18} aria-hidden="true" /></button>
+        <button className="md-btn md-btn-ghost rv-today" type="button" onClick={() => { setAnchor(new Date()); setSelectedDay(todayKey); }}>Hoy</button>
       </div>
-      <div className="assisted-history-actions">
-        <span className={classNames("status-pill", isFailed ? "is-failed" : "is-paid")}>
-          {reservationStatusLabel(status)}
-        </span>
-        {canEdit && (
-          <select
-            className="compact-select"
-            aria-label="Cambiar estado de la reserva"
-            value={status}
-            onChange={(e) => onUpdateMatch(match.id, {
-              reservation_status: e.target.value,
-              requires_reservation: true,
-            })}
-          >
-            <option value="pending">Pendiente</option>
-            <option value="confirmed">Confirmada</option>
-            <option value="failed">Fallida</option>
-          </select>
-        )}
+      <div className="rv-grid" role="grid" aria-label={`Calendario de reservas ${cal.label}`}>
+        <div className="rv-grid-row rv-grid-head" role="row">{WEEKDAYS.map((d) => <span key={d} role="columnheader">{d}</span>)}</div>
+        {Array.from({ length: 6 }, (_, w) => (
+          <div className="rv-grid-row" role="row" key={w}>
+            {cal.cells.slice(w * 7, w * 7 + 7).map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                role="gridcell"
+                className={classNames("rv-day", !c.inMonth && "is-out", c.key === todayKey && "is-today", selectedDay === c.key && "is-sel", c.items.length && "has-items")}
+                aria-selected={selectedDay === c.key}
+                aria-label={`${c.day}${c.items.length ? `, ${c.items.length} reserva(s)` : ""}`}
+                onClick={() => setSelectedDay(selectedDay === c.key ? null : c.key)}
+              >
+                <span className="rv-day-n">{c.day}</span>
+                <span className="rv-day-items">
+                  {c.items.slice(0, 2).map((it) => (
+                    <i key={`${it.kind}-${it.id}`} className={`is-${it.kind} st-${it.status}`}>{it.time ? `${it.time} ` : ""}{it.venue || "Cancha"}</i>
+                  ))}
+                  {c.items.length > 2 && <i className="is-more">+{c.items.length - 2}</i>}
+                </span>
+              </button>
+            ))}
+          </div>
+        ))}
       </div>
+      <ul className="rv-legend" aria-label="Leyenda">
+        <li><i />Pendiente</li><li><i className="st-confirmed" />Confirmada</li><li><i className="is-assisted" />Asistida</li>
+      </ul>
+      {monthItems.length === 0 && <Empty>No hay reservas en {cal.label}.</Empty>}
     </div>
   );
 }
@@ -327,7 +339,7 @@ export default function CourtReservationPage({
   const [notice, setNotice] = useState("");
   const [recentlyCreated, setRecentlyCreated] = useState([]);
   const [copiedId, setCopiedId] = useState(null);
-  const [view, setView] = useState("cards"); // "cards" | "list"
+  const [view, setView] = useState(null); // null = design default | "calendar" | "cards" | "list"
   const [rangeFilter, setRangeFilter] = useState("3"); // "3" | "10" | "all"
   const [expandedPending, setExpandedPending] = useState(false);
   const [expandedConfirmed, setExpandedConfirmed] = useState(false);
@@ -534,486 +546,283 @@ export default function CourtReservationPage({
     }
   }
 
+  const { design } = useAppearance();
+  const variant = design === "command" ? "command" : "editorial";
+  const [tab, setTab] = useState("agenda"); // "agenda" | "venues"
+  const [calAnchor, setCalAnchor] = useState(() => new Date());
+  const [selectedDay, setSelectedDay] = useState(null);
+  // Editorial opens on the calendar, Command on the operational cards; the user can switch.
+  const effectiveView = view || (variant === "command" ? "cards" : "calendar");
+
   const newlyCreatedSet = new Set(recentlyCreated.map((r) => r.id));
+  const { pending, confirmed } = splitReservations(reservations, newlyCreatedSet);
+  const visiblePending = pending.slice(0, visibleLimit(rangeFilter, expandedPending, pending.length));
+  const visibleConfirmed = confirmed.slice(0, visibleLimit(rangeFilter, expandedConfirmed, confirmed.length));
+  const assisted = assistedReservationsFor({ matches, isAdmin, currentUserId });
+  const { groups: groupedByDate, dates: sortedDates } = groupReservationsByDate(reservations);
+  const withoutProof = pending.filter((r) => !r.proof_url).length;
 
-  const pending = reservations.filter((r) => r.status === "pending");
-  pending.sort((a, b) => {
-    const aNew = newlyCreatedSet.has(a.id) ? 1 : 0;
-    const bNew = newlyCreatedSet.has(b.id) ? 1 : 0;
-    if (aNew !== bNew) return bNew - aNew;
-    return (b.created_at || b.reservation_date || "").localeCompare(a.created_at || a.reservation_date || "");
-  });
+  const cardProps = {
+    variant,
+    isAdmin,
+    isSuperAdmin,
+    currentUserId,
+    onConfirm: handleConfirm,
+    onDelete: handleDelete,
+    onUploadProof: handleUploadProof,
+    onCopyLink: copyLink,
+    copiedId,
+  };
+  const renderCard = (r) => <ReservationCard key={r.id} reservation={r} {...cardProps} isNewlyCreated={newlyCreatedSet.has(r.id)} />;
+  const dayReservations = selectedDay ? reservations.filter((r) => r.reservation_date === selectedDay) : [];
+  const dayAssisted = selectedDay ? assisted.all.filter((m) => m.match_date === selectedDay) : [];
 
-  const confirmed = reservations.filter((r) => r.status === "confirmed");
-  confirmed.sort((a, b) => (b.reservation_date || "").localeCompare(a.reservation_date || ""));
-
-  const effectivePendingLimit = rangeFilter === "3" && !expandedPending ? 3 : rangeFilter === "10" && !expandedPending ? 10 : pending.length;
-  const visiblePending = pending.slice(0, effectivePendingLimit);
-
-  const effectiveConfirmedLimit = rangeFilter === "3" && !expandedConfirmed ? 3 : rangeFilter === "10" && !expandedConfirmed ? 10 : confirmed.length;
-  const visibleConfirmed = confirmed.slice(0, effectiveConfirmedLimit);
-
-  const assistedReservations = matches
-    .filter((match) => match.requires_reservation)
-    .filter((match) => isAdmin || match.reservation_owner_user_id === currentUserId);
-  const assistedPending = assistedReservations.filter((m) => activeReservationStatus(m) === "pending");
-  const assistedFailed = assistedReservations.filter((m) => activeReservationStatus(m) === "failed");
-
-  // Group by date for list view
-  const groupedByDate = {};
-  reservations.forEach((r) => {
-    const key = r.reservation_date || "Sin fecha";
-    if (!groupedByDate[key]) groupedByDate[key] = [];
-    groupedByDate[key].push(r);
-  });
-  const sortedDates = Object.keys(groupedByDate).sort().reverse();
+  const header = variant === "command" ? (
+    <div className="mdc-bar">
+      <h1>Reservas</h1>
+      <span className="mdc-pill"><CalendarDays size={14} aria-hidden="true" /> <b>{pending.length}</b> pendientes</span>
+      <span className="mdc-pill"><b>{confirmed.length}</b> confirmadas</span>
+      <span className="mdc-pill"><MapPin size={14} aria-hidden="true" /> <b>{venues.length}</b> sedes</span>
+    </div>
+  ) : (
+    <header className="fx-ed-hero">
+      <span className="mde-crumb">Agenda de canchas</span>
+      <h1>Reservas</h1>
+      <p className="fx-ed-lede">
+        <b className="fx-lede-num">{pending.length}</b> pendientes de confirmar · <b className="fx-lede-num">{confirmed.length}</b> confirmadas · <b className="fx-lede-num">{venues.length}</b> sedes en el catálogo
+      </p>
+    </header>
+  );
 
   return (
-    <div className="page-grid reservations-page">
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Asistente</p>
-            <h2>Reservas asistidas</h2>
-            <small>Copiá el texto para administración y actualizá el estado.</small>
-          </div>
-          <span className="count-pill">{assistedPending.length}</span>
-        </div>
-        {assistedPending.length === 0 ? (
-          <div className="empty-state compact">No hay reservas asistidas pendientes.</div>
-        ) : (
-          <div className="reservation-card-grid">
-            {assistedPending.map((match) => (
-              <AssistedReservationCard
-                key={match.id}
-                match={match}
-                profiles={profiles}
-                attendances={attendances}
-                canEdit={isAdmin || match.reservation_owner_user_id === currentUserId}
-                onUpdateMatch={onUpdateMatch}
-                onNotice={onNotice}
-              />
-            ))}
-          </div>
+    <div className={`md-matches md-design-${variant} fx-page rv-page`} data-design={variant} data-view="reservations">
+      <div className={variant === "command" ? "mdc fx-shell" : "mde fx-shell"}>
+        {header}
+        <nav className="pl-tabs fx-tabs" aria-label="Secciones de Reservas">
+          <button type="button" className={tab === "agenda" ? "is-on" : ""} aria-current={tab === "agenda" ? "page" : undefined} onClick={() => setTab("agenda")}><CalendarDays size={16} aria-hidden="true" /> Agenda</button>
+          <button type="button" className={tab === "venues" ? "is-on" : ""} aria-current={tab === "venues" ? "page" : undefined} onClick={() => setTab("venues")}><MapPin size={16} aria-hidden="true" /> Sedes y canchas</button>
+        </nav>
+
+        {tab === "venues" && (
+          <VenuesPage
+            variant={variant}
+            groupId={activeGroupId}
+            profileId={currentUserId}
+            venues={venues}
+            matches={matches}
+            onCreateVenue={onCreateVenue}
+            onUpdateVenue={onUpdateVenue}
+            isAdmin={isAdmin}
+          />
         )}
 
-        {assistedFailed.length > 0 && (
-          <div className="assisted-history-block is-failed">
-            <div className="assisted-history-heading">
-              <h3>Fallidas</h3>
-              <span className="count-pill">{assistedFailed.length}</span>
-            </div>
-            {assistedFailed.map((match) => (
-              <AssistedHistoryRow
-                key={match.id}
-                match={match}
-                profiles={profiles}
-                canEdit={isAdmin || match.reservation_owner_user_id === currentUserId}
-                onUpdateMatch={onUpdateMatch}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Reservas</p>
-            <h2>Delegación de cancha</h2>
-            <small>Delegá la reserva a un jugador. Subí el comprobante y confirmá.</small>
-          </div>
-          <div className="toolbar-row">
-            <button
-              className="toolbar-btn ghost-button"
-              type="button"
-              onClick={loadReservations}
-              title="Actualizar"
-              aria-label="Actualizar"
-            >
-              ↻
-            </button>
-            {reservations.length > 0 && (
-              <div className="seg-control" role="group" aria-label="Vista de reservas">
-                <button
-                  className={classNames("seg-btn", view === "cards" && "is-active")}
-                  type="button"
-                  onClick={() => setView("cards")}
-                >
-                  Tarjetas
-                </button>
-                <button
-                  className={classNames("seg-btn", view === "list" && "is-active")}
-                  type="button"
-                  onClick={() => setView("list")}
-                >
-                  Lista
-                </button>
-              </div>
+        {tab === "agenda" && (
+          <div className={`rv-agenda is-${variant}`}>
+            {variant === "command" && (
+              <Kpis variant="command" items={[
+                { label: "Pendientes", value: pending.length, tone: pending.length ? "warn" : undefined },
+                { label: "Sin comprobante", value: withoutProof, tone: withoutProof ? "bad" : undefined },
+                { label: "Confirmadas", value: confirmed.length, tone: "good" },
+                { label: "Asistidas pendientes", value: assisted.pending.length, hint: assisted.failed.length ? `${assisted.failed.length} fallidas` : undefined },
+              ]} />
             )}
-            <button
-              className={classNames("toolbar-btn", showForm && "secondary-button")}
-              type="button"
-              onClick={() => setShowForm((v) => !v)}
+
+            {error && <p className="fx-alert is-bad" role="alert">{error}</p>}
+            {notice && <p className="fx-alert is-good" role="status">{notice}</p>}
+
+            <Section
+              title="Delegación de cancha"
+              icon={PlusCircle}
+              className="rv-delegate"
+              aside={<>
+                <button className="md-icon-btn" type="button" onClick={loadReservations} title="Actualizar" aria-label="Actualizar"><RefreshCw size={16} aria-hidden="true" /></button>
+                <button className={`md-btn ${showForm ? "md-btn-ghost" : "md-btn-accent"}`} type="button" onClick={() => setShowForm((v) => !v)}>
+                  {showForm ? "Cancelar" : <><PlusCircle size={15} aria-hidden="true" /> Nueva reserva</>}
+                </button>
+              </>}
             >
-              {showForm ? "Cancelar" : "+ Nueva"}
-            </button>
-          </div>
-        </div>
-        {error && <p className="form-message">{error}</p>}
-        {notice && <p className="form-message success">{notice}</p>}
+              <p className="fx-hint">Delegá la reserva a un jugador. Sube el comprobante y se confirma creando el partido.</p>
 
-        {recentlyCreated.length > 0 && (() => {
-          const groupedByPlayer = {};
-          recentlyCreated.forEach((r) => {
-            const key = r.assigned_to || "unassigned";
-            if (!groupedByPlayer[key]) groupedByPlayer[key] = [];
-            groupedByPlayer[key].push(r);
-          });
+              {recentlyCreated.length > 0 && (() => {
+                const groupedByPlayer = {};
+                recentlyCreated.forEach((r) => {
+                  const key = r.assigned_to || "unassigned";
+                  if (!groupedByPlayer[key]) groupedByPlayer[key] = [];
+                  groupedByPlayer[key].push(r);
+                });
+                return (
+                  <div className="rv-created" role="status">
+                    <h3>¡Reserva(s) creada(s) exitosamente!</h3>
+                    <p>Compartí el enlace con los jugadores responsables para que suban su comprobante:</p>
+                    <ul>
+                      {Object.entries(groupedByPlayer).map(([key, rList]) => {
+                        const personName = displayName(rList[0]?.assigned_profile);
+                        const tokens = rList.map((r) => reservationToken(r.id)).join("_");
+                        const link = `${appOrigin()}/reserve/${tokens}`;
+                        const count = rList.length;
+                        let waMessage = "";
+                        if (count > 1) {
+                          const listSummary = rList.map((r) => `• *${r.venue}* (${reservationDateLabel(r.reservation_date)} ${r.reservation_time || ""})`).join("\n");
+                          waMessage = encodeURIComponent(`¡Hola ${personName}! Te asigné ${count} reservas de cancha:\n${listSummary}\n\nPor favor subí tu(s) comprobante(s) acá:\n${link}`);
+                        } else {
+                          const r = rList[0];
+                          waMessage = encodeURIComponent(`¡Hola ${personName}! Te asigné la reserva de la cancha *${r.venue}* (${reservationDateLabel(r.reservation_date)} ${r.reservation_time || ""}). Por favor subí tu comprobante acá:\n${link}`);
+                        }
+                        return (
+                          <li key={key}>
+                            <span>
+                              <b>{count > 1 ? `${count} reservas para ${personName}` : rList[0].venue}</b>
+                              {count > 1
+                                ? rList.map((r) => <small key={r.id}>• {r.venue} ({reservationDateLabel(r.reservation_date)} {r.reservation_time || ""})</small>)
+                                : <small>Responsable: {personName}</small>}
+                            </span>
+                            <span className="rv-actions">
+                              <WhatsAppLink href={`https://wa.me/?text=${waMessage}`} />
+                              <button type="button" className="md-btn md-btn-ghost" onClick={() => copyLink(rList[0].id, rList)}>
+                                <Copy size={15} aria-hidden="true" />{copiedId === rList[0].id ? "Copiado ✓" : "Copiar link"}
+                              </button>
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })()}
 
-          return (
-            <div className="created-reservations-banner">
-              <h3>¡Reserva(s) creada(s) exitosamente!</h3>
-              <p>Compartí el enlace directamente con los jugadores responsables para que suban su comprobante:</p>
-              <div className="created-reservations-list">
-                {Object.entries(groupedByPlayer).map(([key, rList]) => {
-                  const personName = displayName(rList[0]?.assigned_profile);
-                  const tokens = rList.map((r) => r.id.replace(/-/g, "")).join("_");
-                  const link = `${appOrigin()}/reserve/${tokens}`;
-                  const count = rList.length;
-
-                  let waMessage = "";
-                  if (count > 1) {
-                    const listSummary = rList.map((r) => {
-                      const dateStr = r.reservation_date
-                        ? new Date(r.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" })
-                        : "";
-                      return `• *${r.venue}* (${dateStr} ${r.reservation_time || ""})`;
-                    }).join("\n");
-                    waMessage = encodeURIComponent(
-                      `¡Hola ${personName}! Te asigné ${count} reservas de cancha:\n${listSummary}\n\nPor favor subí tu(s) comprobante(s) acá:\n${link}`
-                    );
-                  } else {
-                    const r = rList[0];
-                    const dateStr = r.reservation_date
-                      ? new Date(r.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" })
-                      : "";
-                    waMessage = encodeURIComponent(
-                      `¡Hola ${personName}! Te asigné la reserva de la cancha *${r.venue}* (${dateStr} ${r.reservation_time || ""}). Por favor subí tu comprobante acá:\n${link}`
-                    );
-                  }
-                  const waUrl = `https://wa.me/?text=${waMessage}`;
-
-                  return (
-                    <div key={key} className="created-reservation-item">
-                      <div>
-                        <strong>{count > 1 ? `${count} Reservas para ${personName}` : rList[0].venue}</strong>
-                        {count > 1 ? (
-                          <div style={{ marginTop: "0.25rem" }}>
-                            {rList.map((r) => {
-                              const dStr = r.reservation_date
-                                ? new Date(r.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" })
-                                : "";
-                              return (
-                                <div key={r.id} style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                                  • {r.venue} ({dStr} {r.reservation_time || ""})
-                                </div>
-                              );
-                            })}
-                          </div>
-                        ) : (
-                          <div><small>Responsable: <strong>{personName}</strong></small></div>
-                        )}
-                      </div>
-                      <div className="button-row" style={{ marginTop: 0 }}>
-                        <a
-                          href={waUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="secondary-button"
-                          style={{ background: "#25D366", color: "#06210f", border: "none", display: "inline-flex", alignItems: "center", gap: "0.35rem", textDecoration: "none" }}
-                        >
-                          💬 WhatsApp
-                        </a>
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          onClick={() => copyLink(rList[0].id, rList)}
-                        >
-                          {copiedId === rList[0].id ? "Copiado ✓" : "📋 Copiar Link"}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
-        {showForm && (
-          <div className="reservation-form-block">
-            {rows.map((_, i) => (
-              <ReservationRow
-                key={i}
-                index={i}
-                venues={venues}
-                profiles={profiles}
-                groupTags={groupTags}
-                onChange={handleRowChange}
-                onRemove={removeRow}
-              />
-            ))}
-            {rows.length < 3 && (
-              <button className="secondary-button" type="button" onClick={addRow}>
-                + Agregar otra reserva
-              </button>
-            )}
-            <div className="button-row">
-              <button type="button" onClick={handleCreate} disabled={saving}>
-                {saving ? "Guardando..." : `Crear ${rows.length} reserva(s)`}
-              </button>
-              <button className="secondary-button" type="button" onClick={() => { setShowForm(false); setRows([0]); setFormData({}); }}>
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* List view - grouped by date */}
-      {view === "list" && reservations.length > 0 && (
-        <section className="panel">
-          <div className="section-heading">
-            <h2>Todas las reservas</h2>
-            <span className="count-pill">{reservations.length}</span>
-          </div>
-          <div className="reservation-list">
-            {sortedDates.map((date) => (
-              <div key={date} className="reservation-date-group">
-                <div className="reservation-date-header">
-                  <strong>
-                    {date !== "Sin fecha"
-                      ? new Date(date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long" })
-                      : "Sin fecha"}
-                  </strong>
+              {showForm && (
+                <div className="form-grid md-form fx-form rv-form">
+                  {rows.map((_, i) => (
+                    <ReservationRow key={i} index={i} venues={venues} profiles={profiles} groupTags={groupTags} onChange={handleRowChange} onRemove={removeRow} />
+                  ))}
+                  {rows.length < 3 && (
+                    <button className="md-btn md-btn-ghost rv-add" type="button" onClick={addRow}><PlusCircle size={15} aria-hidden="true" /> Agregar otra reserva</button>
+                  )}
+                  <div className="md-form-actions">
+                    <button className="md-btn md-btn-ghost" type="button" onClick={() => { setShowForm(false); setRows([0]); setFormData({}); }}>Cancelar</button>
+                    <button className="md-btn md-btn-accent" type="button" onClick={handleCreate} disabled={saving}>{saving ? "Guardando…" : `Crear ${rows.length} reserva(s)`}</button>
+                  </div>
                 </div>
-                {groupedByDate[date].map((r) => (
-                  <div key={r.id} className="reservation-list-row">
-                    <div className="reservation-list-info">
-                      <span className="reservation-list-venue">{r.venue}</span>
-                      <span className="reservation-list-time">{r.reservation_time || ""}</span>
-                      <span className="reservation-list-person">
-                        <Avatar profile={r.assigned_profile} size="sm" />
-                        {displayName(r.assigned_profile)}
-                      </span>
-                    </div>
-                    <div className="reservation-list-status">
-                      <span className={classNames("status-pill", r.status === "pending" ? "is-pending" : "is-paid")}>
-                        {r.status === "pending" ? "Pendiente" : "Confirmada"}
-                      </span>
-                      {r.proof_url && <span className="reservation-list-proof">📎</span>}
-                      {r.status === "pending" && (
-                        <div style={{ display: "inline-flex", gap: "0.35rem" }}>
-                          <a
-                            href={`https://wa.me/?text=${encodeURIComponent(
-                              `¡Hola ${displayName(r.assigned_profile)}! Te asigné la reserva de la cancha *${r.venue}* (${r.reservation_date} ${r.reservation_time || ""}). Por favor subí tu comprobante acá:\n${appOrigin()}/reserve/${r.id.replace(/-/g, "")}`
-                            )}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="secondary-button"
-                            style={{ background: "#25D366", color: "#06210f", border: "none", display: "inline-flex", alignItems: "center", textDecoration: "none", padding: "0.2rem 0.5rem" }}
-                            title="Enviar por WhatsApp"
-                          >
-                            💬
-                          </a>
-                          <button className="secondary-button" type="button" onClick={() => copyLink(r.id)}>
-                            {copiedId === r.id ? "✓" : "📋 Link"}
-                          </button>
+              )}
+            </Section>
+
+            <Section
+              title="Seguimiento"
+              icon={CalendarDays}
+              id="seguimiento-panel"
+              className="rv-track"
+              aside={<>
+                <small>{pending.length} pendientes · {confirmed.length} confirmadas</small>
+                <Segmented label="Vista de reservas" value={effectiveView} onChange={setView} options={[["calendar", "Calendario"], ["cards", "Tarjetas"], ["list", "Lista"]]} />
+              </>}
+            >
+              {reservations.length === 0 && !loading && (
+                <Empty>No hay reservas. Creá una para delegar la cancha.</Empty>
+              )}
+
+              {effectiveView === "calendar" && (
+                <>
+                  <ReservationCalendar variant={variant} anchor={calAnchor} setAnchor={setCalAnchor} reservations={reservations} assisted={assisted.all} selectedDay={selectedDay} setSelectedDay={setSelectedDay} />
+                  {selectedDay && (
+                    <div className="rv-day-detail" aria-live="polite">
+                      <h3>{reservationDateLabel(selectedDay, { weekday: "long", day: "numeric", month: "long" })}</h3>
+                      {dayReservations.length === 0 && dayAssisted.length === 0 ? <Empty>Sin reservas este día.</Empty> : (
+                        <div className="rv-card-grid">
+                          {dayReservations.map(renderCard)}
+                          {dayAssisted.map((match) => (
+                            <AssistedReservationCard key={match.id} variant={variant} match={match} profiles={profiles} attendances={attendances} canEdit={isAdmin || match.reservation_owner_user_id === currentUserId} onUpdateMatch={onUpdateMatch} onNotice={onNotice} />
+                          ))}
                         </div>
                       )}
                     </div>
+                  )}
+                </>
+              )}
+
+              {effectiveView === "list" && reservations.length > 0 && (
+                <table className="fx-table rv-table">
+                  <thead><tr><th scope="col">Cancha</th><th scope="col">Hora</th><th scope="col">Responsable</th><th scope="col">Estado</th><th scope="col"><span className="sr-only">Acciones</span></th></tr></thead>
+                  <tbody>
+                    {sortedDates.map((date) => [
+                      <tr key={`${date}-h`} className="fx-month"><th colSpan={5} scope="rowgroup">{date !== "Sin fecha" ? reservationDateLabel(date, { weekday: "long", day: "numeric", month: "long" }) : "Sin fecha"}</th></tr>,
+                      ...groupedByDate[date].map((r) => (
+                        <tr key={r.id}>
+                          <td><b>{r.venue}</b></td>
+                          <td className="fx-date">{r.reservation_time || ""}</td>
+                          <td><span className="rv-person is-inline"><Avatar profile={r.assigned_profile} size="sm" />{displayName(r.assigned_profile)}</span></td>
+                          <td><StatusChip tone={r.status === "pending" ? "pending" : "paid"}>{r.status === "pending" ? "Pendiente" : "Confirmada"}</StatusChip>{r.proof_url && <span className="rv-clip" title="Con comprobante">📎</span>}</td>
+                          <td className="fx-row-act">
+                            {r.status === "pending" && (
+                              <span className="rv-actions">
+                                <WhatsAppLink compact href={`https://wa.me/?text=${encodeURIComponent(reservationWhatsappText(r, appOrigin(), r.reservation_date))}`} />
+                                <button className="md-btn md-btn-ghost" type="button" onClick={() => copyLink(r.id)}>{copiedId === r.id ? "✓" : <><Copy size={15} aria-hidden="true" /> Link</>}</button>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      )),
+                    ])}
+                  </tbody>
+                </table>
+              )}
+
+              {effectiveView === "cards" && reservations.length > 0 && (
+                <>
+                  <div className="fx-toolbar">
+                    <Segmented
+                      label="Rango de reservas"
+                      value={rangeFilter}
+                      onChange={(v) => { setRangeFilter(v); const all = v === "all"; setExpandedPending(all); setExpandedConfirmed(all); }}
+                      options={[["3", "Últimas 3"], ["10", "Últimas 10"], ["all", `Todas (${reservations.length})`]]}
+                    />
                   </div>
-                ))}
-              </div>
-            ))}
+                  {pending.length > 0 && (
+                    <div className="rv-group">
+                      <h3>Pendientes de confirmar <span className="fx-tab-badge">{pending.length}</span>{pending.length > visiblePending.length && <small>Mostrando {visiblePending.length} de {pending.length}</small>}</h3>
+                      <div className="rv-card-grid">{visiblePending.map(renderCard)}</div>
+                      {pending.length > visiblePending.length && <button type="button" className="md-btn md-btn-ghost rv-more" onClick={() => setExpandedPending(true)}>Ver todas las pendientes ({pending.length})</button>}
+                      {expandedPending && pending.length > 3 && rangeFilter === "3" && <button type="button" className="md-btn md-btn-ghost rv-more" onClick={() => setExpandedPending(false)}>Ver menos pendientes</button>}
+                    </div>
+                  )}
+                  {confirmed.length > 0 && (
+                    <div className="rv-group">
+                      <h3>Reservas confirmadas <span className="fx-tab-badge is-good">{confirmed.length}</span>{confirmed.length > visibleConfirmed.length && <small>Mostrando {visibleConfirmed.length} de {confirmed.length}</small>}</h3>
+                      <div className="rv-card-grid">{visibleConfirmed.map(renderCard)}</div>
+                      {confirmed.length > visibleConfirmed.length && <button type="button" className="md-btn md-btn-ghost rv-more" onClick={() => setExpandedConfirmed(true)}>Ver todas las confirmadas ({confirmed.length})</button>}
+                      {expandedConfirmed && confirmed.length > 3 && rangeFilter === "3" && <button type="button" className="md-btn md-btn-ghost rv-more" onClick={() => setExpandedConfirmed(false)}>Ver menos confirmadas</button>}
+                    </div>
+                  )}
+                </>
+              )}
+            </Section>
+
+            <Section
+              title="Reservas asistidas"
+              icon={ClipboardList}
+              className="rv-assisted-section"
+              aside={<span className="fx-count">{assisted.pending.length} pendientes</span>}
+            >
+              <p className="fx-hint">Copiá el texto para la administración de la cancha y actualizá el estado.</p>
+              {assisted.pending.length === 0 ? <Empty>No hay reservas asistidas pendientes.</Empty> : (
+                <div className="rv-card-grid">
+                  {assisted.pending.map((match) => (
+                    <AssistedReservationCard key={match.id} variant={variant} match={match} profiles={profiles} attendances={attendances} canEdit={isAdmin || match.reservation_owner_user_id === currentUserId} onUpdateMatch={onUpdateMatch} onNotice={onNotice} />
+                  ))}
+                </div>
+              )}
+              {assisted.failed.length > 0 && (
+                <div className="rv-failed">
+                  <h3>Fallidas <span className="fx-tab-badge is-bad">{assisted.failed.length}</span></h3>
+                  <ul>
+                    {assisted.failed.map((match) => (
+                      <AssistedHistoryRow key={match.id} match={match} profiles={profiles} canEdit={isAdmin || match.reservation_owner_user_id === currentUserId} onUpdateMatch={onUpdateMatch} />
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </Section>
           </div>
-        </section>
-      )}
-
-      {/* Card view */}
-      {view === "cards" && (
-        reservations.length > 0 && (
-          <section id="seguimiento-panel" className="panel">
-            <div className="section-heading" style={{ flexWrap: "wrap", gap: "0.75rem" }}>
-              <div>
-                <h2>Seguimiento</h2>
-                <small>{pending.length} pendientes · {confirmed.length} confirmadas</small>
-              </div>
-              <div className="toolbar-row" style={{ marginLeft: "auto", flexWrap: "wrap", gap: "0.5rem" }}>
-                <div className="range-filter-control seg-control" role="group" aria-label="Rango de reservas">
-                  <button
-                    className={classNames("seg-btn", rangeFilter === "3" && "is-active")}
-                    type="button"
-                    onClick={() => { setRangeFilter("3"); setExpandedPending(false); setExpandedConfirmed(false); }}
-                    title="Mostrar las últimas 3 por categoría"
-                  >
-                    Últimas 3
-                  </button>
-                  <button
-                    className={classNames("seg-btn", rangeFilter === "10" && "is-active")}
-                    type="button"
-                    onClick={() => { setRangeFilter("10"); setExpandedPending(false); setExpandedConfirmed(false); }}
-                    title="Mostrar las últimas 10 por categoría"
-                  >
-                    Últimas 10
-                  </button>
-                  <button
-                    className={classNames("seg-btn", rangeFilter === "all" && "is-active")}
-                    type="button"
-                    onClick={() => { setRangeFilter("all"); setExpandedPending(true); setExpandedConfirmed(true); }}
-                    title="Mostrar todas las reservas"
-                  >
-                    Todas ({reservations.length})
-                  </button>
-                </div>
-                <span className="count-pill">{reservations.length}</span>
-              </div>
-            </div>
-
-            {/* Sub-sección Pendientes de Confirmar */}
-            {pending.length > 0 && (
-              <div className="reservation-subgroup">
-                <div className="reservation-subgroup-heading">
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <h3 style={{ fontSize: "1rem", fontWeight: "700", color: "var(--text-primary)", margin: 0 }}>Pendientes de confirmar</h3>
-                    <span className="count-pill is-pending">{pending.length}</span>
-                  </div>
-                  {pending.length > visiblePending.length && (
-                    <small className="muted" style={{ fontSize: "0.78rem" }}>
-                      Mostrando {visiblePending.length} de {pending.length}
-                    </small>
-                  )}
-                </div>
-                <div className="reservation-card-grid">
-                  {visiblePending.map((r) => (
-                    <ReservationCard
-                      key={r.id}
-                      reservation={r}
-                      isAdmin={isAdmin}
-                      isSuperAdmin={isSuperAdmin}
-                      currentUserId={currentUserId}
-                      onConfirm={handleConfirm}
-                      onDelete={handleDelete}
-                      onUploadProof={handleUploadProof}
-                      onCopyLink={copyLink}
-                      copiedId={copiedId}
-                      isNewlyCreated={newlyCreatedSet.has(r.id)}
-                    />
-                  ))}
-                </div>
-                {pending.length > visiblePending.length && (
-                  <div className="reservation-expand-footer">
-                    <button
-                      type="button"
-                      className="secondary-button expand-reservations-btn"
-                      onClick={() => setExpandedPending(true)}
-                    >
-                      Ver todas las pendientes ({pending.length}) ▾
-                    </button>
-                  </div>
-                )}
-                {expandedPending && pending.length > 3 && rangeFilter === "3" && (
-                  <div className="reservation-expand-footer">
-                    <button
-                      type="button"
-                      className="ghost-button expand-reservations-btn"
-                      onClick={() => setExpandedPending(false)}
-                    >
-                      Ver menos pendientes ▴
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Sub-sección Reservas Confirmadas */}
-            {confirmed.length > 0 && (
-              <div className="reservation-subgroup" style={{ marginTop: pending.length > 0 ? "1.75rem" : 0 }}>
-                <div className="reservation-subgroup-heading">
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <h3 style={{ fontSize: "1rem", fontWeight: "700", color: "var(--text-primary)", margin: 0 }}>Reservas confirmadas</h3>
-                    <span className="count-pill is-confirmed" style={{ background: "rgba(16, 185, 129, 0.15)", color: "var(--primary)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>{confirmed.length}</span>
-                  </div>
-                  {confirmed.length > visibleConfirmed.length && (
-                    <small className="muted" style={{ fontSize: "0.78rem" }}>
-                      Mostrando {visibleConfirmed.length} de {confirmed.length}
-                    </small>
-                  )}
-                </div>
-                <div className="reservation-card-grid">
-                  {visibleConfirmed.map((r) => (
-                    <ReservationCard
-                      key={r.id}
-                      reservation={r}
-                      isAdmin={isAdmin}
-                      isSuperAdmin={isSuperAdmin}
-                      currentUserId={currentUserId}
-                      onConfirm={handleConfirm}
-                      onDelete={handleDelete}
-                      onUploadProof={handleUploadProof}
-                      onCopyLink={copyLink}
-                      copiedId={copiedId}
-                      isNewlyCreated={newlyCreatedSet.has(r.id)}
-                    />
-                  ))}
-                </div>
-                {confirmed.length > visibleConfirmed.length && (
-                  <div className="reservation-expand-footer">
-                    <button
-                      type="button"
-                      className="secondary-button expand-reservations-btn"
-                      onClick={() => setExpandedConfirmed(true)}
-                    >
-                      Ver todas las confirmadas ({confirmed.length}) ▾
-                    </button>
-                  </div>
-                )}
-                {expandedConfirmed && confirmed.length > 3 && rangeFilter === "3" && (
-                  <div className="reservation-expand-footer">
-                    <button
-                      type="button"
-                      className="ghost-button expand-reservations-btn"
-                      onClick={() => setExpandedConfirmed(false)}
-                    >
-                      Ver menos confirmadas ▴
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-        )
-      )}
-
-
-      {reservations.length === 0 && !loading && !showForm && (
-        <section className="panel">
-          <div className="empty-state compact">No hay reservas. Creá una para delegar la cancha.</div>
-        </section>
-      )}
-
-      {/* Catálogo de Canchas Consolidado */}
-      <div style={{ gridColumn: "1 / -1", marginTop: "2rem" }}>
-        <VenuesPage
-          groupId={activeGroupId}
-          profileId={currentUserId}
-          venues={venues}
-          matches={matches}
-          onCreateVenue={onCreateVenue}
-          onUpdateVenue={onUpdateVenue}
-          isAdmin={isAdmin}
-        />
+        )}
       </div>
     </div>
   );

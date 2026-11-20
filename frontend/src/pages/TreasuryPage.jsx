@@ -1,205 +1,26 @@
-import { useState, useMemo } from "react";
-import { formatMoney, classNames } from "../utils.js";
+import { useMemo, useState } from "react";
+import { ArrowDownLeft, ArrowUpRight, BarChart3, BookOpen, PlusCircle, Trash2 } from "lucide-react";
+import { CATEGORY_LABELS, expenseDistribution, treasuryLedger, treasurySummary } from "../finance/financeModel.js";
+import { Empty, Kpis, Meter, Money, Ring, Section, Segmented } from "../components/finance/FinanceBlocks.jsx";
+import { formatMoney } from "../utils.js";
 
-const CATEGORY_LABELS = {
-  canchas: "⚽ Canchas",
-  balones: "⚽ Balones",
-  chalecos: "🎽 Chalecos",
-  arbitraje: "🏁 Arbitraje",
-  comida: "🍔 Comida/Bebida",
-  otros: "🔧 Otros",
-};
+const LEDGER_FILTERS = [["all", "Todos"], ["income", "Ingresos"], ["expense", "Egresos"]];
 
-export default function TreasuryPage({
-  isAdmin,
-  activeGroupId,
-  matches = [],
-  attendances = [],
-  fines = [],
-  matchFees = [],
-  collections = [],
-  expenses = [],
-  venues = [],
-  onAddExpense,
-  onDeleteExpense,
-  profile,
-}) {
+function monthLabel(date) {
+  if (!date) return "Sin fecha";
+  return new Date(date.slice(0, 7) + "-15T12:00:00").toLocaleDateString("es-GT", { month: "long", year: "numeric" });
+}
+
+function shortDate(date) {
+  return date ? new Date(date + "T12:00:00").toLocaleDateString("es-GT", { day: "2-digit", month: "short" }) : "—";
+}
+
+function ExpenseForm({ onAddExpense }) {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("otros");
-  const [expenseDate, setExpenseDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split("T")[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [visibleLedgerCount, setVisibleLedgerCount] = useState(8);
-
-  // 1. Calculate Incomes
-  const finesIncome = useMemo(() => {
-    return fines
-      .filter((f) => f.status === "paid")
-      .reduce((sum, f) => sum + Number(f.amount || 0), 0);
-  }, [fines]);
-
-  const matchFeesIncome = useMemo(() => {
-    return matchFees.reduce((sum, fee) => {
-      const paidPaymentsCount = (fee.match_fee_payments || []).filter(
-        (p) => p.status === "paid"
-      ).length;
-      return sum + paidPaymentsCount * Number(fee.per_player_amount || 0);
-    }, 0);
-  }, [matchFees]);
-
-  const collectionsIncome = useMemo(() => {
-    return (collections || []).reduce((sum, col) => {
-      const paidPaymentsCount = (col.collection_payments || []).filter(
-        (p) => p.status === "paid"
-      ).length;
-      return sum + paidPaymentsCount * Number(col.amount_per_player || 0);
-    }, 0);
-  }, [collections]);
-
-  const totalIncome = useMemo(() => {
-    return finesIncome + matchFeesIncome + collectionsIncome;
-  }, [finesIncome, matchFeesIncome, collectionsIncome]);
-
-  const pendingReceivables = useMemo(() => {
-    const pendingFees = (matchFees || []).reduce((sum, fee) => {
-      const pending = (fee.match_fee_payments || []).filter((p) => p.status === "pending").length;
-      return sum + pending * Number(fee.per_player_amount || 0);
-    }, 0);
-    const pendingCollections = (collections || []).reduce((sum, col) => {
-      const pending = (col.collection_payments || []).filter((p) => p.status === "pending").length;
-      return sum + pending * Number(col.amount_per_player || 0);
-    }, 0);
-    const pendingFines = (fines || [])
-      .filter((fine) => fine.status === "open")
-      .reduce((sum, fine) => sum + Number(fine.amount || 0), 0);
-    return pendingFees + pendingCollections + pendingFines;
-  }, [collections, fines, matchFees]);
-
-  // 2. Calculate Expenses
-  const manualExpensesTotal = useMemo(() => {
-    return expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
-  }, [expenses]);
-
-  const courtCostsTotal = useMemo(() => {
-    return matches
-      .filter((m) => m.status === "closed")
-      .reduce((sum, m) => sum + Number(m.court_cost || 0), 0);
-  }, [matches]);
-
-  const totalExpense = useMemo(() => {
-    return manualExpensesTotal + courtCostsTotal;
-  }, [manualExpensesTotal, courtCostsTotal]);
-
-  const currentBalance = totalIncome - totalExpense;
-
-  // 3. Compile transaction ledger history
-  const ledgerHistory = useMemo(() => {
-    const list = [];
-
-    // Fines (Incomes)
-    fines
-      .filter((f) => f.status === "paid")
-      .forEach((f) => {
-        list.push({
-          id: `fine-${f.id}`,
-          type: "income",
-          title: `Multa pagada - ${f.profiles?.full_name || "Jugador"}`,
-          description: `Motivo: ${f.reason}`,
-          amount: Number(f.amount || 0),
-          date: f.created_at ? f.created_at.split("T")[0] : "",
-        });
-      });
-
-    // Match fees (Incomes)
-    matchFees.forEach((fee) => {
-      const match = matches.find((m) => m.id === fee.match_id);
-      const matchTitle = match ? match.title || "Partido" : "Partido";
-      const matchDate = match ? match.match_date : "";
-
-      (fee.match_fee_payments || [])
-        .filter((p) => p.status === "paid")
-        .forEach((p) => {
-          list.push({
-            id: `payment-${p.id}`,
-            type: "income",
-            title: `Cuota partido - ${p.profiles?.full_name || "Jugador"}`,
-            description: `${matchTitle} (${matchDate})`,
-            amount: Number(fee.per_player_amount || 0),
-            date: p.created_at ? p.created_at.split("T")[0] : matchDate,
-          });
-        });
-    });
-
-    // Collections (Incomes)
-    collections.forEach((col) => {
-      (col.collection_payments || [])
-        .filter((p) => p.status === "paid")
-        .forEach((p) => {
-          list.push({
-            id: `collection-payment-${p.id}`,
-            type: "income",
-            title: `Colaboración - ${p.profiles?.full_name || "Jugador"}`,
-            description: col.title || "Colaboración extra",
-            amount: Number(col.amount_per_player || 0),
-            date: p.created_at ? p.created_at.split("T")[0] : col.due_date || "",
-          });
-        });
-    });
-
-    // Concluded Match Court Costs (Expenses)
-    matches
-      .filter((m) => m.status === "closed" && Number(m.court_cost || 0) > 0)
-      .forEach((m) => {
-        list.push({
-          id: `court-cost-${m.id}`,
-          type: "expense",
-          title: `Alquiler de cancha - ${m.title || "Partido"}`,
-          description: `Sede: ${m.venue || "Cancha"}`,
-          amount: Number(m.court_cost || 0),
-          date: m.match_date || "",
-        });
-      });
-
-    // Manual expenses (Expenses)
-    expenses.forEach((exp) => {
-      list.push({
-        id: `expense-${exp.id}`,
-        type: "expense",
-        title: `Gasto: ${exp.description}`,
-        description: `Categoría: ${CATEGORY_LABELS[exp.category] || exp.category}`,
-        amount: Number(exp.amount || 0),
-        date: exp.expense_date || "",
-        isManual: true,
-        rawId: exp.id,
-      });
-    });
-
-    // Sort descending by date
-    return list.sort((a, b) => b.date.localeCompare(a.date));
-  }, [collections, fines, matchFees, matches, expenses]);
-
-  const categoryTotals = useMemo(() => {
-    const totals = {
-      canchas: courtCostsTotal,
-      balones: 0,
-      chalecos: 0,
-      arbitraje: 0,
-      comida: 0,
-      otros: 0,
-    };
-    (expenses || []).forEach((exp) => {
-      if (!exp) return;
-      const cat = exp.category || "otros";
-      if (totals[cat] !== undefined) {
-        totals[cat] += Number(exp.amount || 0);
-      } else {
-        totals.otros += Number(exp.amount || 0);
-      }
-    });
-    return totals;
-  }, [courtCostsTotal, expenses]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -216,290 +37,225 @@ export default function TreasuryPage({
   };
 
   return (
-    <div className="page-grid">
-      {/* Resumen de Caja Chica */}
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Caja Chica</p>
-            <h2>Balance General del Grupo</h2>
-          </div>
-        </div>
+    <form onSubmit={handleSubmit} className="form-grid md-form fx-form" aria-label="Registrar egreso manual">
+      <label className="md-form-wide">
+        Descripción del gasto
+        <input required value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ej. Compra de 2 balones oficiales" />
+      </label>
+      <label>
+        Monto (Q)
+        <input required type="number" step="0.01" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+      </label>
+      <label>
+        Fecha
+        <input required type="date" value={expenseDate} onChange={(e) => setExpenseDate(e.target.value)} />
+      </label>
+      <label className="md-form-wide">
+        Categoría
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          {Object.entries(CATEGORY_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        </select>
+      </label>
+      <div className="md-form-actions">
+        <button type="submit" className="md-btn md-btn-accent" disabled={isSubmitting}>{isSubmitting ? "Registrando…" : "Guardar egreso"}</button>
+      </div>
+    </form>
+  );
+}
 
-        <div className="profile-summary" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-          <span>
-            <strong style={{ color: "var(--emerald)" }}>{formatMoney(totalIncome)}</strong>
-            <small>Ingresos Totales</small>
-          </span>
-          <span>
-            <strong style={{ color: "var(--red)" }}>{formatMoney(totalExpense)}</strong>
-            <small>Egresos Totales</small>
-          </span>
-          <span
-            style={{
-              background: currentBalance >= 0 ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)",
-              borderRadius: "8px",
-              padding: "0.25rem 0.5rem"
-            }}
-          >
-            <strong style={{ color: currentBalance >= 0 ? "var(--emerald)" : "var(--red)" }}>
-              {formatMoney(currentBalance)}
-            </strong>
-            <small>Saldo Disponible</small>
-          </span>
-        </div>
+function DeleteExpenseButton({ item, onDeleteExpense }) {
+  return (
+    <button
+      className="fx-icon is-reject"
+      type="button"
+      title="Borrar egreso"
+      aria-label={`Borrar ${item.title}`}
+      onClick={() => { if (confirm(`¿Eliminar el egreso "${item.title}"?`)) onDeleteExpense(item.rawId); }}
+    >
+      <Trash2 size={15} aria-hidden="true" />
+    </button>
+  );
+}
 
-        <div className="finance-snapshot">
-          <div>
-            <small>Cobrado cancha</small>
-            <strong>{formatMoney(matchFeesIncome)}</strong>
-          </div>
-          <div>
-            <small>Colaboraciones</small>
-            <strong>{formatMoney(collectionsIncome)}</strong>
-          </div>
-          <div>
-            <small>Multas pagadas</small>
-            <strong>{formatMoney(finesIncome)}</strong>
-          </div>
-          <div className={classNames(pendingReceivables > 0 && "is-warning")}>
-            <small>Por cobrar</small>
-            <strong>{formatMoney(pendingReceivables)}</strong>
-          </div>
-        </div>
-      </section>
+function LedgerPager({ total, visible, setVisible }) {
+  return (
+    <div className="fx-pager">
+      {total > visible && <button className="md-btn md-btn-ghost" type="button" onClick={() => setVisible((c) => c + 10)}>Ver más ({total - visible} restantes)</button>}
+      {visible > 8 && total <= visible && <button className="md-btn md-btn-ghost" type="button" onClick={() => setVisible(8)}>Ver menos</button>}
+    </div>
+  );
+}
 
-      {/* Distribución de Gastos */}
-      {totalExpense > 0 && (
-        <section className="panel">
-          <div className="section-heading">
-            <div>
-              <h2>Distribución de Egresos</h2>
-              <small>Porcentaje del total de egresos ({formatMoney(totalExpense)})</small>
-            </div>
-          </div>
-          <div style={{ display: "grid", gap: "1rem", marginTop: "1rem" }}>
-            {Object.entries(categoryTotals)
-              .filter(([_, amount]) => amount > 0)
-              .sort((a, b) => b[1] - a[1])
-              .map(([key, amount]) => {
-                const percentage = Math.round((amount / totalExpense) * 100);
-                return (
+export default function TreasuryPage({
+  variant = "editorial",
+  summary: summaryProp,
+  isAdmin,
+  matches = [],
+  fines = [],
+  matchFees = [],
+  collections = [],
+  expenses = [],
+  onAddExpense,
+  onDeleteExpense,
+}) {
+  const [visibleLedgerCount, setVisibleLedgerCount] = useState(8);
+  const [ledgerFilter, setLedgerFilter] = useState("all");
+
+  const summary = useMemo(
+    () => summaryProp || treasurySummary({ fines, matchFees, collections, expenses, matches }),
+    [summaryProp, fines, matchFees, collections, expenses, matches],
+  );
+  const ledgerHistory = useMemo(
+    () => treasuryLedger({ fines, matchFees, collections, expenses, matches }),
+    [collections, fines, matchFees, matches, expenses],
+  );
+  const distribution = useMemo(
+    () => (summary.totalExpense > 0 ? expenseDistribution(summary.categoryTotals, summary.totalExpense) : []),
+    [summary],
+  );
+
+  const filtered = ledgerFilter === "all" ? ledgerHistory : ledgerHistory.filter((i) => i.type === ledgerFilter);
+  const shown = filtered.slice(0, visibleLedgerCount);
+  const balanceTone = summary.currentBalance >= 0 ? "good" : "bad";
+  const incomeSources = [
+    ["Cobrado cancha", summary.matchFeesIncome, "fees"],
+    ["Colaboraciones", summary.collectionsIncome, "collections"],
+    ["Multas pagadas", summary.finesIncome, "fines"],
+  ];
+  // Display-only ratio: what has been collected vs what is still owed. Not a money rule.
+  const collectedShare = summary.totalIncome + summary.pendingReceivables > 0
+    ? (summary.totalIncome / (summary.totalIncome + summary.pendingReceivables)) * 100
+    : 0;
+
+  const ledgerControls = (
+    <>
+      <Segmented label="Filtrar movimientos" options={LEDGER_FILTERS} value={ledgerFilter} onChange={(v) => { setLedgerFilter(v); setVisibleLedgerCount(8); }} />
+      <span className="fx-count">{filtered.length} movimientos</span>
+    </>
+  );
+
+  const distributionBlock = (
+    <Section title="Distribución de egresos" icon={BarChart3} aside={summary.totalExpense > 0 ? <small>Total {formatMoney(summary.totalExpense)}</small> : null}>
+      {distribution.length === 0 ? <Empty>Aún no hay egresos registrados.</Empty> : (
+        <ul className="fx-bars">
+          {distribution.map((d) => (
+            <li key={d.key}>
+              <span>{d.label}</span>
+              <b>{formatMoney(d.amount)} <small>({d.percentage}%)</small></b>
+              <Meter value={d.percentage} label={`${d.label} ${d.percentage}%`} tone={d.key === "canchas" ? "accent" : "muted"} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
+  );
+
+  const formBlock = isAdmin && (
+    <Section title="Registrar egreso manual" icon={PlusCircle} className="fx-form-section">
+      <p className="fx-hint">Gastos del grupo como balones, chalecos o arbitraje. Los alquileres de cancha entran solos al cerrar cada partido.</p>
+      <ExpenseForm onAddExpense={onAddExpense} />
+    </Section>
+  );
+
+  if (variant === "command") {
+    return (
+      <div className="fx-cc" data-view="treasury">
+        <Kpis variant="command" items={[
+          { label: "Saldo disponible", value: <Money value={summary.currentBalance} tone={balanceTone} />, tone: balanceTone, hint: "Ingresos − egresos" },
+          { label: "Ingresos", value: <Money value={summary.totalIncome} />, hint: "Cuotas, colaboraciones y multas" },
+          { label: "Egresos", value: <Money value={summary.totalExpense} />, hint: `Canchas ${formatMoney(summary.courtCostsTotal)}` },
+          { label: "Por cobrar", value: <Money value={summary.pendingReceivables} />, tone: summary.pendingReceivables > 0 ? "warn" : undefined, hint: "Pendiente de jugadores" },
+        ]} />
+
+        <div className="fx-cc-grid">
+          <Section title="Flujo de caja" icon={BarChart3} className="fx-cc-flow">
+            <div className="fx-flow">
+              <Ring value={collectedShare} label="Cobrado sobre total exigible" caption="cobrado" />
+              <div className="fx-flow-bars">
+                {incomeSources.map(([label, value, key]) => (
                   <div key={key}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", marginBottom: "0.25rem" }}>
-                      <span>{CATEGORY_LABELS[key] || key}</span>
-                      <strong>{formatMoney(amount)} ({percentage}%)</strong>
-                    </div>
-                    <div style={{ background: "var(--surface-3)", height: "8px", borderRadius: "4px", overflow: "hidden" }}>
-                      <div
-                        style={{
-                          background: key === "canchas" ? "var(--primary)" : "var(--text-muted)",
-                          height: "100%",
-                          width: `${percentage}%`,
-                          borderRadius: "4px",
-                          transition: "width 0.5s ease-out"
-                        }}
-                      />
-                    </div>
+                    <span>{label}</span><b>{formatMoney(value)}</b>
+                    <Meter value={summary.totalIncome ? (value / summary.totalIncome) * 100 : 0} label={label} tone="accent" />
                   </div>
-                );
-              })}
-          </div>
-        </section>
-      )}
-
-      {/* Agregar Egreso (Solo Admin) */}
-      {isAdmin && (
-        <section className="panel">
-          <div className="section-heading">
-            <div>
-              <h2>Registrar Egreso Manual</h2>
-              <small>Agrega gastos del grupo (ej: compra de balones, pago de árbitro).</small>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} style={{ display: "grid", gap: "1rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 120px", gap: "1rem" }}>
-              <div>
-                <label className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.25rem", display: "block" }}>
-                  Descripción del Gasto
-                </label>
-                <input
-                  required
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Ej. Compra de 2 balones oficiales"
-                  style={{ width: "100%" }}
-                />
-              </div>
-              <div>
-                <label className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.25rem", display: "block" }}>
-                  Monto
-                </label>
-                <input
-                  required
-                  type="number"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  style={{ width: "100%" }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div>
-                <label className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.25rem", display: "block" }}>
-                  Categoría
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  style={{ width: "100%" }}
-                >
-                  {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.25rem", display: "block" }}>
-                  Fecha
-                </label>
-                <input
-                  required
-                  type="date"
-                  value={expenseDate}
-                  onChange={(e) => setExpenseDate(e.target.value)}
-                  style={{ width: "100%" }}
-                />
-              </div>
-            </div>
-
-            <button type="submit" disabled={isSubmitting} style={{ marginTop: "0.5rem" }}>
-              {isSubmitting ? "Registrando..." : "Guardar Egreso"}
-            </button>
-          </form>
-        </section>
-      )}
-
-      {/* Historial de Transacciones (Ledger) */}
-      <section className="panel">
-        <div className="section-heading">
-          <h2>Historial de Movimientos</h2>
-          <span className="count-pill">{ledgerHistory.length} transacciones</span>
-        </div>
-
-        <div className="list">
-          {ledgerHistory.length === 0 ? (
-            <div className="empty-state compact">Aún no hay transacciones registradas.</div>
-          ) : (
-            ledgerHistory.slice(0, visibleLedgerCount).map((item) => {
-              const isIncome = item.type === "income";
-              return (
-                <div
-                  className="ledger-row"
-                  key={item.id}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "0.75rem 1rem",
-                    borderBottom: "1px solid var(--border-light)",
-                    gap: "1rem"
-                  }}
-                >
-                  <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", minWidth: 0 }}>
-                    <span
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "50%",
-                        fontSize: "1.1rem",
-                        background: isIncome ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)",
-                        color: isIncome ? "var(--emerald)" : "var(--red)",
-                        flexShrink: 0
-                      }}
-                    >
-                      {isIncome ? "⬇" : "⬆"}
-                    </span>
-                    <div style={{ minWidth: 0 }}>
-                      <strong style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {item.title}
-                      </strong>
-                      <span className="muted" style={{ fontSize: "0.8rem", display: "block" }}>
-                        {item.description}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                    <div style={{ textAlign: "right" }}>
-                      <span
-                        style={{
-                          display: "block",
-                          fontWeight: "bold",
-                          color: isIncome ? "var(--emerald)" : "var(--red)"
-                        }}
-                      >
-                        {isIncome ? "+" : "-"}{formatMoney(item.amount)}
-                      </span>
-                      <small className="muted" style={{ fontSize: "0.75rem" }}>
-                        {item.date}
-                      </small>
-                    </div>
-
-                    {isAdmin && item.isManual && (
-                      <button
-                        className="danger-button"
-                        type="button"
-                        onClick={() => {
-                          if (confirm(`¿Eliminar el egreso "${item.title}"?`)) {
-                            onDeleteExpense(item.rawId);
-                          }
-                        }}
-                        style={{
-                          padding: "0.25rem 0.5rem",
-                          fontSize: "0.75rem",
-                          height: "auto",
-                          minHeight: "auto"
-                        }}
-                      >
-                        Borrar
-                      </button>
-                    )}
-                  </div>
+                ))}
+                <div className="is-split">
+                  <span>Ingresos vs egresos</span>
+                  <span className="fx-vs" aria-label={`Ingresos ${formatMoney(summary.totalIncome)}, egresos ${formatMoney(summary.totalExpense)}`}>
+                    <i className="in" style={{ flexGrow: Math.max(summary.totalIncome, 0.0001) }} />
+                    <i className="out" style={{ flexGrow: Math.max(summary.totalExpense, 0.0001) }} />
+                  </span>
                 </div>
-              );
-            })
-          )}
+              </div>
+            </div>
+          </Section>
+          {distributionBlock}
         </div>
 
-        {ledgerHistory.length > visibleLedgerCount && (
-          <button
-            className="show-more-btn"
-            type="button"
-            onClick={() => setVisibleLedgerCount((c) => c + 10)}
-          >
-            Ver más ({ledgerHistory.length - visibleLedgerCount} restantes)
-          </button>
-        )}
-        {visibleLedgerCount > 8 && ledgerHistory.length <= visibleLedgerCount && (
-          <button
-            className="show-more-btn"
-            type="button"
-            onClick={() => setVisibleLedgerCount(8)}
-          >
-            Ver menos
-          </button>
-        )}
+        <Section title="Movimientos" icon={BookOpen} aside={ledgerControls}>
+          {shown.length === 0 ? <Empty>Aún no hay transacciones registradas.</Empty> : (
+            <ul className="fx-feed">
+              {shown.map((item) => (
+                <li key={item.id} className={`is-${item.type}`}>
+                  <span className="fx-feed-ico" aria-hidden="true">{item.type === "income" ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}</span>
+                  <span className="fx-feed-main"><b>{item.title}</b><small>{item.description}</small></span>
+                  <span className="fx-feed-amt"><Money value={item.amount} signed={item.type} tone={item.type === "income" ? "good" : "bad"} /><small>{shortDate(item.date)}</small></span>
+                  {isAdmin && item.isManual ? <DeleteExpenseButton item={item} onDeleteExpense={onDeleteExpense} /> : <span />}
+                </li>
+              ))}
+            </ul>
+          )}
+          <LedgerPager total={filtered.length} visible={visibleLedgerCount} setVisible={setVisibleLedgerCount} />
+        </Section>
+
+        {formBlock}
+      </div>
+    );
+  }
+
+  // Editorial: balance statement + ledger table, side column with distribution and form.
+  let lastMonth = null;
+  return (
+    <div className="fx-ed" data-view="treasury">
+      <section className="fx-statement" aria-label="Balance general del grupo">
+        <div><small>Ingresos totales</small><Money value={summary.totalIncome} /></div>
+        <div><small>Egresos totales</small><Money value={summary.totalExpense} /></div>
+        <div className={`is-total is-${balanceTone}`}><small>Saldo disponible</small><Money value={summary.currentBalance} tone={balanceTone} /></div>
       </section>
+      <dl className="fx-leaders">
+        {incomeSources.map(([label, value, key]) => <div key={key}><dt>{label}</dt><dd>{formatMoney(value)}</dd></div>)}
+        <div className={summary.pendingReceivables > 0 ? "is-warn" : ""}><dt>Por cobrar</dt><dd>{formatMoney(summary.pendingReceivables)}</dd></div>
+      </dl>
+
+      <div className="fx-ed-cols">
+        <Section title="Libro de movimientos" icon={BookOpen} aside={ledgerControls} className="fx-ledger-section">
+          {shown.length === 0 ? <Empty>Aún no hay transacciones registradas.</Empty> : (
+            <table className="fx-table fx-ledger">
+              <thead><tr><th scope="col">Fecha</th><th scope="col">Concepto</th><th scope="col" className="num">Monto</th>{isAdmin && <th scope="col"><span className="sr-only">Acciones</span></th>}</tr></thead>
+              <tbody>
+                {shown.map((item) => {
+                  const m = monthLabel(item.date);
+                  const header = m !== lastMonth;
+                  lastMonth = m;
+                  return [
+                    header && <tr key={`${item.id}-m`} className="fx-month"><th colSpan={isAdmin ? 4 : 3} scope="rowgroup">{m}</th></tr>,
+                    <tr key={item.id} className={`is-${item.type}`}>
+                      <td className="fx-date">{shortDate(item.date)}</td>
+                      <td><b>{item.title}</b><small>{item.description}</small></td>
+                      <td className="num"><Money value={item.amount} signed={item.type} tone={item.type === "income" ? "good" : "bad"} /></td>
+                      {isAdmin && <td className="fx-row-act">{item.isManual && <DeleteExpenseButton item={item} onDeleteExpense={onDeleteExpense} />}</td>}
+                    </tr>,
+                  ];
+                })}
+              </tbody>
+            </table>
+          )}
+          <LedgerPager total={filtered.length} visible={visibleLedgerCount} setVisible={setVisibleLedgerCount} />
+        </Section>
+        <aside className="fx-ed-side">
+          {distributionBlock}
+          {formBlock}
+        </aside>
+      </div>
     </div>
   );
 }

@@ -349,8 +349,16 @@ export default function App() {
 
     // Gastos de tesorería de ejemplo
     setGroupExpenses([
-      { id: "exp-1", group_id: GROUP, concept: "Balones nuevos", amount: 200, created_at: new Date().toISOString() },
-      { id: "exp-2", group_id: GROUP, concept: "Petos / chalecos", amount: 120, created_at: new Date().toISOString() },
+      { id: "exp-1", group_id: GROUP, concept: "Balones nuevos", description: "Balones nuevos", category: "balones", expense_date: new Date(Date.now() - 3 * 864e5).toISOString().split("T")[0], amount: 200, created_at: new Date().toISOString() },
+      { id: "exp-2", group_id: GROUP, concept: "Petos / chalecos", description: "Petos / chalecos", category: "chalecos", expense_date: new Date(Date.now() - 12 * 864e5).toISOString().split("T")[0], amount: 120, created_at: new Date().toISOString() },
+    ]);
+
+    // Multas de ejemplo (abiertas, pagadas y perdonadas)
+    const daysAgo = (n) => new Date(Date.now() - n * 864e5).toISOString();
+    setFines([
+      { id: "fine-m1", group_id: GROUP, profile_id: pid(4), match_id: CLOSED_MATCH, reason: "no_show", amount: 25, status: "open", created_at: daysAgo(2) },
+      { id: "fine-m2", group_id: GROUP, profile_id: pid(7), match_id: CLOSED_MATCH, reason: "late_cancel", amount: 25, status: "paid", created_at: daysAgo(9), profiles: { full_name: "Jugador demo 7" } },
+      { id: "fine-m3", group_id: GROUP, profile_id: pid(2), reason: "late_arrival", amount: 10, status: "forgiven", created_at: daysAgo(40) },
     ]);
   }
 
@@ -2144,7 +2152,7 @@ export default function App() {
         />
       </div>
 
-      {!["matches", "match", "appearance", "players", "profile", "leaderboard"].includes(page) && (
+      {!["matches", "match", "appearance", "players", "profile", "leaderboard", "cashier", "reservations"].includes(page) && (
         <SectionHero
           page={page}
           showArtwork={

@@ -1,429 +1,155 @@
 import { useMemo, useState } from "react";
-import { Check, X, Link as LinkIcon, FileText } from "lucide-react";
+import { CalendarClock, CheckCheck, HandCoins, MessageCircle, Pencil, PlusCircle, Receipt, Trophy, X } from "lucide-react";
 import ExportCard from "../components/ExportCard.jsx";
-import Stat from "../components/Stat.jsx";
-import { api } from "../api.js";
-import { classNames, copyToClipboard, displayName, formatMatchDate, formatMoney, proofUploadUrl } from "../utils.js";
+import {
+  CopyCollectionGroupLinkButton,
+  CopyProofLinkButton,
+  Empty,
+  Kpis,
+  Meter,
+  Money,
+  PaymentActions,
+  PaymentChip,
+  ProofReviewModal,
+  ProofStatusBadge,
+  Ring,
+  Section,
+  Segmented,
+  StatusChip,
+} from "../components/finance/FinanceBlocks.jsx";
+import {
+  collectionsWhatsappSummary,
+  filterPaymentsByStatus,
+  myPendingDebts,
+  myProofPillLabel,
+  sortPaymentsByName,
+  summarizeCollections,
+  summarizeMatchFee,
+} from "../finance/financeModel.js";
+import { displayName, formatMatchDate, formatMoney } from "../utils.js";
 
-// ---------------------------------------------------------------------------
-// Proof status badge
-// ---------------------------------------------------------------------------
+const STATUS_FILTERS = [["pending", "Pendientes"], ["paid", "Pagados"], ["forgiven", "Perdonados"], ["all", "Todos"]];
 
-function ProofStatusBadge({ status }) {
-  if (!status || status === "pending") return null;
+function dueLabel(dateStr) {
+  return dateStr ? new Date(dateStr + "T12:00:00").toLocaleDateString("es-GT") : null;
+}
 
-  const labels = {
-    submitted: "Comprobante enviado",
-    approved: "Comprobante aprobado",
-    rejected: "Comprobante rechazado",
-  };
+function formatForDateTimeLocal(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
+/** Inline due-date editor shared by match fees (datetime) and collections (date). */
+function DueEditor({ type, initial, onSave, onCancel }) {
+  const [value, setValue] = useState(initial);
   return (
-    <span className={`proof-status status-${status}`}>
-      {labels[status] || status}
+    <span className="fx-due-edit">
+      <input type={type} value={value} onChange={(e) => setValue(e.target.value)} aria-label="Nueva fecha de vencimiento" />
+      <button className="fx-icon is-approve" type="button" aria-label="Guardar vencimiento" onClick={() => onSave(value)}><CheckCheck size={16} aria-hidden="true" /></button>
+      <button className="fx-icon is-reject" type="button" aria-label="Cancelar" onClick={onCancel}><X size={16} aria-hidden="true" /></button>
     </span>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Copy link button
-// ---------------------------------------------------------------------------
-
-function CopyProofLinkButton({ payment, paymentType, disabled }) {
-  const [copied, setCopied] = useState(false);
-
-  async function handleCopy() {
-    try {
-      const tokenData = {
-        pid: payment.id,
-        uid: payment.profile_id,
-        type: paymentType,
-        gid: payment.group_id,
-      };
-      const token = btoa(JSON.stringify(tokenData));
-      const proofUrl = proofUploadUrl(token);
-
-      await copyToClipboard(proofUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Error generating proof link:", err);
-      alert("No se pudo copiar el enlace. Revisá permisos del navegador e intentá de nuevo.");
-    }
-  }
-
+function PaymentRows({ payments, profileById, paymentType, onUpdatePayment, onOpenProof, select }) {
   return (
-    <button
-      className="fee-btn-icon"
-      type="button"
-      onClick={handleCopy}
-      disabled={disabled}
-      title="Copiar link"
-    >
-      <LinkIcon />
-      {copied ? "✓" : "Copiar"}
-    </button>
+    <ul className="fx-pay-list">
+      {payments.map((payment) => {
+        const player = profileById.get(payment.profile_id);
+        return (
+          <li key={payment.id} className={`fx-pay st-${payment.status}`}>
+            <span className="fx-pay-name">
+              {select ? (
+                <label className="fx-check">
+                  <input type="checkbox" checked={select.selected.includes(payment.id)} onChange={() => select.toggle(payment.id)} />
+                  <b>{displayName(player)}</b>
+                </label>
+              ) : <b>{displayName(player)}</b>}
+              <ProofStatusBadge status={payment.proof_status} />
+            </span>
+            <PaymentChip payment={payment} />
+            <PaymentActions payment={payment} paymentType={paymentType} onUpdatePayment={onUpdatePayment} onOpenProof={onOpenProof} />
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
-function CopyCollectionGroupLinkButton({ collection }) {
-  const [copied, setCopied] = useState(false);
+/* -------------------------------------------------------------- Match fees */
 
-  async function handleCopy() {
-    try {
-      const tokenData = {
-        cid: collection.id,
-        gid: collection.group_id,
-        type: "collection_group",
-      };
-      const token = btoa(JSON.stringify(tokenData));
-      const proofUrl = proofUploadUrl(token);
-      const text = [
-        "COBRO F5MANAGER",
-        "",
-        collection.title,
-        `Monto: ${formatMoney(collection.amount_per_player)}`,
-        collection.due_date
-          ? `Vence: ${new Date(collection.due_date + "T12:00:00").toLocaleDateString("es-GT")}`
-          : "",
-        "",
-        "Subí tu comprobante aquí:",
-        proofUrl,
-      ].filter(Boolean).join("\n");
-
-      await copyToClipboard(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error("Error generating collection link:", err);
-      alert("No se pudo copiar el enlace. Revisá permisos del navegador e intentá de nuevo.");
-    }
-  }
-
-  return (
-    <button
-      className="secondary-button"
-      type="button"
-      onClick={handleCopy}
-    >
-      {copied ? "Link copiado" : "Link general"}
-    </button>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Proof review modal (admin)
-// ---------------------------------------------------------------------------
-
-function ProofReviewModal({ payment, paymentType, onClose, onReview }) {
-  const [showRejectForm, setShowRejectForm] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
-  const [reviewing, setReviewing] = useState(false);
-
-  async function handleApprove() {
-    try {
-      setReviewing(true);
-      await onReview(payment.id, paymentType, "approved");
-      onClose();
-    } catch (err) {
-      alert("Error al aprobar: " + err.message);
-    } finally {
-      setReviewing(false);
-    }
-  }
-
-  async function handleReject() {
-    try {
-      setReviewing(true);
-      await onReview(payment.id, paymentType, "rejected", rejectReason || null);
-      onClose();
-    } catch (err) {
-      alert("Error al rechazar: " + err.message);
-    } finally {
-      setReviewing(false);
-    }
-  }
-
-  return (
-    <div className="proof-modal-overlay" onClick={onClose}>
-      <div className="proof-modal-content" onClick={(e) => e.stopPropagation()}>
-        <button className="proof-modal-close" type="button" onClick={onClose}>
-          ×
-        </button>
-
-        <img src={payment.proof_url} alt="Comprobante de pago" />
-
-        <div className="proof-review-actions">
-          {!showRejectForm ? (
-            <>
-              <button
-                className="approve-btn"
-                type="button"
-                onClick={handleApprove}
-                disabled={reviewing}
-              >
-                {reviewing ? "Procesando..." : "Aprobar"}
-              </button>
-              <button
-                className="secondary-button reject-btn"
-                type="button"
-                onClick={() => setShowRejectForm(true)}
-                disabled={reviewing}
-              >
-                Rechazar
-              </button>
-            </>
-          ) : (
-            <div className="proof-reject-form">
-              <input
-                type="text"
-                placeholder="Motivo del rechazo (opcional)"
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-              />
-              <div className="button-row">
-                <button
-                  className="reject-btn"
-                  type="button"
-                  onClick={handleReject}
-                  disabled={reviewing}
-                >
-                  {reviewing ? "Procesando..." : "Confirmar rechazo"}
-                </button>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => setShowRejectForm(false)}
-                  disabled={reviewing}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Match fee panel — court cost for a specific match
-// ---------------------------------------------------------------------------
-
-function MatchFeePanel({
-  fee,
-  profileById,
-  isAdmin,
-  onUpdatePayment,
-  onUpdateMatchFee,
-  onReviewProof,
-}) {
+function MatchFeeCard({ match, fee, variant, profileById, onUpdatePayment, onUpdateMatchFee, onReviewProof }) {
   const [modalPayment, setModalPayment] = useState(null);
-  const [editingFeeId, setEditingFeeId] = useState(null);
-  const [newFeeDueBefore, setNewFeeDueBefore] = useState("");
+  const [editing, setEditing] = useState(false);
+  const s = summarizeMatchFee(fee);
+  const sortedPayments = sortPaymentsByName(fee.match_fee_payments || [], profileById);
 
-  const formatForDateTimeLocal = (dateStr) => {
-    if (!dateStr) return "";
-    const d = new Date(dateStr);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  };
-
-  async function handleSaveFeeDueBefore(feeId) {
+  async function handleSaveFeeDueBefore(value) {
     try {
-      await onUpdateMatchFee(feeId, { due_before: newFeeDueBefore ? new Date(newFeeDueBefore).toISOString() : null });
-      setEditingFeeId(null);
+      await onUpdateMatchFee(fee.id, { due_before: value ? new Date(value).toISOString() : null });
+      setEditing(false);
     } catch (err) {
       alert("Error al actualizar la fecha: " + err.message);
     }
   }
 
-  if (!fee) return null;
-
-  const payments = fee.match_fee_payments || [];
-  const sortedPayments = [...payments].sort((a, b) => {
-    const nameA = displayName(profileById.get(a.profile_id)) || "";
-    const nameB = displayName(profileById.get(b.profile_id)) || "";
-    return nameA.localeCompare(nameB);
-  });
-  const paidCount = payments.filter((p) => p.status === "paid").length;
+  const due = editing ? (
+    <DueEditor type="datetime-local" initial={formatForDateTimeLocal(fee.due_before)} onSave={handleSaveFeeDueBefore} onCancel={() => setEditing(false)} />
+  ) : (
+    <span className="fx-due">
+      <CalendarClock size={14} aria-hidden="true" />
+      {fee.due_before
+        ? `Vence el ${new Date(fee.due_before).toLocaleDateString("es-GT")} a las ${new Date(fee.due_before).toLocaleTimeString("es-GT", { hour: "2-digit", minute: "2-digit" })}`
+        : "Sin fecha límite"}
+      <button className="fx-icon is-ghost" type="button" title="Editar vencimiento" aria-label="Editar vencimiento" onClick={() => setEditing(true)}><Pencil size={14} aria-hidden="true" /></button>
+    </span>
+  );
 
   return (
-    <div className="detail-section">
-      <div className="section-heading">
-        <div>
-          <h2>Costo de cancha</h2>
-          <small>
-            {formatMoney(fee.per_player_amount)} por jugador ·{" "}
-            {isAdmin ? (
-              editingFeeId === fee.id ? (
-                <span className="edit-due-date-form">
-                  <input
-                    type="datetime-local"
-                    value={newFeeDueBefore}
-                    onChange={(e) => setNewFeeDueBefore(e.target.value)}
-                  />
-                  <button className="fee-btn-icon is-primary" type="button" onClick={() => handleSaveFeeDueBefore(fee.id)}>✓</button>
-                  <button className="fee-btn-icon is-danger" type="button" onClick={() => setEditingFeeId(null)}>×</button>
-                </span>
-              ) : (
-                <>
-                  {fee.due_before
-                    ? `vence el ${new Date(fee.due_before).toLocaleDateString("es-GT")} a las ${new Date(fee.due_before).toLocaleTimeString("es-GT", { hour: '2-digit', minute: '2-digit' })}`
-                    : "sin fecha límite"}
-                  <button
-                    className="edit-due-btn"
-                    type="button"
-                    onClick={() => {
-                      setEditingFeeId(fee.id);
-                      setNewFeeDueBefore(formatForDateTimeLocal(fee.due_before));
-                    }}
-                    title="Editar vencimiento"
-                  >
-                    ✏️
-                  </button>
-                </>
-              )
-            ) : (
-              fee.due_before
-                ? `antes del ${new Date(fee.due_before).toLocaleDateString("es-GT")}`
-                : "sin fecha límite"
-            )}
-          </small>
+    <article className={`fx-fee is-${variant}`} aria-label={`Cobro de cancha: ${match.title || "Partido"}`}>
+      <header className="fx-fee-head">
+        {variant === "command" && <Ring value={s.progress} label="Pagaron" caption={`${s.paid}/${s.total}`} />}
+        <div className="fx-fee-title">
+          <small>{formatMatchDate(match)}</small>
+          <h3>{match.title || "Partido"}</h3>
+          <p><b>{formatMoney(fee.per_player_amount)}</b> por jugador · {due}</p>
         </div>
-        <span className="count-pill">
-          {paidCount}/{payments.length} pagaron
-        </span>
-      </div>
-      <div className="player-list">
-        {sortedPayments.map((payment) => {
-          const player = profileById.get(payment.profile_id);
-          const proofStatus = payment.proof_status;
-          const hasProof = payment.proof_url;
-
-          return (
-            <div className="fee-player-row" key={payment.id}>
-              <div>
-                <strong>{displayName(player)}</strong>
-                <small>
-                  {payment.status === "paid"
-                    ? "Pagó"
-                    : payment.status === "forgiven"
-                      ? "Perdonado"
-                      : proofStatus === "submitted"
-                        ? "Esperando revisión"
-                        : proofStatus === "approved"
-                          ? "Comprobante aprobado"
-                          : proofStatus === "rejected"
-                            ? "Comprobante rechazado"
-                            : "Pendiente"}
-                </small>
-                <ProofStatusBadge status={proofStatus} />
-              </div>
-
-              <div className="fee-actions">
-                {isAdmin && payment.status === "pending" && (
-                  <>
-                    <button
-                      className="fee-btn-circle is-approve"
-                      type="button"
-                      title="Marcar como pagado"
-                      aria-label="Marcar como pagado"
-                      onClick={() => onUpdatePayment(payment.id, { status: "paid" })}
-                    >
-                      <Check />
-                    </button>
-                    <button
-                      className="fee-btn-circle is-reject"
-                      type="button"
-                      title="Perdonar cuota"
-                      aria-label="Perdonar cuota"
-                      onClick={() =>
-                        onUpdatePayment(payment.id, { status: "forgiven" })
-                      }
-                    >
-                      <X />
-                    </button>
-                  </>
-                )}
-
-                {isAdmin && hasProof && proofStatus === "submitted" && (
-                  <button
-                    className="fee-btn-circle is-view"
-                    type="button"
-                    title="Ver comprobante"
-                    aria-label="Ver comprobante"
-                    onClick={() => setModalPayment(payment)}
-                  >
-                    <FileText />
-                  </button>
-                )}
-
-                {isAdmin && !hasProof && payment.status === "pending" && (
-                  <CopyProofLinkButton
-                    payment={payment}
-                    paymentType="match_fee"
-                  />
-                )}
-
-                {payment.status !== "pending" && !isAdmin && (
-                  <span
-                    className={classNames(
-                      "status-pill",
-                      payment.status === "paid" && "is-paid",
-                      payment.status === "forgiven" && "is-forgiven",
-                    )}
-                  >
-                    {payment.status === "paid" ? "Pagado" : "Perdonado"}
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
+        <dl className="fx-fee-nums">
+          <div><dt>Cobrado</dt><dd>{formatMoney(s.collected)}</dd></div>
+          <div><dt>Pagaron</dt><dd>{s.paid}/{s.total}</dd></div>
+          {s.toReview > 0 && <div className="is-warn"><dt>Por revisar</dt><dd>{s.toReview}</dd></div>}
+        </dl>
+      </header>
+      {variant !== "command" && <Meter value={s.progress} label={`${s.paid} de ${s.total} pagaron`} tone="accent" />}
+      <PaymentRows payments={sortedPayments} profileById={profileById} paymentType="match_fee" onUpdatePayment={onUpdatePayment} onOpenProof={setModalPayment} />
       {modalPayment && (
         <ProofReviewModal
           payment={modalPayment}
           paymentType="match_fee"
+          playerName={displayName(profileById.get(modalPayment.profile_id))}
+          amount={fee.per_player_amount}
           onClose={() => setModalPayment(null)}
           onReview={onReviewProof}
         />
       )}
-    </div>
+    </article>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Collection form
-// ---------------------------------------------------------------------------
+/* ------------------------------------------------------------- Collections */
 
 function CollectionForm({ onSave, onCancel }) {
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    amount_per_player: "",
-    due_date: "",
-  });
+  const [form, setForm] = useState({ title: "", description: "", amount_per_player: "", due_date: "" });
   const [error, setError] = useState("");
-
-  function update(patch) {
-    setForm((f) => ({ ...f, ...patch }));
-  }
+  const update = (patch) => setForm((f) => ({ ...f, ...patch }));
 
   async function submit(e) {
     e.preventDefault();
     setError("");
-    if (!form.title.trim()) {
-      setError("El título es obligatorio.");
-      return;
-    }
-    if (!form.amount_per_player || Number(form.amount_per_player) <= 0) {
-      setError("El monto debe ser mayor a 0.");
-      return;
-    }
+    if (!form.title.trim()) { setError("El título es obligatorio."); return; }
+    if (!form.amount_per_player || Number(form.amount_per_player) <= 0) { setError("El monto debe ser mayor a 0."); return; }
     await onSave({
       title: form.title.trim(),
       description: form.description.trim() || null,
@@ -434,618 +160,246 @@ function CollectionForm({ onSave, onCancel }) {
   }
 
   return (
-    <form className="form-grid" onSubmit={submit}>
-      {error && <p className="form-message">{error}</p>}
-      <label>
+    <form className="form-grid md-form fx-form fx-create" onSubmit={submit} aria-label="Nueva colaboración">
+      {error && <p className="form-message" role="alert">{error}</p>}
+      <label className="md-form-wide">
         Título
-        <input
-          placeholder="Ej. Balón nuevo, pago de cancha mensual"
-          value={form.title}
-          onChange={(e) => update({ title: e.target.value })}
-        />
+        <input placeholder="Ej. Balón nuevo, pago de cancha mensual" value={form.title} onChange={(e) => update({ title: e.target.value })} />
       </label>
-      <label>
+      <label className="md-form-wide">
         Descripción
-        <input
-          placeholder="Opcional"
-          value={form.description}
-          onChange={(e) => update({ description: e.target.value })}
-        />
+        <input placeholder="Opcional" value={form.description} onChange={(e) => update({ description: e.target.value })} />
       </label>
       <label>
         Monto por jugador (Q)
-        <input
-          min="1"
-          step="1"
-          type="number"
-          value={form.amount_per_player}
-          onChange={(e) => update({ amount_per_player: e.target.value })}
-        />
+        <input min="1" step="1" type="number" inputMode="numeric" value={form.amount_per_player} onChange={(e) => update({ amount_per_player: e.target.value })} />
       </label>
       <label>
         Fecha límite
-        <input
-          type="date"
-          value={form.due_date}
-          onChange={(e) => update({ due_date: e.target.value })}
-        />
+        <input type="date" value={form.due_date} onChange={(e) => update({ due_date: e.target.value })} />
       </label>
-      <button type="submit">Crear colaboración</button>
-      <button className="secondary-button" type="button" onClick={onCancel}>
-        Cancelar
-      </button>
+      <div className="md-form-actions">
+        <button className="md-btn md-btn-ghost" type="button" onClick={onCancel}>Cancelar</button>
+        <button className="md-btn md-btn-accent" type="submit">Crear colaboración</button>
+      </div>
     </form>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Collections panel
-// ---------------------------------------------------------------------------
-
-function CollectionsPanel({
-  collections,
-  profileById,
-  isAdmin,
-  onCreateCollection,
-  onUpdateCollection,
-  onUpdatePayment,
-  onCloseCollection,
-  onDeleteCollection,
-  onReviewProof,
-}) {
-  const [showForm, setShowForm] = useState(false);
+function CollectionCard({ summary, variant, statusFilter, profileById, onUpdateCollection, onUpdatePayment, onCloseCollection, onDeleteCollection, onReviewProof }) {
+  const { col, payments, pending, paid, forgiven, progress, totalCollected } = summary;
   const [modalPayment, setModalPayment] = useState(null);
-  const [statusFilter, setStatusFilter] = useState("pending");
-  const [selectedPayments, setSelectedPayments] = useState({});
-  const [editingColId, setEditingColId] = useState(null);
-  const [newColDueDate, setNewColDueDate] = useState("");
+  const [selected, setSelected] = useState([]);
+  const [editing, setEditing] = useState(false);
+  const visiblePayments = sortPaymentsByName(filterPaymentsByStatus(payments, statusFilter), profileById);
+  const isOpen = col.status === "open";
 
-  async function handleSaveColDueDate(colId) {
+  async function handleSaveColDueDate(value) {
     try {
-      await onUpdateCollection(colId, { due_date: newColDueDate || null });
-      setEditingColId(null);
+      await onUpdateCollection(col.id, { due_date: value || null });
+      setEditing(false);
     } catch (err) {
       alert("Error al actualizar la fecha: " + err.message);
     }
   }
 
-  const collectionSummaries = useMemo(() => {
-    console.log("collections loaded in FeesPage:", collections);
-    return (collections || []).map((col) => {
-      const payments = col.collection_payments || [];
-      const pending = payments.filter((p) => p.status === "pending");
-      const paid = payments.filter((p) => p.status === "paid");
-      const forgiven = payments.filter((p) => p.status === "forgiven");
-      const pendingNames = pending
-        .map((p) => displayName(profileById.get(p.profile_id)))
-        .sort((a, b) => a.localeCompare(b));
-      const progress = payments.length ? Math.round((paid.length / payments.length) * 100) : 0;
-      return { col, payments, pending, paid, forgiven, pendingNames, progress };
-    });
-  }, [collections, profileById]);
-
-  const whatsappSummary = useMemo(() => {
-    const lines = ["COBROS F5MANAGER", ""];
-    collectionSummaries
-      .filter(({ col, pending }) => col.status === "open" && pending.length > 0)
-      .forEach(({ col, pendingNames }) => {
-        lines.push(`${col.title} - ${formatMoney(col.amount_per_player)}`);
-        lines.push(`Pendientes: ${pendingNames.join(", ")}`);
-        if (col.due_date) {
-          lines.push(`Vence: ${new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}`);
-        }
-        lines.push("");
-      });
-    if (lines.length === 2) lines.push("No hay pendientes abiertos.");
-    return lines.join("\n").trim();
-  }, [collectionSummaries]);
-
-  function filteredPayments(payments) {
-    if (statusFilter === "all") return payments;
-    return payments.filter((payment) => payment.status === statusFilter);
+  function toggle(paymentId) {
+    setSelected((cur) => (cur.includes(paymentId) ? cur.filter((id) => id !== paymentId) : [...cur, paymentId]));
   }
 
-  function togglePayment(collectionId, paymentId) {
-    setSelectedPayments((current) => {
-      const selected = new Set(current[collectionId] || []);
-      if (selected.has(paymentId)) selected.delete(paymentId);
-      else selected.add(paymentId);
-      return { ...current, [collectionId]: [...selected] };
-    });
+  async function markSelectedPaid() {
+    if (selected.length === 0) return;
+    await Promise.all(selected.map((id) => onUpdatePayment(id, { status: "paid" })));
+    setSelected([]);
   }
 
-  function selectFiltered(collectionId, payments) {
-    setSelectedPayments((current) => ({
-      ...current,
-      [collectionId]: payments.map((payment) => payment.id),
-    }));
-  }
-
-  async function markSelectedPaid(collectionId) {
-    const ids = selectedPayments[collectionId] || [];
-    if (ids.length === 0) return;
-    await Promise.all(ids.map((id) => onUpdatePayment(id, { status: "paid" })));
-    setSelectedPayments((current) => ({ ...current, [collectionId]: [] }));
-  }
+  const due = isOpen ? (
+    editing ? (
+      <DueEditor type="date" initial={col.due_date || ""} onSave={handleSaveColDueDate} onCancel={() => setEditing(false)} />
+    ) : (
+      <span className="fx-due">
+        <CalendarClock size={14} aria-hidden="true" />
+        {col.due_date ? `Vence ${dueLabel(col.due_date)}` : "Sin fecha límite"}
+        <button className="fx-icon is-ghost" type="button" title="Editar vencimiento" aria-label="Editar vencimiento" onClick={() => setEditing(true)}><Pencil size={14} aria-hidden="true" /></button>
+      </span>
+    )
+  ) : col.due_date ? <span className="fx-due"><CalendarClock size={14} aria-hidden="true" />Vence {dueLabel(col.due_date)}</span> : null;
 
   return (
-    <section className="panel collections-panel">
-      <div className="section-heading">
-        <div>
-          <p className="eyebrow">Grupo</p>
-          <h2>Colaboraciones extra</h2>
+    <article className={`fx-fee fx-collection is-${variant} ${isOpen ? "" : "is-closed"}`} aria-label={`Colaboración: ${col.title}`}>
+      <header className="fx-fee-head">
+        {variant === "command" && <Ring value={progress} label="Pagaron" caption={`${paid.length}/${payments.length}`} />}
+        <div className="fx-fee-title">
+          <small>Colaboración {isOpen ? "" : "· cerrada"}</small>
+          <h3>{col.title}</h3>
+          {col.description && <p className="fx-desc">{col.description}</p>}
+          <p><b>{formatMoney(col.amount_per_player)}</b> por jugador {due && <>· {due}</>}</p>
         </div>
-        {isAdmin && (
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => setShowForm((v) => !v)}
-          >
-            {showForm ? "Cancelar" : "+ Nueva"}
-          </button>
+        <dl className="fx-fee-nums">
+          <div><dt>Recaudado</dt><dd>{formatMoney(totalCollected)}</dd></div>
+          <div><dt>Estado</dt><dd>{isOpen ? `${paid.length}/${payments.length}` : <StatusChip tone="paid">Cerrada</StatusChip>}</dd></div>
+        </dl>
+      </header>
+      {variant !== "command" && <Meter value={progress} label={`${paid.length} de ${payments.length} pagaron`} tone="accent" />}
+      <p className="fx-breakdown">
+        <span>Pendientes <b>{pending.length}</b></span>
+        <span>Pagados <b>{paid.length}</b></span>
+        <span>Perdonados <b>{forgiven.length}</b></span>
+      </p>
+
+      {isOpen && (
+        <>
+          {visiblePayments.length > 0 && (
+            <div className="fx-batch">
+              <CopyCollectionGroupLinkButton collection={col} />
+              <button className="md-btn md-btn-ghost" type="button" onClick={() => setSelected(visiblePayments.map((p) => p.id))}>Seleccionar visibles</button>
+              <button className="md-btn md-btn-accent" type="button" disabled={selected.length === 0} onClick={markSelectedPaid}>Marcar pagados ({selected.length})</button>
+            </div>
+          )}
+          {visiblePayments.length === 0
+            ? <Empty>No hay pagos con ese filtro.</Empty>
+            : <PaymentRows payments={visiblePayments} profileById={profileById} paymentType="collection" onUpdatePayment={onUpdatePayment} onOpenProof={setModalPayment} select={{ selected, toggle }} />}
+        </>
+      )}
+
+      <footer className="fx-fee-foot">
+        {isOpen ? (
+          <button className="md-btn md-btn-ghost" type="button" onClick={() => onCloseCollection(col.id)}>Cerrar colaboración</button>
+        ) : (
+          <button className="md-btn md-btn-ghost fx-danger-text" type="button" onClick={() => { if (confirm("¿Eliminar esta colaboración cerrada?")) onDeleteCollection(col.id); }}>Eliminar</button>
         )}
-      </div>
-
-      <div className="collections-toolbar">
-        <div className="segmented-control">
-          {[
-            ["pending", "Pendientes"],
-            ["paid", "Pagados"],
-            ["forgiven", "Perdonados"],
-            ["all", "Todos"],
-          ].map(([value, label]) => (
-            <button
-              className={statusFilter === value ? "is-active" : ""}
-              key={value}
-              type="button"
-              onClick={() => setStatusFilter(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <ExportCard label="Resumen para WhatsApp" text={whatsappSummary} />
-
-      {showForm && (
-        <CollectionForm
-          onSave={async (payload) => {
-            await onCreateCollection(payload);
-            setShowForm(false);
-          }}
-          onCancel={() => setShowForm(false)}
-        />
-      )}
-
-      {collections.length === 0 && !showForm && (
-        <div className="empty-state compact">No hay colaboraciones activas.</div>
-      )}
-
-      {collectionSummaries.map(({ col, payments, pending, paid, forgiven, progress }) => {
-        const visiblePayments = [...filteredPayments(payments)].sort((a, b) => {
-          const nameA = displayName(profileById.get(a.profile_id)) || "";
-          const nameB = displayName(profileById.get(b.profile_id)) || "";
-          return nameA.localeCompare(nameB);
-        });
-        const paidCount = paid.length;
-        const totalCollected = paidCount * col.amount_per_player;
-        const selectedForCollection = selectedPayments[col.id] || [];
-
-        return (
-          <article className="collection-card" key={col.id}>
-            <div className="collection-card-head">
-              <div className="collection-title">
-                <p className="eyebrow">Colaboración</p>
-                <strong>{col.title}</strong>
-                {col.description && <small>{col.description}</small>}
-              </div>
-              <div className="collection-stats">
-                <div>
-                  <small>Monto</small>
-                  <span>{formatMoney(col.amount_per_player)}</span>
-                </div>
-                <div>
-                  <small>Recaudado</small>
-                  <span>{formatMoney(totalCollected)}</span>
-                </div>
-                <div>
-                  <small>Estado</small>
-                  <span
-                    className={classNames(
-                      "status-pill",
-                      col.status === "closed" && "is-paid",
-                    )}
-                  >
-                    {col.status === "closed" ? "Cerrada" : `${paidCount}/${payments.length}`}
-                  </span>
-                </div>
-              </div>
-              {isAdmin && col.status === "open" ? (
-                editingColId === col.id ? (
-                  <div className="edit-due-date-form">
-                    <input
-                      type="date"
-                      value={newColDueDate}
-                      onChange={(e) => setNewColDueDate(e.target.value)}
-                    />
-                    <button className="fee-btn-icon is-primary" type="button" onClick={() => handleSaveColDueDate(col.id)}>✓</button>
-                    <button className="fee-btn-icon is-danger" type="button" onClick={() => setEditingColId(null)}>×</button>
-                  </div>
-                ) : (
-                  <small className="collection-due">
-                    {col.due_date
-                      ? `Vence ${new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}`
-                      : "Sin fecha límite"}
-                    <button
-                      className="edit-due-btn"
-                      type="button"
-                      onClick={() => {
-                        setEditingColId(col.id);
-                        setNewColDueDate(col.due_date || "");
-                      }}
-                      title="Editar vencimiento"
-                    >
-                      ✏️
-                    </button>
-                  </small>
-                )
-              ) : (
-                col.due_date && (
-                  <small className="collection-due">
-                    Vence {new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}
-                  </small>
-                )
-              )}
-            </div>
-
-            <div className="collection-progress">
-              <span style={{ width: `${progress}%` }} />
-            </div>
-
-            <div className="collection-breakdown">
-              <span>Pendientes: {pending.length}</span>
-              <span>Pagados: {paid.length}</span>
-              <span>Perdonados: {forgiven.length}</span>
-            </div>
-
-            {isAdmin && col.status === "open" && visiblePayments.length > 0 && (
-              <div className="collection-batch-actions">
-                <CopyCollectionGroupLinkButton collection={col} />
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => selectFiltered(col.id, visiblePayments)}
-                >
-                  Seleccionar visibles
-                </button>
-                <button
-                  type="button"
-                  disabled={selectedForCollection.length === 0}
-                  onClick={() => markSelectedPaid(col.id)}
-                >
-                  Marcar pagados ({selectedForCollection.length})
-                </button>
-              </div>
-            )}
-
-            {isAdmin && col.status === "open" && (
-              <div className="collection-player-grid">
-                {visiblePayments.map((payment) => {
-                  const player = profileById.get(payment.profile_id);
-                  const proofStatus = payment.proof_status;
-                  const hasProof = payment.proof_url;
-
-                  return (
-                    <div className="fee-player-row" key={payment.id}>
-                      <div>
-                        <label className="payment-select">
-                          <input
-                            checked={selectedForCollection.includes(payment.id)}
-                            type="checkbox"
-                            onChange={() => togglePayment(col.id, payment.id)}
-                          />
-                          <span>{displayName(player)}</span>
-                        </label>
-                        <small>
-                          {payment.status === "paid"
-                            ? "Pagó"
-                            : payment.status === "forgiven"
-                              ? "Perdonado"
-                              : proofStatus === "submitted"
-                                ? "Esperando revisión"
-                                : proofStatus === "approved"
-                                  ? "Comprobante aprobado"
-                                  : proofStatus === "rejected"
-                                    ? "Comprobante rechazado"
-                                    : "Pendiente"}
-                        </small>
-                        <ProofStatusBadge status={proofStatus} />
-                      </div>
-                      <div className="fee-actions">
-                        {payment.status === "pending" && (
-                          <>
-                            <button
-                              className="fee-btn-circle is-approve"
-                              type="button"
-                              title="Marcar como pagado"
-                              aria-label="Marcar como pagado"
-                              onClick={() =>
-                                onUpdatePayment(payment.id, { status: "paid" })
-                              }
-                            >
-                              <Check />
-                            </button>
-                            <button
-                              className="fee-btn-circle is-reject"
-                              type="button"
-                              title="Perdonar cuota"
-                              aria-label="Perdonar cuota"
-                              onClick={() =>
-                                onUpdatePayment(payment.id, { status: "forgiven" })
-                              }
-                            >
-                              <X />
-                            </button>
-                          </>
-                        )}
-
-                        {hasProof && proofStatus === "submitted" && (
-                          <button
-                            className="fee-btn-circle is-view"
-                            type="button"
-                            title="Ver comprobante"
-                            aria-label="Ver comprobante"
-                            onClick={() => setModalPayment(payment)}
-                          >
-                            <FileText />
-                          </button>
-                        )}
-
-                        {!hasProof && payment.status === "pending" && (
-                          <CopyProofLinkButton
-                            payment={payment}
-                            paymentType="collection"
-                          />
-                        )}
-
-                        {payment.status !== "pending" && (
-                          <span
-                            className={classNames(
-                              "status-pill",
-                              payment.status === "paid" && "is-paid",
-                              payment.status === "forgiven" && "is-forgiven",
-                            )}
-                          >
-                            {payment.status === "paid" ? "Pagado" : "Perdonado"}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                {visiblePayments.length === 0 && (
-                  <div className="empty-state compact">No hay pagos con ese filtro.</div>
-                )}
-              </div>
-            )}
-
-            {!isAdmin && (
-              <div className="collection-player-grid">
-                {payments
-                  .filter((p) => p.profile_id === profileById.get("current")?.id)
-                  .map((payment) => {
-                    const proofStatus = payment.proof_status;
-                    return (
-                      <div className="fee-player-row" key={payment.id}>
-                        <div>
-                          <ProofStatusBadge status={proofStatus} />
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-
-            {isAdmin && col.status === "open" && (
-              <div className="button-row ledger-actions">
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => onCloseCollection(col.id)}
-                >
-                  Cerrar colaboración
-                </button>
-              </div>
-            )}
-
-            {isAdmin && col.status === "closed" && (
-              <div className="button-row ledger-actions">
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => {
-                    if (confirm("¿Eliminar esta colaboración cerrada?")) {
-                      onDeleteCollection(col.id);
-                    }
-                  }}
-                >
-                  Eliminar
-                </button>
-              </div>
-            )}
-          </article>
-        );
-      })}
+      </footer>
 
       {modalPayment && (
         <ProofReviewModal
           payment={modalPayment}
           paymentType="collection"
+          playerName={displayName(profileById.get(modalPayment.profile_id))}
+          amount={col.amount_per_player}
           onClose={() => setModalPayment(null)}
           onReview={onReviewProof}
         />
       )}
-    </section>
+    </article>
   );
 }
 
-// ---------------------------------------------------------------------------
-// My fees panel — player view
-// ---------------------------------------------------------------------------
-
-function MyFeesPanel({
-  matchFees,
-  collections,
-  matches,
-  profile,
-  onCopyProofLink,
-}) {
-  const matchById = new Map(matches.map((m) => [m.id, m]));
-
-  const myMatchDebts = matchFees
-    .filter((fee) => {
-      const myPayment = (fee.match_fee_payments || []).find(
-        (p) => p.profile_id === profile.id,
-      );
-      return myPayment && myPayment.status === "pending";
-    })
-    .map((fee) => {
-      const myPayment = fee.match_fee_payments.find(
-        (p) => p.profile_id === profile.id,
-      );
-      return { fee, payment: myPayment, match: matchById.get(fee.match_id) };
-    });
-
-  const myCollectionDebts = collections
-    .filter((col) => {
-      const myPayment = (col.collection_payments || []).find(
-        (p) => p.profile_id === profile.id,
-      );
-      return myPayment && myPayment.status === "pending";
-    })
-    .map((col) => {
-      const myPayment = col.collection_payments.find(
-        (p) => p.profile_id === profile.id,
-      );
-      return { col, payment: myPayment };
-    });
-
-  const totalDebt =
-    myMatchDebts.reduce((s, { fee }) => s + Number(fee.per_player_amount), 0) +
-    myCollectionDebts.reduce((s, { col }) => s + Number(col.amount_per_player), 0);
+function CollectionsPanel({ variant, collections, profileById, onCreateCollection, ...handlers }) {
+  const [showForm, setShowForm] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("pending");
+  const summaries = useMemo(() => summarizeCollections(collections, profileById), [collections, profileById]);
+  const whatsappSummary = useMemo(() => collectionsWhatsappSummary(summaries), [summaries]);
 
   return (
-    <div className="page-grid">
-      <section className="stat-grid">
-        <Stat label="Total pendiente" value={formatMoney(totalDebt)} />
-        <Stat label="Cobros de cancha" value={myMatchDebts.length} />
-        <Stat label="Colaboraciones" value={myCollectionDebts.length} />
-      </section>
+    <Section
+      title="Colaboraciones extra"
+      icon={HandCoins}
+      aside={<button className={`md-btn ${showForm ? "md-btn-ghost" : "md-btn-accent"}`} type="button" onClick={() => setShowForm((v) => !v)}>{showForm ? "Cancelar" : <><PlusCircle size={15} aria-hidden="true" /> Nueva</>}</button>}
+    >
+      {showForm && (
+        <CollectionForm
+          onSave={async (payload) => { await onCreateCollection(payload); setShowForm(false); }}
+          onCancel={() => setShowForm(false)}
+        />
+      )}
+      <div className="fx-toolbar">
+        <Segmented label="Filtrar pagos" options={STATUS_FILTERS} value={statusFilter} onChange={setStatusFilter} />
+      </div>
+      {collections.length === 0 && !showForm && <Empty>No hay colaboraciones activas.</Empty>}
+      <div className={`fx-fee-list is-${variant}`}>
+        {summaries.map((summary) => (
+          <CollectionCard key={summary.col.id} summary={summary} variant={variant} statusFilter={statusFilter} profileById={profileById} {...handlers} />
+        ))}
+      </div>
+      <details className="fx-details">
+        <summary><MessageCircle size={15} aria-hidden="true" /> Resumen para WhatsApp</summary>
+        <ExportCard label="Resumen para WhatsApp" text={whatsappSummary} />
+      </details>
+    </Section>
+  );
+}
+
+/* --------------------------------------------------------------- My fees */
+
+function MyDebtRow({ title, meta, amount, payment, paymentType, extra }) {
+  return (
+    <li className="fx-debt">
+      <span className="fx-debt-main">
+        <b>{title}</b>
+        {meta && <small>{meta}</small>}
+        {extra}
+        <ProofStatusBadge status={payment.proof_status} />
+      </span>
+      <Money value={amount} className="fx-debt-amt" />
+      {payment.proof_status === "pending"
+        ? <CopyProofLinkButton payment={payment} paymentType={paymentType} />
+        : <StatusChip tone={payment.proof_status === "submitted" ? "review" : payment.proof_status === "approved" ? "paid" : "rejected"}>{myProofPillLabel(payment.proof_status)}</StatusChip>}
+    </li>
+  );
+}
+
+function MyFeesPanel({ variant, matchFees, collections, matches, profile }) {
+  const { myMatchDebts, myCollectionDebts, totalDebt } = myPendingDebts({ matchFees, collections, matches, profileId: profile.id });
+  const none = myMatchDebts.length === 0 && myCollectionDebts.length === 0;
+
+  return (
+    <div className={`fx-mine is-${variant}`} data-view="my-fees">
+      {variant === "command" ? (
+        <Kpis variant="command" items={[
+          { label: "Total pendiente", value: <Money value={totalDebt} />, tone: totalDebt > 0 ? "warn" : "good" },
+          { label: "Cobros de cancha", value: myMatchDebts.length },
+          { label: "Colaboraciones", value: myCollectionDebts.length },
+        ]} />
+      ) : (
+        <section className="fx-statement is-single" aria-label="Mi saldo">
+          <div className={`is-total is-${totalDebt > 0 ? "warn" : "good"}`}><small>Total pendiente</small><Money value={totalDebt} /></div>
+          <p className="fx-hint">{none ? "Estás al día con el grupo." : `${myMatchDebts.length} cobro(s) de cancha y ${myCollectionDebts.length} colaboración(es) pendientes. Usá “Link” para subir tu comprobante.`}</p>
+        </section>
+      )}
 
       {myMatchDebts.length > 0 && (
-        <section className="panel">
-          <div className="section-heading">
-            <h2>Cobros de cancha pendientes</h2>
-          </div>
-          <div className="ledger-list">
+        <Section title="Cobros de cancha pendientes" icon={Trophy}>
+          <ul className="fx-debts">
             {myMatchDebts.map(({ fee, payment, match }) => (
-              <article className="ledger-row" key={fee.id}>
-                <div>
-                  <strong>{match?.title || "Partido"}</strong>
-                  <small>
-                    {match ? formatMatchDate(match) : ""}
-                    {fee.due_before
-                      ? ` · vence ${new Date(fee.due_before).toLocaleDateString("es-GT")}`
-                      : ""}
-                  </small>
-                  <ProofStatusBadge status={payment.proof_status} />
-                </div>
-                <div className="ledger-meta">
-                  <span className="fine-amount">
-                    {formatMoney(fee.per_player_amount)}
-                  </span>
-                  {payment.proof_status === "pending" && (
-                    <CopyProofLinkButton
-                      payment={payment}
-                      paymentType="match_fee"
-                    />
-                  )}
-                  {payment.proof_status !== "pending" && (
-                    <span className="status-pill">
-                      {payment.proof_status === "submitted"
-                        ? "Enviado"
-                        : payment.proof_status === "approved"
-                          ? "Aprobado"
-                          : "Rechazado"}
-                    </span>
-                  )}
-                </div>
-              </article>
+              <MyDebtRow
+                key={fee.id}
+                title={match?.title || "Partido"}
+                meta={`${match ? formatMatchDate(match) : ""}${fee.due_before ? ` · vence ${new Date(fee.due_before).toLocaleDateString("es-GT")}` : ""}`}
+                amount={fee.per_player_amount}
+                payment={payment}
+                paymentType="match_fee"
+              />
             ))}
-          </div>
-        </section>
+          </ul>
+        </Section>
       )}
 
       {myCollectionDebts.length > 0 && (
-        <section className="panel">
-          <div className="section-heading">
-            <h2>Colaboraciones pendientes</h2>
-          </div>
-          <div className="ledger-list">
+        <Section title="Colaboraciones pendientes" icon={HandCoins}>
+          <ul className="fx-debts">
             {myCollectionDebts.map(({ col, payment }) => (
-              <article className="ledger-row" key={col.id}>
-                <div>
-                  <strong>{col.title}</strong>
-                  {col.description && <small>{col.description}</small>}
-                  {col.due_date && (
-                    <small>
-                      Vence{" "}
-                      {new Date(col.due_date + "T12:00:00").toLocaleDateString("es-GT")}
-                    </small>
-                  )}
-                  <ProofStatusBadge status={payment.proof_status} />
-                </div>
-                <div className="ledger-meta">
-                  <span className="fine-amount">
-                    {formatMoney(col.amount_per_player)}
-                  </span>
-                  {payment.proof_status === "pending" && (
-                    <CopyProofLinkButton
-                      payment={payment}
-                      paymentType="collection"
-                    />
-                  )}
-                  {payment.proof_status !== "pending" && (
-                    <span className="status-pill">
-                      {payment.proof_status === "submitted"
-                        ? "Enviado"
-                        : payment.proof_status === "approved"
-                          ? "Aprobado"
-                          : "Rechazado"}
-                    </span>
-                  )}
-                </div>
-              </article>
+              <MyDebtRow
+                key={col.id}
+                title={col.title}
+                meta={[col.description, col.due_date ? `Vence ${dueLabel(col.due_date)}` : null].filter(Boolean).join(" · ")}
+                amount={col.amount_per_player}
+                payment={payment}
+                paymentType="collection"
+              />
             ))}
-          </div>
-        </section>
+          </ul>
+        </Section>
       )}
 
-      {myMatchDebts.length === 0 && myCollectionDebts.length === 0 && (
-        <section className="panel">
-          <div className="empty-state compact">No tenés cobros pendientes.</div>
-        </section>
-      )}
+      {none && <Section title="Mis cobros" icon={Receipt}><Empty>No tenés cobros pendientes.</Empty></Section>}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main export — switches between admin and player view
-// ---------------------------------------------------------------------------
+/* ------------------------------------------------------------ Main export */
 
 export default function FeesPage({
+  variant = "editorial",
   collections,
   isAdmin,
   matchFees,
@@ -1062,58 +416,50 @@ export default function FeesPage({
   onReviewProof,
 }) {
   if (!isAdmin) {
-    return (
-      <MyFeesPanel
-        collections={collections}
-        matchFees={matchFees}
-        matches={matches}
-        profile={profile}
-      />
-    );
+    return <MyFeesPanel variant={variant} collections={collections} matchFees={matchFees} matches={matches} profile={profile} />;
   }
 
   // Admin: match fees per match + collections
   const matchesWithFees = matches
-    .map((match) => ({
-      match,
-      fee: matchFees.find((f) => f.match_id === match.id) || null,
-    }))
+    .map((match) => ({ match, fee: matchFees.find((f) => f.match_id === match.id) || null }))
     .filter(({ fee }) => fee !== null);
 
+  const feeStats = matchesWithFees.map(({ fee }) => ({ fee, s: summarizeMatchFee(fee) }));
+  const pendingFeesAmount = feeStats.reduce((t, { fee, s }) => t + s.pending * Number(fee.per_player_amount || 0), 0);
+  const toReview = feeStats.reduce((t, { s }) => t + s.toReview, 0)
+    + (collections || []).reduce((t, c) => t + (c.collection_payments || []).filter((p) => p.proof_url && p.proof_status === "submitted").length, 0);
+  const openCollections = (collections || []).filter((c) => c.status === "open").length;
+
   return (
-    <div className="page-grid">
-      {matchesWithFees.length > 0 && (
-        <section className="panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Partidos</p>
-              <h2>Cobros de cancha</h2>
-            </div>
-          </div>
-          {matchesWithFees.map(({ match, fee }) => (
-            <div className="detail-section" key={match.id}>
-              <div className="section-heading">
-                <div>
-                  <strong>{match.title || "Partido"}</strong>
-                  <small>{formatMatchDate(match)}</small>
-                </div>
-              </div>
-              <MatchFeePanel
+    <div className={`fx-fees is-${variant}`} data-view="fees">
+      <Kpis variant={variant} items={[
+        { label: "Cuotas de cancha por cobrar", value: <Money value={pendingFeesAmount} />, tone: pendingFeesAmount > 0 ? "warn" : undefined },
+        { label: "Comprobantes por revisar", value: toReview, tone: toReview > 0 ? "warn" : undefined },
+        { label: "Colaboraciones abiertas", value: openCollections },
+      ]} />
+
+      <Section title="Cobros de cancha" icon={Trophy} aside={<span className="fx-count">{matchesWithFees.length} partidos</span>}>
+        {matchesWithFees.length === 0 ? <Empty>No hay cuotas de cancha. Se generan al configurar el costo de un partido.</Empty> : (
+          <div className={`fx-fee-list is-${variant}`}>
+            {matchesWithFees.map(({ match, fee }) => (
+              <MatchFeeCard
+                key={match.id}
+                match={match}
                 fee={fee}
-                isAdmin={isAdmin}
+                variant={variant}
                 profileById={profileById}
                 onUpdatePayment={onUpdateMatchFeePayment}
                 onUpdateMatchFee={onUpdateMatchFee}
                 onReviewProof={onReviewProof}
               />
-            </div>
-          ))}
-        </section>
-      )}
+            ))}
+          </div>
+        )}
+      </Section>
 
       <CollectionsPanel
+        variant={variant}
         collections={collections}
-        isAdmin={isAdmin}
         profileById={profileById}
         onCreateCollection={onCreateCollection}
         onUpdateCollection={onUpdateCollection}

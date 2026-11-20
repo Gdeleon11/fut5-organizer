@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import { Copy, MapPin, Pencil, PlusCircle } from "lucide-react";
 import MapPicker from "../components/MapPicker.jsx";
+import { Empty, Section } from "../components/finance/FinanceBlocks.jsx";
+import { venueHistory, venueMapUrl, venueShareText } from "../finance/financeModel.js";
 import { cleanImageUrl, copyToClipboard, formatMoney } from "../utils.js";
 
 function VenueForm({ initial, onSave, onCancel }) {
@@ -15,15 +18,9 @@ function VenueForm({ initial, onSave, onCancel }) {
   const [photoPreview, setPhotoPreview] = useState(cleanImageUrl(initial?.photo_url));
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    return () => {
-      if (photoPreview.startsWith("blob:")) URL.revokeObjectURL(photoPreview);
-    };
-  }, [photoPreview]);
+  useEffect(() => () => { if (photoPreview.startsWith("blob:")) URL.revokeObjectURL(photoPreview); }, [photoPreview]);
 
-  function update(patch) {
-    setForm((f) => ({ ...f, ...patch }));
-  }
+  const update = (patch) => setForm((f) => ({ ...f, ...patch }));
 
   function handlePhoto(e) {
     const file = e.target.files?.[0] || null;
@@ -34,17 +31,10 @@ function VenueForm({ initial, onSave, onCancel }) {
     });
   }
 
-  function handleMapChange(lat, lng) {
-    update({ lat, lng });
-  }
-
   async function submit(e) {
     e.preventDefault();
     setError("");
-    if (!form.name.trim()) {
-      setError("El nombre de la cancha es obligatorio.");
-      return;
-    }
+    if (!form.name.trim()) { setError("El nombre de la cancha es obligatorio."); return; }
     await onSave(
       {
         name: form.name.trim(),
@@ -59,74 +49,55 @@ function VenueForm({ initial, onSave, onCancel }) {
   }
 
   return (
-    <form className="venue-form" onSubmit={submit}>
-      {error && <p className="form-message">{error}</p>}
-
-      <div className="venue-form-grid">
-        <label>
-          Nombre de la cancha
-          <input value={form.name} onChange={(e) => update({ name: e.target.value })} />
-        </label>
-        <label>
-          Dirección
-          <input
-            placeholder="Opcional"
-            value={form.address}
-            onChange={(e) => update({ address: e.target.value })}
-          />
-        </label>
-        <label>
-          Costo típico (Q)
-          <input
-            min="0"
-            step="1"
-            type="number"
-            value={form.default_cost}
-            onChange={(e) => update({ default_cost: e.target.value })}
-          />
-        </label>
-        <label className="venue-form-wide">
-          Notas
-          <input
-            placeholder="Ej. Cancha techada"
-            value={form.notes}
-            onChange={(e) => update({ notes: e.target.value })}
-          />
-        </label>
-      </div>
-
-      <label className="venue-form-wide">
-        Ubicación en el mapa
-        <MapPicker lat={form.lat} lng={form.lng} onChange={handleMapChange} height="220px" />
+    <form className="form-grid md-form fx-form fx-venue-form" onSubmit={submit} aria-label={initial ? "Editar cancha" : "Agregar cancha"}>
+      {error && <p className="form-message" role="alert">{error}</p>}
+      <label>
+        Nombre de la cancha
+        <input value={form.name} onChange={(e) => update({ name: e.target.value })} />
       </label>
-
-      <label className="media-upload venue-photo-upload">
+      <label>
+        Costo típico (Q)
+        <input min="0" step="1" type="number" inputMode="numeric" value={form.default_cost} onChange={(e) => update({ default_cost: e.target.value })} />
+      </label>
+      <label className="md-form-wide">
+        Dirección
+        <input placeholder="Opcional" value={form.address} onChange={(e) => update({ address: e.target.value })} />
+      </label>
+      <label className="md-form-wide">
+        Notas
+        <input placeholder="Ej. Cancha techada" value={form.notes} onChange={(e) => update({ notes: e.target.value })} />
+      </label>
+      <div className="md-form-wide fx-map-field">
+        <span className="fx-label">Ubicación en el mapa</span>
+        <MapPicker lat={form.lat} lng={form.lng} onChange={(lat, lng) => update({ lat, lng })} height="220px" />
+      </div>
+      <label className="md-form-wide fx-photo-field">
         Foto de la cancha
-        {photoPreview ? (
-          <img
-            alt="Vista previa"
-            src={photoPreview}
-            onError={() => setPhotoPreview("")}
-          />
-        ) : (
-          <span className="media-placeholder">Subí una foto</span>
-        )}
+        {photoPreview
+          ? <img alt="Vista previa" src={photoPreview} onError={() => setPhotoPreview("")} />
+          : <span className="fx-photo-ph">Subí una foto</span>}
         <input accept="image/*" type="file" onChange={handlePhoto} />
       </label>
-
-      <div className="button-row">
-        <button type="submit">{initial ? "Guardar cambios" : "Agregar cancha"}</button>
-        {onCancel && (
-          <button className="secondary-button" type="button" onClick={onCancel}>
-            Cancelar
-          </button>
-        )}
+      <div className="md-form-actions">
+        {onCancel && <button className="md-btn md-btn-ghost" type="button" onClick={onCancel}>Cancelar</button>}
+        <button className="md-btn md-btn-accent" type="submit">{initial ? "Guardar cambios" : "Agregar cancha"}</button>
       </div>
     </form>
   );
 }
 
-export default function VenuesPage({ groupId, profileId, venues, matches = [], onCreateVenue, onUpdateVenue, isAdmin }) {
+function VenueStats({ history }) {
+  return (
+    <dl className="fx-venue-stats">
+      <div><dt>Usos</dt><dd>{history.count}</dd></div>
+      <div><dt>Total</dt><dd>{formatMoney(history.totalCost)}</dd></div>
+      <div><dt>Promedio</dt><dd>{formatMoney(history.averageCost)}</dd></div>
+      <div><dt>Última</dt><dd>{history.latestDate ? new Date(history.latestDate + "T12:00:00").toLocaleDateString("es-GT") : "—"}</dd></div>
+    </dl>
+  );
+}
+
+export default function VenuesPage({ variant = "editorial", groupId, profileId, venues, matches = [], onCreateVenue, onUpdateVenue, isAdmin }) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
@@ -141,145 +112,60 @@ export default function VenuesPage({ groupId, profileId, venues, matches = [], o
     setEditingId(null);
   }
 
-  function mapUrl(venue) {
-    if (venue.lat && venue.lng) return `https://www.google.com/maps/search/?api=1&query=${venue.lat},${venue.lng}`;
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([venue.name, venue.address].filter(Boolean).join(" "))}`;
-  }
-
   async function copyVenue(venue) {
-    const text = [
-      "CANCHA F5MANAGER",
-      "",
-      venue.name,
-      venue.address ? `Dirección: ${venue.address}` : "",
-      Number(venue.default_cost || 0) > 0 ? `Costo típico: ${formatMoney(venue.default_cost)}` : "",
-      venue.notes ? `Notas: ${venue.notes}` : "",
-      `Mapa: ${mapUrl(venue)}`,
-    ].filter(Boolean).join("\n");
-    await copyToClipboard(text);
+    await copyToClipboard(venueShareText(venue));
     setCopiedId(venue.id);
     window.setTimeout(() => setCopiedId(null), 1600);
   }
 
-  function venueHistory(venue) {
-    const usedMatches = (matches || []).filter((match) =>
-      match && (match.venue_id === venue.id || match.venue === venue.name)
-    );
-    const totalCost = usedMatches.reduce((sum, match) => sum + Number(match.court_cost || 0), 0);
-    const withCost = usedMatches.filter((match) => Number(match.court_cost || 0) > 0);
-    const latest = [...usedMatches]
-      .filter((match) => match.match_date)
-      .sort((a, b) => b.match_date.localeCompare(a.match_date))[0];
-    return {
-      count: usedMatches.length,
-      totalCost,
-      averageCost: withCost.length ? totalCost / withCost.length : Number(venue.default_cost || 0),
-      latestDate: latest?.match_date || null,
-    };
-  }
-
   return (
-    <div className="page-grid venues-page">
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Infraestructura</p>
-            <h2>Catálogo de canchas</h2>
-          </div>
-          <span className="count-pill">{venues.length}</span>
-        </div>
+    <Section
+      title="Catálogo de canchas"
+      icon={MapPin}
+      className={`fx-venues is-${variant}`}
+      aside={<>
+        <span className="fx-count">{venues.length} sedes</span>
+        {isAdmin && !showForm && <button className="md-btn md-btn-accent" type="button" onClick={() => setShowForm(true)}><PlusCircle size={15} aria-hidden="true" /> Agregar cancha</button>}
+      </>}
+    >
+      {isAdmin && showForm && <VenueForm onSave={handleCreate} onCancel={() => setShowForm(false)} />}
+      {venues.length === 0 && !showForm && <Empty>Agregá las canchas donde juegan para reutilizarlas en cada partido.</Empty>}
 
-        {venues.length === 0 && !showForm && (
-          <div className="empty-state compact">
-            Agregá las canchas donde juegan para reutilizarlas en cada partido.
-          </div>
-        )}
-
-        <div className="list">
-          {venues.map((venue) => (
-            <article className="ledger-row" key={venue.id}>
-              {(() => {
-                const history = venueHistory(venue);
-                return (
-                  <>
-              {venue.photo_url && (
-                <div className="venue-thumb">
-                  <img
-                    alt={venue.name}
-                    src={cleanImageUrl(venue.photo_url)}
-                    onError={(event) => {
-                      event.currentTarget.closest(".venue-thumb")?.remove();
-                    }}
-                  />
+      <ul className={`fx-venue-list is-${variant}`}>
+        {venues.map((venue) => {
+          const history = venueHistory(venue, matches);
+          const photo = cleanImageUrl(venue.photo_url);
+          const editing = editingId === venue.id;
+          return (
+            <li key={venue.id} className={`fx-venue ${editing ? "is-editing" : ""}`}>
+              {photo && (
+                <div className="fx-venue-photo">
+                  <img alt={venue.name} src={photo} loading="lazy" onError={(e) => e.currentTarget.closest(".fx-venue-photo")?.remove()} />
                 </div>
               )}
-              <div>
-                <strong>{venue.name}</strong>
-                {venue.address && <small>{venue.address}</small>}
-                {venue.notes && <small className="muted">{venue.notes}</small>}
-                {venue.lat && venue.lng && (
-                  <small className="muted">📍 {venue.lat.toFixed(4)}, {venue.lng.toFixed(4)}</small>
+              <div className="fx-venue-body">
+                <div className="fx-venue-head">
+                  <h3>{venue.name}</h3>
+                  <span className="fx-venue-cost">{venue.default_cost > 0 ? formatMoney(venue.default_cost) : "Gratis"}</span>
+                </div>
+                {venue.address && <p className="fx-venue-addr">{venue.address}</p>}
+                {venue.notes && <p className="fx-venue-notes">{venue.notes}</p>}
+                {venue.lat && venue.lng && <small className="fx-venue-geo"><MapPin size={12} aria-hidden="true" /> {venue.lat.toFixed(4)}, {venue.lng.toFixed(4)}</small>}
+                <VenueStats history={history} />
+                {editing ? (
+                  <VenueForm initial={venue} onSave={handleUpdate} onCancel={() => setEditingId(null)} />
+                ) : (
+                  <div className="fx-venue-actions">
+                    <a className="md-btn md-btn-ghost" href={venueMapUrl(venue)} target="_blank" rel="noreferrer"><MapPin size={15} aria-hidden="true" /> Mapa</a>
+                    <button className="md-btn md-btn-ghost" type="button" onClick={() => copyVenue(venue)}><Copy size={15} aria-hidden="true" /> {copiedId === venue.id ? "Copiado" : "Copiar datos"}</button>
+                    {isAdmin && <button className="md-btn md-btn-ghost" type="button" onClick={() => setEditingId(venue.id)}><Pencil size={15} aria-hidden="true" /> Editar</button>}
+                  </div>
                 )}
               </div>
-              <div className="ledger-meta">
-                <span className="count-pill">
-                  {venue.default_cost > 0
-                    ? formatMoney(venue.default_cost)
-                    : "Gratis"}
-                </span>
-              </div>
-              <div className="venue-history">
-                <span><small>Usos</small><strong>{history.count}</strong></span>
-                <span><small>Total</small><strong>{formatMoney(history.totalCost)}</strong></span>
-                <span><small>Promedio</small><strong>{formatMoney(history.averageCost)}</strong></span>
-                <span><small>Última</small><strong>{history.latestDate ? new Date(history.latestDate + "T12:00:00").toLocaleDateString("es-GT") : "-"}</strong></span>
-              </div>
-              {editingId === venue.id ? (
-                <VenueForm
-                  initial={venue}
-                  onSave={handleUpdate}
-                  onCancel={() => setEditingId(null)}
-                />
-              ) : (
-                <div className="button-row ledger-actions">
-                  <a className="share-link" href={mapUrl(venue)} target="_blank" rel="noreferrer">
-                    Mapa
-                  </a>
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() => copyVenue(venue)}
-                  >
-                    {copiedId === venue.id ? "Copiado" : "Copiar datos"}
-                  </button>
-                  {isAdmin && (
-                    <button
-                      className="secondary-button"
-                      type="button"
-                      onClick={() => setEditingId(venue.id)}
-                    >
-                      Editar
-                    </button>
-                  )}
-                </div>
-              )}
-                  </>
-                );
-              })()}
-            </article>
-          ))}
-        </div>
-
-        {isAdmin && (
-          showForm ? (
-            <VenueForm onSave={handleCreate} onCancel={() => setShowForm(false)} />
-          ) : (
-            <button type="button" onClick={() => setShowForm(true)}>
-              + Agregar cancha
-            </button>
-          )
-        )}
-      </section>
-    </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Section>
   );
 }
