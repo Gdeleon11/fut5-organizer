@@ -52,8 +52,11 @@ describe("match detail model", () => {
 });
 
 describe("MatchDetail experiences", () => {
+  // MatchDetail uses the real clock: keep the fixture match in the future so it stays "upcoming".
+  const t = new Date(Date.now() + 2 * 86400000);
+  const upcoming = { ...match, match_date: `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}` };
   const base = {
-    match, attendances, guests: [], profile: { ...profiles[0], is_active: true }, profiles, profileById: byId, ratingMap: new Map(), teams,
+    match: upcoming, attendances, guests: [], profile: { ...profiles[0], is_active: true }, profiles, profileById: byId, ratingMap: new Map(), teams,
     matchStats: [], venues: [], clearance: { clear: true }, isAdmin: true,
     onConfirm: vi.fn(), onCancel: vi.fn(), onJoinWaitlist: vi.fn(), onCheckIn: vi.fn(), onMarkNoShow: vi.fn(), onGenerateTeams: vi.fn(),
     onAddGuest: vi.fn(), onDeleteGuest: vi.fn(), onUpdateGuestRating: vi.fn(), onReconfirm: vi.fn(), onDeleteMatch: vi.fn(), onSaveStats: vi.fn().mockResolvedValue(), onBack: vi.fn(),
