@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
-import PlayersAdmin from "./PlayersAdmin.jsx";
+import { useState, useMemo, useEffect } from "react";
 import Avatar from "../components/Avatar.jsx";
-import { formatTag } from "../tags.js";
 import { displayName } from "../utils.js";
 import { api } from "../api.js";
-import LeaderboardPage from "./LeaderboardPage.jsx";
+import { useAppearance } from "../appearance/AppearanceProvider.jsx";
+import { computePlayerStats } from "../players/playerStats.js";
+import { PlayerDirectory, PlayerRanking, PlayerView } from "../components/players/PlayersViews.jsx";
+import { Bell, ClipboardList, Tag, Trophy, Users, X } from "lucide-react";
 
 export default function PlayersPage({
   activeGroupId,
@@ -30,7 +31,16 @@ export default function PlayersPage({
   onUpdateRole, // Promocionar rol de usuario
   onNotice,
 }) {
-  const [activeTab, setActiveTab] = useState("list"); // "list" | "subgroups" | "stats"
+  const { design } = useAppearance();
+  const variant = design === "command" ? "command" : "editorial";
+  const [activeTab, setActiveTab] = useState("list"); // "list" | "subgroups" | "stats" | "leaderboard"
+  const [selectedId, setSelectedId] = useState(null);
+  useEffect(() => { if (selectedId) window.scrollTo?.({ top: 0 }); }, [selectedId]);
+  const rows = useMemo(
+    () => (profiles || []).filter(Boolean).map((p) => computePlayerStats(p, { matchStats, attendances, voteScoreMap })),
+    [profiles, matchStats, attendances, voteScoreMap],
+  );
+  const selectedRow = rows.find((r) => r.profile.id === selectedId) || null;
   
   // States for Subgroups and Tags
   const [newTagName, setNewTagName] = useState("");
@@ -195,275 +205,162 @@ export default function PlayersPage({
     }
   };
 
-  return (
-    <div className="players-page">
-      <div className="tab-row" style={{ marginBottom: "1.5rem" }}>
-        <button
-          className={`tab-button ${activeTab === "list" ? "active" : ""}`}
-          type="button"
-          onClick={() => setActiveTab("list")}
-        >
-          👥 Lista de Jugadores
-        </button>
-        {isAdmin && (
-          <button
-            className={`tab-button ${activeTab === "subgroups" ? "active" : ""}`}
-            type="button"
-            onClick={() => setActiveTab("subgroups")}
-          >
-            🏷️ Subgrupos y Tags
-          </button>
-        )}
-        <button
-          className={`tab-button ${activeTab === "stats" ? "active" : ""}`}
-          type="button"
-          onClick={() => setActiveTab("stats")}
-        >
-          📝 Subir Estadísticas
-        </button>
-        <button
-          className={`tab-button ${activeTab === "leaderboard" ? "active" : ""}`}
-          type="button"
-          onClick={() => setActiveTab("leaderboard")}
-        >
-          🏆 Ranking
-        </button>
-      </div>
+  const TABS = [
+    ["list", "Directorio", Users],
+    ["leaderboard", "Ranking", Trophy],
+    ["stats", "Mis estadísticas", ClipboardList],
+    ...(isAdmin ? [["subgroups", "Subgrupos", Tag]] : []),
+  ];
 
-      {activeTab === "list" && (
-        <PlayersAdmin
-          activeGroupId={activeGroupId}
+  if (selectedRow) {
+    return (
+      <div className={`md-matches md-design-${variant} pl-page`} data-design={variant}>
+        <PlayerView
+          row={selectedRow}
+          variant={variant}
+          viewerId={currentProfileId}
+          isAdmin={isAdmin}
+          isSuperAdmin={isSuperAdmin}
+          ratingMap={ratingMap}
+          skills={skills}
+          matchStats={matchStats}
+          matches={matches}
           attendances={attendances}
           fines={fines}
-          isSuperAdmin={isSuperAdmin}
-          isAdmin={isAdmin}
-          matches={matches}
-          onAssignRating={onAssignRating}
-          onCreateGroupTag={onCreateGroupTag}
-          onUpdateMember={onUpdateMember}
-          onUpdateProfile={onUpdateProfile}
-          profiles={profiles}
-          ratingMap={ratingMap}
           voteScoreMap={voteScoreMap}
           userVoteMap={userVoteMap}
           onVote={onVote}
-          currentProfileId={currentProfileId}
-          skills={skills}
+          onBack={() => setSelectedId(null)}
+          onUpdateMember={onUpdateMember}
+          onUpdateProfile={onUpdateProfile}
+          onAssignRating={onAssignRating}
           onAddSkill={onAddSkill}
           onRemoveSkill={onRemoveSkill}
-          matchStats={matchStats}
-          onUpdateRole={onUpdateRole}
+          onCreateGroupTag={onCreateGroupTag}
         />
-      )}
+      </div>
+    );
+  }
 
-      {activeTab === "leaderboard" && (
-        <LeaderboardPage
-          profiles={profiles}
-          attendances={attendances}
-          matchStats={matchStats}
-          voteScoreMap={voteScoreMap}
-          ratingMap={ratingMap}
-          skills={skills}
-        />
-      )}
+  return (
+    <div className={`md-matches md-design-${variant} pl-page`} data-design={variant} data-view="players">
+      <div className={variant === "command" ? "mdc pl-shell" : "mde pl-shell"}>
+        {variant === "command" ? (
+          <div className="mdc-bar"><h1>Jugadores</h1><span className="mdc-pill"><Users size={14} aria-hidden="true" /> <b>{rows.filter((r) => r.profile.membership_is_active).length}</b> activos</span></div>
+        ) : (
+          <header className="pl-ed-hero"><span className="mde-crumb">Plantel del grupo</span><h1>Jugadores</h1></header>
+        )}
+        <nav className="pl-tabs" aria-label="Secciones de Jugadores">
+          {TABS.map(([id, label, Icon]) => (
+            <button key={id} type="button" className={activeTab === id ? "is-on" : ""} aria-current={activeTab === id ? "page" : undefined} onClick={() => setActiveTab(id)}>
+              <Icon size={16} aria-hidden="true" /> {label}
+            </button>
+          ))}
+        </nav>
 
-      {activeTab === "subgroups" && isAdmin && (
-        <div className="page-grid">
-          {/* Push Notification Console */}
-          <section className="panel" style={{ flex: "1 1 300px" }}>
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Comunicación Directa</p>
-                <h2>Consola de Notificaciones Push</h2>
-              </div>
-            </div>
-            <form onSubmit={handleDispatchPush} className="form-grid">
-              <label>
-                Subgrupo Destinatario (Tag)
-                <select value={pushTag} onChange={(e) => setPushTag(e.target.value)} required>
-                  <option value="">-- Seleccionar Subgrupo --</option>
+        {activeTab === "list" && (
+          <PlayerDirectory rows={rows} variant={variant} isAdmin={isAdmin} fines={fines || []} ratingMap={ratingMap} onOpen={setSelectedId} />
+        )}
+
+        {activeTab === "leaderboard" && <PlayerRanking rows={rows} variant={variant} ratingMap={ratingMap} onOpen={setSelectedId} />}
+
+        {activeTab === "subgroups" && isAdmin && (
+          <div className="pl-admin-grid">
+            <section className="pv-section" aria-labelledby="pl-push-title">
+              <div className="mdd-head"><h2 id="pl-push-title"><Bell size={18} aria-hidden="true" />Notificaciones por subgrupo</h2></div>
+              <form onSubmit={handleDispatchPush} className="form-grid md-form pl-form">
+                <label>
+                  Subgrupo destinatario
+                  <select value={pushTag} onChange={(e) => setPushTag(e.target.value)} required>
+                    <option value="">Seleccionar subgrupo</option>
+                    {allGroupTags.map((tag) => (
+                      <option key={tag} value={tag}>#{tag} ({membersByTag[tag]?.length || 0} jugadores)</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Mensaje
+                  <textarea placeholder="Escribe el mensaje de alerta…" value={pushMessage} onChange={(e) => setPushMessage(e.target.value)} rows={4} required />
+                </label>
+                <div className="md-form-actions">
+                  <button type="submit" className="md-btn md-btn-accent" disabled={pushLoading}>{pushLoading ? "Enviando…" : "Enviar alerta"}</button>
+                </div>
+              </form>
+            </section>
+            <section className="pv-section" aria-labelledby="pl-tag-title">
+              <div className="mdd-head"><h2 id="pl-tag-title"><Tag size={18} aria-hidden="true" />Crear y asignar etiqueta</h2></div>
+              <form onSubmit={handleCreateAndAssignTag} className="form-grid md-form pl-form">
+                <label>
+                  Nombre del tag
+                  <input type="text" placeholder="Ej. veterano, martes, premium" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} required />
+                </label>
+                <label>
+                  Jugador
+                  <select value={tagPlayerId} onChange={(e) => setTagPlayerId(e.target.value)} required>
+                    <option value="">Seleccionar jugador</option>
+                    {profiles.filter((p) => p.membership_is_active).map((p) => <option key={p.id} value={p.id}>{displayName(p)}</option>)}
+                  </select>
+                </label>
+                <div className="md-form-actions"><button type="submit" className="md-btn md-btn-accent">Crear y asignar</button></div>
+              </form>
+            </section>
+            <section className="pv-section pl-wide" aria-labelledby="pl-struct-title">
+              <div className="mdd-head"><h2 id="pl-struct-title">Miembros por subgrupo</h2><small>{allGroupTags.length} etiquetas</small></div>
+              {allGroupTags.length === 0 ? <p className="pf-empty">No hay etiquetas creadas en este grupo.</p> : (
+                <div className="pl-tag-grid">
                   {allGroupTags.map((tag) => (
-                    <option key={tag} value={tag}>
-                      #{tag.toUpperCase()} ({membersByTag[tag]?.length || 0} jugadores)
-                    </option>
+                    <article key={tag} className="pl-tag-card">
+                      <header><b>#{tag}</b><small>{membersByTag[tag]?.length || 0} jugadores</small></header>
+                      <ul>
+                        {(membersByTag[tag] || []).map((member) => (
+                          <li key={member.id}>
+                            <span><Avatar profile={member} size="sm" />{displayName(member)}</span>
+                            <button type="button" className="md-icon-btn" aria-label={`Quitar #${tag} de ${displayName(member)}`} onClick={() => handleRemovePlayerTag(member.id, tag)}>
+                              <X size={15} aria-hidden="true" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </article>
                   ))}
-                </select>
-              </label>
-              <label>
-                Mensaje de Notificación
-                <textarea
-                  placeholder="Escribe el mensaje de alerta..."
-                  value={pushMessage}
-                  onChange={(e) => setPushMessage(e.target.value)}
-                  rows={4}
-                  required
-                />
-              </label>
-              <button type="submit" disabled={pushLoading}>
-                {pushLoading ? "Enviando..." : "Despachar Alerta Push"}
-              </button>
-            </form>
-          </section>
-
-          {/* Tag Management */}
-          <section className="panel" style={{ flex: "1 1 300px" }}>
-            <div className="section-heading">
-              <div>
-                <p className="eyebrow">Etiquetas</p>
-                <h2>Gestionar Etiquetas y Subgrupos</h2>
-              </div>
-            </div>
-            <form onSubmit={handleCreateAndAssignTag} className="form-grid">
-              <label>
-                Nombre del Tag
-                <input
-                  type="text"
-                  placeholder="Ej. veterano, martes, premium"
-                  value={newTagName}
-                  onChange={(e) => setNewTagName(e.target.value)}
-                  required
-                />
-              </label>
-              <label>
-                Jugador a Etiquetar
-                <select value={tagPlayerId} onChange={(e) => setTagPlayerId(e.target.value)} required>
-                  <option value="">Seleccionar jugador</option>
-                  {profiles.filter(p => p.membership_is_active).map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {displayName(p)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button type="submit">+ Crear & Asignar Tag</button>
-            </form>
-          </section>
-
-          {/* Members by tag structure */}
-          <section className="panel" style={{ flex: "1 1 100%" }}>
-            <div className="section-heading">
-              <h2>Estructura de Miembros por Subgrupo</h2>
-            </div>
-            <div className="list" style={{ display: "grid", gap: "1.5rem", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
-              {allGroupTags.length === 0 ? (
-                <div className="empty-state compact">No hay etiquetas creadas en este grupo.</div>
-              ) : (
-                allGroupTags.map((tag) => (
-                  <article key={tag} className="panel" style={{ background: "var(--background-alt)", border: "1px solid var(--border)", padding: "1rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", borderBottom: "1px solid var(--border)", paddingBottom: "0.5rem" }}>
-                      <strong style={{ color: "var(--primary)" }}>#{tag.toUpperCase()}</strong>
-                      <span className="count-pill">{membersByTag[tag]?.length || 0} jugadores</span>
-                    </div>
-                    <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.5rem" }}>
-                      {(membersByTag[tag] || []).map((member) => (
-                        <li key={member.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--background)", padding: "0.4rem 0.8rem", borderRadius: "4px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                            <Avatar profile={member} size="sm" />
-                            <span>{displayName(member)}</span>
-                          </div>
-                          <button
-                            className="text-button danger-button"
-                            type="button"
-                            onClick={() => handleRemovePlayerTag(member.id, tag)}
-                            style={{ padding: "2px 6px", fontSize: "0.8rem" }}
-                          >
-                            ✕
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </article>
-                ))
+                </div>
               )}
-            </div>
-          </section>
-        </div>
-      )}
-
-      {activeTab === "stats" && (
-        <section className="panel" style={{ maxWidth: "600px", margin: "0 auto" }}>
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">Reportar Rendimiento</p>
-              <h2>Subir Mis Estadísticas del Partido</h2>
-              <small>Reporta tus goles, asistencias y rendimiento individual del último partido jugado.</small>
-            </div>
+            </section>
           </div>
+        )}
 
-          {finishedMatchesForUser.length === 0 ? (
-            <div className="empty-state compact">
-              No tienes partidos finalizados recientes registrados donde hayas confirmado asistencia.
-            </div>
-          ) : (
-            <form onSubmit={handleSaveSelfStats} className="form-grid">
-              <label>
-                Selecciona el partido
-                <select
-                  value={selectedMatchId}
-                  onChange={(e) => handleMatchSelect(e.target.value)}
-                  required
-                >
-                  <option value="">-- Seleccionar Partido --</option>
-                  {finishedMatchesForUser.map((match) => (
-                    <option key={match.id} value={match.id}>
-                      {match.title || "Chamuscón"} ({new Date(match.match_date + "T12:00:00").toLocaleDateString("es-GT")})
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {selectedMatchId && (
-                <>
-                  <div className="form-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                    <label>
-                      Goles Anotados
-                      <input
-                        type="number"
-                        min="0"
-                        value={goals}
-                        onChange={(e) => setGoals(Math.max(0, parseInt(e.target.value) || 0))}
-                      />
-                    </label>
-                    <label>
-                      Asistencias
-                      <input
-                        type="number"
-                        min="0"
-                        value={assists}
-                        onChange={(e) => setAssists(Math.max(0, parseInt(e.target.value) || 0))}
-                      />
-                    </label>
-                  </div>
-
-                  <div style={{ display: "flex", gap: "2rem", margin: "1rem 0" }}>
-                    <label className="checkbox-label" style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={cleanSheet}
-                        onChange={(e) => setCleanSheet(e.target.checked)}
-                      />
-                      Valla Invicta (Clean Sheet)
-                    </label>
-
-                    <label className="checkbox-label" style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                      <input
-                        type="checkbox"
-                        checked={mvp}
-                        onChange={(e) => setMvp(e.target.checked)}
-                      />
-                      Fui el MVP del Partido ⭐
-                    </label>
-                  </div>
-
-                  <button type="submit" disabled={savingStats}>
-                    {savingStats ? "Guardando..." : "Guardar Estadísticas"}
-                  </button>
-                </>
-              )}
-            </form>
-          )}
-        </section>
-      )}
+        {activeTab === "stats" && (
+          <section className="pv-section pl-narrow" aria-labelledby="pl-self-title">
+            <div className="mdd-head"><h2 id="pl-self-title">Reportar mis estadísticas</h2><small>Partidos finalizados donde confirmaste asistencia</small></div>
+            {finishedMatchesForUser.length === 0 ? (
+              <p className="pf-empty">No tienes partidos finalizados recientes donde hayas confirmado asistencia.</p>
+            ) : (
+              <form onSubmit={handleSaveSelfStats} className="form-grid md-form pl-form">
+                <label>
+                  Partido
+                  <select value={selectedMatchId} onChange={(e) => handleMatchSelect(e.target.value)} required>
+                    <option value="">Seleccionar partido</option>
+                    {finishedMatchesForUser.map((match) => (
+                      <option key={match.id} value={match.id}>{match.title || "Chamuscón"} ({new Date(match.match_date + "T12:00:00").toLocaleDateString("es-GT")})</option>
+                    ))}
+                  </select>
+                </label>
+                {selectedMatchId && (
+                  <>
+                    <label>Goles<input type="number" min="0" value={goals} onChange={(e) => setGoals(Math.max(0, parseInt(e.target.value) || 0))} /></label>
+                    <label>Asistencias<input type="number" min="0" value={assists} onChange={(e) => setAssists(Math.max(0, parseInt(e.target.value) || 0))} /></label>
+                    <div className="pl-checks">
+                      <label className={`mdd-toggle${cleanSheet ? " is-on" : ""}`}><input type="checkbox" checked={cleanSheet} onChange={(e) => setCleanSheet(e.target.checked)} />Valla invicta</label>
+                      <label className={`mdd-toggle${mvp ? " is-on" : ""}`}><input type="checkbox" checked={mvp} onChange={(e) => setMvp(e.target.checked)} />Fui el MVP</label>
+                    </div>
+                    <div className="md-form-actions"><button type="submit" className="md-btn md-btn-accent" disabled={savingStats}>{savingStats ? "Guardando…" : "Guardar estadísticas"}</button></div>
+                  </>
+                )}
+              </form>
+            )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }

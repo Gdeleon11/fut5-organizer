@@ -2144,7 +2144,7 @@ export default function App() {
         />
       </div>
 
-      {!["matches", "match", "appearance"].includes(page) && (
+      {!["matches", "match", "appearance", "players", "profile", "leaderboard"].includes(page) && (
         <SectionHero
           page={page}
           showArtwork={
@@ -2287,6 +2287,9 @@ export default function App() {
         {page === "profile" && (
           <MyFifaCardPage
             onOpenAppearance={() => goToPage("appearance")}
+            matches={matches}
+            attendances={attendances}
+            voteScoreMap={voteScoreMap}
             profile={currentPlayer}
             profiles={profiles}
             ratingMap={ratingMap}

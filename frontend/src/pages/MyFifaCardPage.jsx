@@ -3,7 +3,10 @@ import FifaCard from "../components/FifaCard.jsx";
 import SkillDistribution from "../components/SkillDistribution.jsx";
 import { POSITION_OPTIONS, SKILL_OPTIONS, ROLE_LABELS } from "../constants.js";
 import { displayName } from "../utils.js";
-import { Palette, ChevronRight } from "lucide-react";
+import { Palette, ChevronRight, Camera, LogOut, Trash2, Users, UserCog } from "lucide-react";
+import { computePlayerStats, playerTimeline } from "../players/playerStats.js";
+import { EvolutionStrip, PlayerIdentity, SkillChips, StatTiles } from "../components/profile/ProfileBlocks.jsx";
+import { attendanceLabel, formatMatchDate } from "../utils.js";
 import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 import { DESIGNS, PALETTES } from "../appearance/appearance.js";
 
@@ -32,7 +35,12 @@ export default function MyFifaCardPage({
   onDeleteAccount,
   onSignOut,
   onOpenAppearance,
+  matches = [],
+  attendances = [],
+  voteScoreMap = null,
 }) {
+  const { design } = useAppearance();
+  const variant = design === "command" ? "command" : "editorial";
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [nickname, setNickname] = useState(profile?.nickname || "");
   const [phone, setPhone] = useState(profile?.phone || "");
@@ -157,238 +165,173 @@ export default function MyFifaCardPage({
     }
   };
 
-  return (
-    <div className="page-grid my-fifa-card-page">
-      {onOpenAppearance && <AppearanceShortcut onOpen={onOpenAppearance} />}
-      {/* Left Column: FUT Card and dynamic stats */}
-      <section className="panel" style={{ flex: "1 1 320px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <p className="eyebrow">Tu Carta Oficial FUT F5</p>
-        <div style={{ margin: "1.5rem 0", position: "relative" }}>
-          <FifaCard
-            profile={{ ...profile, avatar_url: avatarPreview, full_name: fullName, nickname }}
-            ratingObj={ratingMap.get(profile?.id)}
-            playerSkills={Array.from(playerSkillsSet)}
-            matchStats={matchStats}
-          />
-          {/* Invisible file input triggered by label overlaying the card image area */}
-          <label
-            className="secondary-button"
-            style={{
-              marginTop: "1rem",
-              width: "100%",
-              display: "block",
-              textAlign: "center",
-              cursor: "pointer"
-            }}
-          >
-            Subir Foto
-            <input type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: "none" }} />
-          </label>
-        </div>
+  const stats = computePlayerStats(profile, { matchStats, attendances, voteScoreMap });
+  const timeline = playerTimeline(profile?.id, { matchStats, matches });
+  const matchById = new Map((matches || []).map((m) => [m.id, m]));
+  const myHistory = (attendances || []).filter((a) => a.profile_id === profile?.id)
+    .sort((a, b) => String(matchById.get(b.match_id)?.match_date || "").localeCompare(String(matchById.get(a.match_id)?.match_date || "")))
+    .slice(0, 10);
+  const previewProfile = { ...profile, avatar_url: avatarPreview, full_name: fullName, nickname };
+  const isCommand = variant === "command";
 
-        {/* Distribución de Habilidades — gráfica basada en atributos configurados */}
-        <SkillDistribution
-          profile={profile}
-          ratingObj={ratingMap.get(profile?.id)}
-          playerSkills={Array.from(playerSkillsSet)}
-          matchStats={matchStats}
-        />
+  const cardBlock = (
+    <div className="mf-card">
+      <FifaCard profile={previewProfile} ratingObj={ratingMap.get(profile?.id)} playerSkills={Array.from(playerSkillsSet)} matchStats={matchStats} />
+      <label className="md-btn md-btn-ghost mf-photo">
+        <Camera size={16} aria-hidden="true" /> {avatarFile ? "Foto lista para guardar" : "Cambiar foto"}
+        <input type="file" accept="image/*" onChange={handleAvatarChange} className="sr-only" />
+      </label>
+    </div>
+  );
 
-        {/* Conteo rápido de historial (asistencias / MVP) */}
-        <div
-          className="mini-stat-row"
-          style={{
-            width: "100%",
-            marginTop: "0.75rem",
-            display: "grid",
-            gridTemplateColumns: "repeat(2, 1fr)",
-            gap: "0.5rem",
-          }}
-        >
-          <div className="skill-stat-card">
-            <span className="skill-stat-label">Asistencias</span>
-            <span className="skill-stat-value">{userStats.assists}</span>
-          </div>
-          <div className="skill-stat-card">
-            <span className="skill-stat-label">MVP</span>
-            <span className="skill-stat-value">{userStats.mvp}</span>
-          </div>
-        </div>
+  const sections = (
+    <>
+      {!isCommand && (
+        <section className="pv-section" aria-labelledby="mf-stats-title">
+          <div className="mdd-head"><h2 id="mf-stats-title">Estadísticas verificadas</h2><small>Registradas en partidos del grupo</small></div>
+          <StatTiles stats={stats} variant={variant} />
+        </section>
+      )}
+      <section className="pv-section" aria-labelledby="mf-attr-title">
+        <div className="mdd-head"><h2 id="mf-attr-title">Atributos</h2><small>Según estrellas, capacidades y estadísticas</small></div>
+        <SkillDistribution profile={profile} ratingObj={ratingMap.get(profile?.id)} playerSkills={Array.from(playerSkillsSet)} matchStats={matchStats} />
       </section>
-
-      {/* Right Column: Attributes, Special Skills, and Admin controls */}
-      <div style={{ flex: "2 1 400px", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-        
-        {/* Attributes Form */}
-        <section className="panel">
-          <div className="section-heading">
-            <h2>Atributos y Habilidades Especiales</h2>
+      <section className="pv-section" aria-labelledby="mf-skills-title">
+        <div className="mdd-head"><h2 id="mf-skills-title">Habilidades especiales</h2><small>{isAdmin ? "Toca para activar o desactivar" : "Asignadas por la administración"}</small></div>
+        {isAdmin ? (
+          <div className="skills-grid-v2 mf-skill-grid">
+            {SKILL_OPTIONS.map((skill) => {
+              const on = playerSkillsSet.has(skill.id);
+              return (
+                <button key={skill.id} type="button" onClick={() => handleSkillToggle(skill.id)} className={`skill-chip ${on ? "is-active" : ""}`} aria-pressed={on}>
+                  <span className="skill-chip-emoji" aria-hidden="true">{skill.emoji}</span>
+                  <span className="skill-chip-text"><strong>{skill.label}</strong><small>{skill.desc}</small></span>
+                  {on && <span className="skill-chip-check" aria-hidden="true">✓</span>}
+                </button>
+              );
+            })}
           </div>
-          {error && <p className="form-message" style={{ color: "var(--danger)" }}>{error}</p>}
-          <form onSubmit={handleSaveProfile} className="form-grid">
-            <div className="form-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <label>
-                Nombre Completo
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  required
-                />
-              </label>
-              <label>
-                Apodo (Nickname)
-                <input
-                  type="text"
-                  value={nickname}
-                  onChange={(e) => setNickname(e.target.value)}
-                />
-              </label>
-            </div>
-            
-            <div className="form-grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <label>
-                Teléfono
-                <input
-                  type="tel"
-                  placeholder="Tu número celular"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </label>
-              <label>
-                Posición de Preferencia
-                <select value={position} onChange={(e) => setPosition(e.target.value)}>
-                  {SPANISH_POSITION_OPTIONS.map((pos) => (
-                    <option key={pos.id} value={pos.id}>{pos.label}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            {/* Special Skills grid — rediseñado */}
-            <div className="skills-block">
-              <div className="skills-block-head">
-                <span className="skills-block-title">Habilidades Especiales F5</span>
-                <span className="skills-block-hint">
-                  {isAdmin ? "Toca para activar / desactivar" : "Asignadas por el Admin"}
-                </span>
-              </div>
-              <div className="skills-grid-v2">
-                {SKILL_OPTIONS.map((skill) => {
-                  const isActive = playerSkillsSet.has(skill.id);
-                  return (
-                    <button
-                      key={skill.id}
-                      type="button"
-                      onClick={() => handleSkillToggle(skill.id)}
-                      className={`skill-chip ${isActive ? "is-active" : ""} ${!isAdmin ? "is-readonly" : ""}`}
-                      disabled={!isAdmin}
-                      aria-pressed={isActive}
-                    >
-                      <span className="skill-chip-emoji" aria-hidden="true">{skill.emoji}</span>
-                      <span className="skill-chip-text">
-                        <strong>{skill.label}</strong>
-                        <small>{skill.desc}</small>
-                      </span>
-                      {isActive && <span className="skill-chip-check" aria-hidden="true">✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <button type="submit" disabled={saving}>
-              {saving ? "Guardando..." : "Guardar Habilidades & Datos"}
-            </button>
-          </form>
-        </section>
-
-        {/* Admin nominate control panel */}
-        {isAdmin && (
-          <section className="panel">
-            <div className="section-heading">
-              <h2>Panel de Control de Administrador</h2>
-              <small>Nombra a otros miembros como administradores del grupo para delegar cobros y validar canchas.</small>
-            </div>
-            <form onSubmit={handleNominateRole} className="form-grid" style={{ gridTemplateColumns: "2fr 1.5fr 1fr", gap: "1rem", alignItems: "end" }}>
-              <label style={{ margin: 0 }}>
-                Miembro a Nombrar
-                <select value={nomineeId} onChange={(e) => setNomineeId(e.target.value)} required>
-                  <option value="">-- Seleccionar Miembro --</option>
-                  {profiles
-                    .filter((p) => p.id !== profile.id && p.membership_is_active)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>{displayName(p)}</option>
-                    ))}
-                </select>
-              </label>
-              <label style={{ margin: 0 }}>
-                Rol a Asignar
-                <select value={nomineeRole} onChange={(e) => setNomineeRole(e.target.value)}>
-                  <option value="admin">Administrador</option>
-                  <option value="super_admin">Super Administrador</option>
-                  <option value="player">Jugador</option>
-                </select>
-              </label>
-              <button type="submit" style={{ width: "100%", padding: "0.7rem 0.5rem" }}>Nombrar Admin</button>
-            </form>
-          </section>
+        ) : (
+          <SkillChips skillIds={Array.from(playerSkillsSet)} />
         )}
+      </section>
+      <section className="pv-section" aria-labelledby="mf-evo-title">
+        <div className="mdd-head"><h2 id="mf-evo-title">Evolución</h2><small>Goles y asistencias por partido</small></div>
+        <EvolutionStrip timeline={timeline} variant={variant} />
+      </section>
+      <section className="pv-section" aria-labelledby="mf-hist-title">
+        <div className="mdd-head"><h2 id="mf-hist-title">Mi historial</h2><small>{myHistory.length} recientes</small></div>
+        {myHistory.length === 0 ? <p className="pf-empty">Aún no tienes asistencias registradas en este grupo.</p> : (
+          <ul className="pv-history">
+            {myHistory.map((a) => {
+              const m = matchById.get(a.match_id);
+              return <li key={a.id}><span>{m ? formatMatchDate(m) : "Partido"}</span><span className={`pv-att is-${a.status}`}>{attendanceLabel(a.status, a.checked_in)}</span></li>;
+            })}
+          </ul>
+        )}
+      </section>
+    </>
+  );
 
-        {/* Group Creation Call to Action */}
-        <section
-          className="panel"
-          style={{
-            borderTop: "4px solid var(--primary)",
-            background: "var(--background-alt)"
-          }}
-        >
-          <div className="section-heading">
-            <div>
-              <h3>¿Quieres crear tu propio grupo de fútbol?</h3>
-              <small>Crea un nuevo grupo, conviértete en el administrador y gestiona tus propias canchas y partidos.</small>
+  const editForm = (
+    <section className="pv-section mf-edit" aria-labelledby="mf-edit-title">
+      <div className="mdd-head"><h2 id="mf-edit-title">Editar perfil</h2><small>Tu teléfono solo lo ve la administración</small></div>
+      {error && <p className="form-message" role="alert">{error}</p>}
+      <form onSubmit={handleSaveProfile} className="form-grid md-form">
+        <fieldset className="md-form-group">
+          <legend>Identidad</legend>
+          <label className="md-form-wide">Nombre completo<input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required /></label>
+          <label className="md-form-wide">Apodo<input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} /></label>
+          <label className="md-form-wide">Teléfono<input type="tel" placeholder="Tu número celular" value={phone} onChange={(e) => setPhone(e.target.value)} /></label>
+          <label className="md-form-wide">Posición preferida
+            <select value={position} onChange={(e) => setPosition(e.target.value)}>
+              {SPANISH_POSITION_OPTIONS.map((pos) => <option key={pos.id} value={pos.id}>{pos.label}</option>)}
+            </select>
+          </label>
+        </fieldset>
+        <div className="md-form-actions">
+          <button type="submit" className="md-btn md-btn-accent" disabled={saving}>{saving ? "Guardando…" : "Guardar perfil"}</button>
+        </div>
+      </form>
+    </section>
+  );
+
+  const adminBlock = isAdmin && (
+    <section className="pv-section" aria-labelledby="mf-admin-title">
+      <div className="mdd-head"><h2 id="mf-admin-title"><UserCog size={18} aria-hidden="true" />Roles del grupo</h2><small>Delegar administración</small></div>
+      <form onSubmit={handleNominateRole} className="form-grid md-form mf-role-form">
+        <label>Miembro
+          <select value={nomineeId} onChange={(e) => setNomineeId(e.target.value)} required>
+            <option value="">Seleccionar miembro</option>
+            {profiles.filter((p) => p.id !== profile.id && p.membership_is_active).map((p) => <option key={p.id} value={p.id}>{displayName(p)}</option>)}
+          </select>
+        </label>
+        <label>Rol
+          <select value={nomineeRole} onChange={(e) => setNomineeRole(e.target.value)}>
+            <option value="admin">Administrador</option>
+            <option value="super_admin">Super Administrador</option>
+            <option value="player">Jugador</option>
+          </select>
+        </label>
+        <div className="md-form-actions"><button type="submit" className="md-btn md-btn-accent">Asignar rol</button></div>
+      </form>
+    </section>
+  );
+
+  const accountBlock = (
+    <section className="pv-section mf-account" aria-labelledby="mf-account-title">
+      <div className="mdd-head"><h2 id="mf-account-title"><Users size={18} aria-hidden="true" />Grupos y cuenta</h2></div>
+      <div className="pv-admin-inline">
+        <button type="button" className="md-btn md-btn-ghost" onClick={onCreateGroup}>Crear mi propio grupo</button>
+        {onSignOut && <button type="button" className="md-btn md-btn-ghost" onClick={onSignOut}><LogOut size={16} aria-hidden="true" /> Cerrar sesión</button>}
+        {onDeleteAccount && (
+          <button type="button" className="md-btn md-btn-ghost mf-danger" onClick={() => { if (window.confirm("¿Seguro que deseas eliminar tu cuenta permanentemente? Esta acción es irreversible.")) onDeleteAccount(); }}>
+            <Trash2 size={16} aria-hidden="true" /> Eliminar mi cuenta
+          </button>
+        )}
+      </div>
+    </section>
+  );
+
+  return (
+    <div className={`md-matches md-design-${variant} mf-page`} data-design={variant} data-view="mi-fifa">
+      {isCommand ? (
+        <div className="mdc pv pv-command">
+          <div className="mdc-bar"><h1>Mi FIFA</h1><span className="mdc-pill">Identidad deportiva</span></div>
+          <div className="pv-cc-hero">
+            {cardBlock}
+            <div className="pv-cc-hero-info">
+              <PlayerIdentity profile={previewProfile} rating={ratingMap.get(profile?.id)} variant="command" />
+              <StatTiles stats={stats} variant="command" compact />
+              {onOpenAppearance && <AppearanceShortcut onOpen={onOpenAppearance} />}
             </div>
           </div>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={onCreateGroup}
-            style={{ width: "100%", marginTop: "1rem" }}
-          >
-            + Crear mi propio grupo ahora
-          </button>
-        </section>
-
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginTop: "1.5rem" }}>
-          {onSignOut && (
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={onSignOut}
-              style={{ fontSize: "0.85rem" }}
-            >
-              Cerrar sesión
-            </button>
-          )}
-          {onDeleteAccount && (
-            <button
-              className="ghost-button danger-button"
-              type="button"
-              onClick={() => {
-                if (window.confirm("¿Seguro que deseas eliminar tu cuenta permanentemente? Esta acción es irreversible.")) {
-                  onDeleteAccount();
-                }
-              }}
-              style={{ fontSize: "0.85rem" }}
-            >
-              Eliminar mi cuenta
-            </button>
-          )}
+          <div className="pv-cc-grid">
+            {sections}
+            {editForm}
+            {adminBlock}
+            {accountBlock}
+          </div>
         </div>
-
-      </div>
-
+      ) : (
+        <div className="mde pv pv-editorial">
+          <header className="pv-ed-hero">
+            <div>
+              <span className="mde-crumb">Mi FIFA · Identidad deportiva</span>
+              <h1>{displayName(previewProfile)}</h1>
+              <PlayerIdentity profile={previewProfile} rating={ratingMap.get(profile?.id)} variant="editorial" size="sm" />
+              {onOpenAppearance && <AppearanceShortcut onOpen={onOpenAppearance} />}
+            </div>
+            {cardBlock}
+          </header>
+          <div className="pv-ed-body">
+            {sections}
+            {editForm}
+            {adminBlock}
+            {accountBlock}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
