@@ -343,8 +343,10 @@ html[data-f5-design="editorial"] .md-create h2 { font: 600 clamp(30px, 3vw, 42px
 @media (max-width: 560px) {
   .mdd-stats-rows li { grid-template-columns: 1fr 1fr; grid-template-areas: "name name" "g a" "mvp cs"; gap: 8px; }
   .mdd-stats-rows .mdd-stats-name { grid-area: name; }
-  .mdd-stats-rows .mdd-stepper:nth-of-type(1) { grid-area: g; }
-  .mdd-stats-rows .mdd-stepper:nth-of-type(2) { grid-area: a; }
+  /* the name is the first <span>: goals = 2nd span, assists = 3rd span */
+  .mdd-stats-rows .mdd-stepper:nth-of-type(2) { grid-area: g; }
+  .mdd-stats-rows .mdd-stepper:nth-of-type(3) { grid-area: a; }
+  .mdd-stats-board small, .mdd-scoreline small { font-size: 10px; letter-spacing: 0.06em; overflow-wrap: anywhere; }
   .mdd-stats-rows .mdd-toggle { grid-row: auto; justify-content: center; }
   .mdd-stats-board b { font-size: 26px; }
 }
