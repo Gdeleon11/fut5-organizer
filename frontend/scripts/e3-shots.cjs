@@ -16,7 +16,8 @@ async function nav(p, label) {
   await p.locator("button:visible").filter({ hasText: new RegExp(`^${label}$`) }).first().click();
 }
 const tab = (p, name) => p.locator(".pl-tabs button", { hasText: name }).first().click();
-const overflow = (p) => p.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1);
+// Compare with the configured viewport width: mobile browsers widen the layout viewport when content overflows.
+const overflow = (p) => p.evaluate((w) => document.documentElement.scrollWidth > w + 1 || innerWidth > w + 1, p.viewportSize().width);
 async function setRole(p, label) {
   const sel = p.locator("select").filter({ has: p.locator("option", { hasText: /Jugador/ }) }).first();
   if (!(await sel.count())) return false;

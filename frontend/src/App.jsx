@@ -2152,7 +2152,7 @@ export default function App() {
         />
       </div>
 
-      {!["matches", "match", "appearance", "players", "profile", "leaderboard", "cashier", "reservations"].includes(page) && (
+      {!["matches", "match", "appearance", "players", "profile", "leaderboard", "cashier", "reservations", "groups", "tournaments"].includes(page) && (
         <SectionHero
           page={page}
           showArtwork={

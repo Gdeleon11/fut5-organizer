@@ -6,6 +6,8 @@ import "./matchday.css";
 import "./matchdetail.css";
 import "./players.css";
 import "./finance.css";
+import "./public-pages.css";
+import "./admin.css";
 import App from "./App.jsx";
 import { AppearanceProvider } from "./appearance/AppearanceProvider.jsx";
 

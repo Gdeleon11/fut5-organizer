@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
+import { PubFilePicker, PubNotice, PubStatus, PublicShell } from "../components/public/PublicShell.jsx";
 
 export default function ReservePage({ token }) {
   const [reservations, setReservations] = useState([]);
@@ -87,11 +88,16 @@ export default function ReservePage({ token }) {
   }
 
   if (loading) {
-    return <div className="auth-shell"><div className="empty-state compact">Cargando reservas...</div></div>;
+    return <PublicShell view="public-reserve" eyebrow="Reserva de cancha" title="Cargando…"><p className="pub-lede">Buscando tus reservas.</p></PublicShell>;
   }
 
   if (error && reservations.length === 0) {
-    return <div className="auth-shell"><div className="empty-state compact">{error}</div></div>;
+    return (
+      <PublicShell view="public-reserve" eyebrow="Reserva de cancha" title="Enlace no disponible">
+        <PubNotice tone="error">{error}</PubNotice>
+        <p className="pub-lede">Pedí un enlace nuevo a la administración del grupo.</p>
+      </PublicShell>
+    );
   }
 
   const assignedName = reservations[0]?.assigned_profile?.full_name || "Responsable";
@@ -99,95 +105,66 @@ export default function ReservePage({ token }) {
 
   if (success) {
     return (
-      <div className="auth-shell">
-        <section className="panel auth-panel">
-          <div className="section-heading">
-            <div>
-              <p className="eyebrow">¡Listo!</p>
-              <h1>Comprobante(s) enviado(s)</h1>
-            </div>
-          </div>
-          <p className="muted">
-            Gracias <strong>{assignedName}</strong>. Se registraron los comprobantes para tu(s) <strong>{reservations.length} reserva(s)</strong>.
-            El administrador va a confirmar las reservas y crear los partidos.
-          </p>
-        </section>
-      </div>
+      <PublicShell view="public-reserve" eyebrow="¡Listo!" title="Comprobante(s) enviado(s)">
+        <PubNotice tone="success">
+          Gracias <strong>{assignedName}</strong>. Se registraron los comprobantes para tu(s) <strong>{reservations.length} reserva(s)</strong>.
+          El administrador va a confirmar las reservas y crear los partidos.
+        </PubNotice>
+      </PublicShell>
     );
   }
 
   return (
-    <div className="auth-shell">
-      <section className="panel auth-panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Reserva(s) de cancha</p>
-            <h1>{reservations.length > 1 ? `${reservations.length} Reservas asignadas` : reservations[0]?.venue}</h1>
-          </div>
-        </div>
+    <PublicShell
+      view="public-reserve"
+      wide={reservations.length > 1}
+      eyebrow="Reserva(s) de cancha"
+      title={reservations.length > 1 ? `${reservations.length} reservas asignadas` : reservations[0]?.venue}
+      lede={<>Responsable: <strong>{assignedName}</strong> · {pendingCount} pendiente(s) de comprobante</>}
+    >
+      {error && <PubNotice tone="error">{error}</PubNotice>}
 
-        <p className="muted" style={{ marginBottom: "1rem" }}>
-          Responsable: <strong>{assignedName}</strong>
-        </p>
+      {/* Global upload if 2+ pending reservations */}
+      {pendingCount > 1 && (
+        <PubFilePicker
+          label={`Subir 1 comprobante único para las ${pendingCount} reservas`}
+          busy={uploadingAll ? "Subiendo para todas…" : null}
+          hint="Si hiciste una sola transferencia para todas, subí el comprobante acá."
+          onChange={(e) => handleUploadAll(e.target.files?.[0])}
+          disabled={uploadingAll || Boolean(uploadingId)}
+        />
+      )}
 
-        {error && <p className="form-message" style={{ marginBottom: "1rem" }}>{error}</p>}
-
-        {/* Global upload button if 2+ pending reservations */}
-        {pendingCount > 1 && (
-          <div className="form-grid" style={{ marginBottom: "1.5rem" }}>
-            <label className="proof-upload-label" style={{ background: "rgba(16, 185, 129, 0.1)", borderColor: "rgba(16, 185, 129, 0.3)" }}>
-              <span>
-                {uploadingAll ? "Subiendo para todas..." : `Subir 1 comprobante único para las ${pendingCount} reservas`}
-                <small>Si hiciste una sola transferencia para ambas reservas, subí el comprobante acá</small>
-              </span>
-              <input type="file" accept="image/*" onChange={(e) => handleUploadAll(e.target.files?.[0])} disabled={uploadingAll || Boolean(uploadingId)} />
-            </label>
-          </div>
-        )}
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {reservations.map((r, index) => {
-            const dateStr = r.reservation_date
-              ? new Date(r.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long" })
-              : "";
-
-            return (
-              <div key={r.id} className="reservation-row-block" style={{ border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", padding: "1rem", background: "rgba(0,0,0,0.2)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                  <strong>{reservations.length > 1 ? `#${index + 1} - ${r.venue}` : r.venue}</strong>
-                  <span className={`status-pill ${r.proof_url ? "is-paid" : "is-pending"}`}>
-                    {r.proof_url ? "Comprobante subido ✓" : "Pendiente"}
-                  </span>
-                </div>
-                <p style={{ margin: "0 0 0.5rem 0", fontSize: "0.9rem" }}>
-                  📅 {dateStr} {r.reservation_time ? ` · ⏰ ${r.reservation_time}` : ""}
-                </p>
-                {r.notes && <p className="muted" style={{ fontSize: "0.85rem", margin: "0 0 0.75rem 0" }}>{r.notes}</p>}
-
-                {r.proof_url ? (
-                  <div className="reservation-proof-uploaded" style={{ marginTop: "0.5rem" }}>
-                    <a href={r.proof_url} target="_blank" rel="noopener noreferrer">
-                      <img src={r.proof_url} alt="Comprobante" style={{ maxHeight: "120px", borderRadius: "4px" }} />
-                    </a>
-                  </div>
-                ) : (
-                  <label className="proof-upload-label" style={{ marginTop: "0.5rem" }}>
-                    <span>
-                      {uploadingId === r.id ? "Subiendo..." : `Subir comprobante para esta reserva`}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleUploadSingle(r.id, e.target.files?.[0])}
-                      disabled={uploadingAll || Boolean(uploadingId)}
-                    />
-                  </label>
-                )}
+      <ul className="pub-list">
+        {reservations.map((r, index) => {
+          const dateStr = r.reservation_date
+            ? new Date(r.reservation_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long" })
+            : "";
+          return (
+            <li key={r.id} className="pub-item">
+              <div className="pub-item-head">
+                <b>{reservations.length > 1 ? `#${index + 1} · ${r.venue}` : r.venue}</b>
+                <PubStatus tone={r.proof_url ? "done" : "pending"}>{r.proof_url ? "Comprobante subido" : "Pendiente"}</PubStatus>
               </div>
-            );
-          })}
-        </div>
-      </section>
-    </div>
+              <p className="pub-item-meta">{dateStr}{r.reservation_time ? ` · ${r.reservation_time}` : ""}</p>
+              {r.notes && <p className="pub-item-notes">{r.notes}</p>}
+              {r.proof_url ? (
+                <a className="pub-thumb" href={r.proof_url} target="_blank" rel="noopener noreferrer">
+                  <img src={r.proof_url} alt={`Comprobante de ${r.venue}`} />
+                </a>
+              ) : (
+                <PubFilePicker
+                  label="Subir comprobante para esta reserva"
+                  busy={uploadingId === r.id ? "Subiendo…" : null}
+                  hint="Imagen de la transferencia o del recibo."
+                  onChange={(e) => handleUploadSingle(r.id, e.target.files?.[0])}
+                  disabled={uploadingAll || Boolean(uploadingId)}
+                />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </PublicShell>
   );
 }

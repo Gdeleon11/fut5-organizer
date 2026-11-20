@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api.js";
 import { formatMoney } from "../utils.js";
+import { PubDetails, PubFilePicker, PubNotice, PubStatus, PublicShell } from "../components/public/PublicShell.jsx";
 
 export default function ProofUploadPage({ token, session }) {
   const [paymentInfo, setPaymentInfo] = useState(null);
@@ -113,63 +114,32 @@ export default function ProofUploadPage({ token, session }) {
   }
 
   if (loading) {
-    return (
-      <div className="app auth-shell">
-        <section className="panel auth-panel">
-          <div className="empty-state">Verificando enlace...</div>
-        </section>
-      </div>
-    );
+    return <PublicShell view="public-proof" eyebrow="Comprobante de pago" title="Verificando enlace…" />;
   }
 
   if (error && !paymentInfo) {
     return (
-      <div className="app auth-shell">
-        <section className="panel auth-panel">
-          <div>
-            <p className="eyebrow">f5manager</p>
-            <h1>Error</h1>
-          </div>
-          <div className="alert error">{error}</div>
-          <p className="text-muted">
-            El enlace puede haber expirado o ser inválido. Pedí uno nuevo al admin.
-          </p>
-        </section>
-      </div>
+      <PublicShell view="public-proof" eyebrow="Comprobante de pago" title="Enlace no válido">
+        <PubNotice tone="error">{error}</PubNotice>
+        <p className="pub-lede">El enlace puede haber expirado o ser inválido. Pedí uno nuevo al admin.</p>
+      </PublicShell>
     );
   }
 
   if (!session?.user) {
     return (
-      <div className="app auth-shell">
-        <section className="panel auth-panel">
-          <div>
-            <p className="eyebrow">f5manager</p>
-            <h1>Iniciar Sesión</h1>
-          </div>
-          <div className="alert info">
-            Para subir tu comprobante, necesitás iniciar sesión primero.
-          </div>
-          <p className="text-muted">
-            Cerrá esta página e iniciá sesión con tu cuenta, luego volvé a abrir el
-            enlace.
-          </p>
-        </section>
-      </div>
+      <PublicShell view="public-proof" eyebrow="Comprobante de pago" title="Iniciá sesión">
+        <PubNotice tone="info">Para subir tu comprobante, necesitás iniciar sesión primero.</PubNotice>
+        <p className="pub-lede">Cerrá esta página e iniciá sesión con tu cuenta, luego volvé a abrir el enlace.</p>
+      </PublicShell>
     );
   }
 
   if (paymentInfo?.profile_id && session.user.id !== paymentInfo.profile_id) {
     return (
-      <div className="app auth-shell">
-        <section className="panel auth-panel">
-          <div>
-            <p className="eyebrow">f5manager</p>
-            <h1>Error</h1>
-          </div>
-          <div className="alert error">Este comprobante no te pertenece.</div>
-        </section>
-      </div>
+      <PublicShell view="public-proof" eyebrow="Comprobante de pago" title="Sin acceso">
+        <PubNotice tone="error">Este comprobante no te pertenece.</PubNotice>
+      </PublicShell>
     );
   }
 
@@ -178,92 +148,50 @@ export default function ProofUploadPage({ token, session }) {
   const isApproved = proofStatus === "approved";
   const isRejected = proofStatus === "rejected";
   const canUpload = proofStatus === "pending" || isRejected;
+  const statusView = {
+    pending: ["pending", "Pendiente"],
+    submitted: ["review", "Enviado · esperando revisión"],
+    approved: ["done", "Aprobado"],
+    rejected: ["bad", "Rechazado"],
+  }[proofStatus] || ["pending", proofStatus];
 
   return (
-    <div className="app auth-shell">
-      <section className="panel auth-panel">
-        <div>
-          <p className="eyebrow">f5manager</p>
-          <h1>Subir Comprobante</h1>
-        </div>
+    <PublicShell view="public-proof" eyebrow="Comprobante de pago" title="Subir comprobante">
+      <PubDetails rows={[
+        ["Concepto", paymentInfo.title],
+        ["Monto", <span className="pub-amount" key="a">{formatMoney(paymentInfo.amount)}</span>],
+        ["Estado", <PubStatus key="s" tone={statusView[0]}>{statusView[1]}</PubStatus>],
+      ]} />
 
-        {/* Payment Info */}
-        <div className="proof-payment-info">
-          <div className="proof-info-row">
-            <span className="proof-label">Concepto:</span>
-            <span className="proof-value">{paymentInfo.title}</span>
-          </div>
-          <div className="proof-info-row">
-            <span className="proof-label">Monto:</span>
-            <span className="proof-value amount">
-              {formatMoney(paymentInfo.amount)}
-            </span>
-          </div>
-          <div className="proof-info-row">
-            <span className="proof-label">Estado:</span>
-            <span className={`proof-status status-${proofStatus}`}>
-              {proofStatus === "pending" && "Pendiente"}
-              {proofStatus === "submitted" && "Enviado - Esperando revisión"}
-              {proofStatus === "approved" && "Aprobado ✓"}
-              {proofStatus === "rejected" && "Rechazado"}
-            </span>
-          </div>
-        </div>
+      {error && <PubNotice tone="error">{error}</PubNotice>}
+      {success && <PubNotice tone="success">{success}</PubNotice>}
+      {isRejected && paymentInfo.proof_rejection_reason && (
+        <PubNotice tone="warning"><strong>Motivo del rechazo:</strong> {paymentInfo.proof_rejection_reason}</PubNotice>
+      )}
 
-        {error && <div className="alert error">{error}</div>}
-        {success && <div className="alert success">{success}</div>}
-
-        {isRejected && paymentInfo.proof_rejection_reason && (
-          <div className="alert warning">
-            <strong>Motivo del rechazo:</strong> {paymentInfo.proof_rejection_reason}
-          </div>
-        )}
-
-        {canUpload ? (
-          <>
-            <div className="proof-upload-section">
-              <label className="proof-upload-label">
-                Seleccioná una imagen de tu comprobante de pago
-                <input
-                  type="file"
-                  accept="image/png, image/jpeg, image/webp, image/gif"
-                  onChange={handleFileSelect}
-                  className="proof-file-input"
-                />
-              </label>
-
-              {previewUrl && (
-                <div className="proof-preview">
-                  <img src={previewUrl} alt="Vista previa del comprobante" />
-                  <button
-                    type="button"
-                    className="secondary-button remove-file-btn"
-                    onClick={handleRemoveFile}
-                  >
-                    Quitar imagen
-                  </button>
-                </div>
-              )}
+      {canUpload ? (
+        <>
+          <PubFilePicker
+            label="Seleccioná una imagen de tu comprobante"
+            hint="PNG, JPEG, WebP o GIF · hasta 8 MB"
+            accept="image/png, image/jpeg, image/webp, image/gif"
+            onChange={handleFileSelect}
+          />
+          {previewUrl && (
+            <div className="pub-preview">
+              <img src={previewUrl} alt="Vista previa del comprobante" />
+              <button type="button" className="pub-btn is-ghost" onClick={handleRemoveFile}>Quitar imagen</button>
             </div>
-
-            <button
-              className="upload-proof-btn"
-              disabled={!selectedFile || uploading}
-              onClick={handleUpload}
-            >
-              {uploading ? "Subiendo..." : "Enviar Comprobante"}
-            </button>
-          </>
-        ) : isSubmitted ? (
-          <div className="alert info">
-            Tu comprobante fue enviado y está esperando revisión del admin.
-          </div>
-        ) : isApproved ? (
-          <div className="alert success">
-            Tu comprobante fue aprobado. ¡Gracias!
-          </div>
-        ) : null}
-      </section>
-    </div>
+          )}
+          <button type="button" className="pub-btn" disabled={!selectedFile || uploading} onClick={handleUpload}>
+            {uploading ? "Subiendo…" : "Enviar comprobante"}
+          </button>
+        </>
+      ) : isSubmitted ? (
+        <PubNotice tone="info">Tu comprobante fue enviado y está esperando revisión del admin.</PubNotice>
+      ) : isApproved ? (
+        <PubNotice tone="success">Tu comprobante fue aprobado. ¡Gracias!</PubNotice>
+      ) : null}
+    </PublicShell>
   );
 }

@@ -1,25 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, CalendarDays, ChevronRight, GitBranch, ListOrdered, PlusCircle, Shield, Trophy, Users, Wand2, X } from "lucide-react";
 import Avatar from "../components/Avatar.jsx";
-import PlayerBadge from "../components/PlayerBadge.jsx";
 import { api } from "../api.js";
+import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 import { generateFixtures, updateStandings } from "../tournamentEngine.js";
+import { Empty, Kpis, Section, StatusChip } from "../components/finance/FinanceBlocks.jsx";
+import {
+  DAYS, FORMATS, bracketColumns, formGuide, formatLabel, groupRounds, isPlayoffMatch, matchWinner,
+  teamColor, teamRating, tournamentProgress, tournamentStatusLabel,
+} from "../tournament/tournamentModel.js";
 import { displayName } from "../utils.js";
 
-const FORMATS = [
-  { id: "cuadrangular", label: "Cuadrangular", desc: "4 equipos, todos contra todos + final" },
-  { id: "league", label: "Liga", desc: "Todos contra todos, campeón por puntos" },
-  { id: "league_playoffs", label: "Liga + Playoffs", desc: "Liga regular + semifinales y final" },
-  { id: "playoffs_only", label: "Solo Playoffs", desc: "Eliminación directa (2, 4 u 8 equipos)" },
-];
-
-const DAYS = [
-  { id: "monday", label: "Lunes" }, { id: "tuesday", label: "Martes" },
-  { id: "wednesday", label: "Miércoles" }, { id: "thursday", label: "Jueves" },
-  { id: "friday", label: "Viernes" }, { id: "saturday", label: "Sábado" },
-  { id: "sunday", label: "Domingo" },
-];
-
-const TEAM_COLORS = ["#22c55e", "#3b82f6", "#ef4444", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
+const STATUS_TONE = { draft: "forgiven", active: "paid", finished: "review" };
+const shortDate = (d) => (d ? new Date(d + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" }) : "Fecha pendiente");
 
 function TournamentForm({ onSave, onCancel }) {
   const [form, setForm] = useState({
@@ -38,18 +31,22 @@ function TournamentForm({ onSave, onCancel }) {
   }
 
   return (
-    <form className="form-grid" onSubmit={submit}>
-      {error && <p className="form-message">{error}</p>}
-      <label>Nombre del torneo
+    <form className="form-grid md-form fx-form fx-create" onSubmit={submit} aria-label="Nuevo torneo">
+      {error && <p className="form-message" role="alert">{error}</p>}
+      <label className="md-form-wide">Nombre del torneo
         <input placeholder="Ej. Liga Apertura 2026" value={form.name} onChange={(e) => update({ name: e.target.value })} />
       </label>
-      <label>Formato
-        <select value={form.format} onChange={(e) => update({ format: e.target.value })}>
-          {FORMATS.map((f) => <option key={f.id} value={f.id}>{f.label} — {f.desc}</option>)}
-        </select>
-      </label>
+      <fieldset className="md-form-group tn-formats">
+        <legend>Formato</legend>
+        {FORMATS.map((f) => (
+          <label key={f.id} className={`tn-format ${form.format === f.id ? "is-on" : ""}`}>
+            <input type="radio" name="tn-format" value={f.id} checked={form.format === f.id} onChange={() => update({ format: f.id })} />
+            <b>{f.label}</b><small>{f.desc}</small>
+          </label>
+        ))}
+      </fieldset>
       <label>Cantidad de equipos
-        <input type="number" min="2" max="8" value={form.team_count} onChange={(e) => update({ team_count: Number(e.target.value) })} />
+        <input type="number" min="2" max="8" inputMode="numeric" value={form.team_count} onChange={(e) => update({ team_count: Number(e.target.value) })} />
       </label>
       <label>Fecha de inicio
         <input type="date" value={form.start_date} onChange={(e) => update({ start_date: e.target.value })} />
@@ -62,11 +59,13 @@ function TournamentForm({ onSave, onCancel }) {
       <label>Hora
         <input type="time" value={form.match_time} onChange={(e) => update({ match_time: e.target.value })} />
       </label>
-      <label>Cancha
+      <label className="md-form-wide">Cancha
         <input placeholder="Opcional" value={form.venue} onChange={(e) => update({ venue: e.target.value })} />
       </label>
-      <button type="submit">Crear torneo</button>
-      <button className="secondary-button" type="button" onClick={onCancel}>Cancelar</button>
+      <div className="md-form-actions">
+        <button className="md-btn md-btn-ghost" type="button" onClick={onCancel}>Cancelar</button>
+        <button className="md-btn md-btn-accent" type="submit">Crear torneo</button>
+      </div>
     </form>
   );
 }
@@ -86,11 +85,9 @@ function TeamSetup({ tournament, profiles, ratingMap, onSave }) {
   function updateTeamName(idx, name) {
     setTeamNames((prev) => { const n = [...prev]; n[idx] = name; return n; });
   }
-
   function addTeam() {
     setTeamNames((prev) => [...prev, `Equipo ${String.fromCharCode(65 + prev.length)}`]);
   }
-
   function removeTeam(idx) {
     if (teamNames.length <= 2) return;
     setTeamNames((prev) => prev.filter((_, i) => i !== idx));
@@ -104,29 +101,21 @@ function TeamSetup({ tournament, profiles, ratingMap, onSave }) {
       return next;
     });
   }
-
   function assignPlayer(teamIdx, playerId) {
     setAssignments((prev) => {
       const next = { ...prev };
-      // Remove from other team first
-      Object.keys(next).forEach((k) => {
-        next[k] = next[k].filter((id) => id !== playerId);
-      });
+      Object.keys(next).forEach((k) => { next[k] = next[k].filter((id) => id !== playerId); });
       next[teamIdx] = [...(next[teamIdx] || []), playerId];
       return next;
     });
   }
-
   function unassignPlayer(playerId) {
     setAssignments((prev) => {
       const next = {};
-      Object.entries(prev).forEach(([k, v]) => {
-        next[k] = v.filter((id) => id !== playerId);
-      });
+      Object.entries(prev).forEach(([k, v]) => { next[k] = v.filter((id) => id !== playerId); });
       return next;
     });
   }
-
   function autoBalance() {
     const sorted = [...activePlayers].sort((a, b) => {
       const ra = ratingMap.get(a.id)?.rating || 2;
@@ -135,21 +124,9 @@ function TeamSetup({ tournament, profiles, ratingMap, onSave }) {
     });
     const newAssignments = {};
     teamNames.forEach((_, i) => { newAssignments[i] = []; });
-    sorted.forEach((p, i) => {
-      const teamIdx = i % teamNames.length;
-      newAssignments[teamIdx].push(p.id);
-    });
+    sorted.forEach((p, i) => { newAssignments[i % teamNames.length].push(p.id); });
     setAssignments(newAssignments);
   }
-
-  function getTeamRating(teamIdx) {
-    const members = assignments[teamIdx] || [];
-    return members.reduce((sum, pid) => {
-      const r = ratingMap.get(pid);
-      return sum + (r?.rating || 2);
-    }, 0);
-  }
-
   async function finish() {
     setError("");
     const emptyTeams = teamNames.filter((_, i) => (assignments[i] || []).length < 5);
@@ -160,185 +137,251 @@ function TeamSetup({ tournament, profiles, ratingMap, onSave }) {
     await onSave(teamNames, assignments);
   }
 
-  if (step === "names") {
-    return (
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <h2>Crear equipos</h2>
-            <small>Nombre cada equipo ({teamNames.length} equipos)</small>
-          </div>
-          <div className="button-row">
-            <button className="secondary-button" type="button" onClick={addTeam}>+ Equipo</button>
-            <button type="button" onClick={() => setStep("assign")}>Siguiente →</button>
-          </div>
-        </div>
-        {teamNames.map((name, i) => (
-          <div className="player-row" key={i} style={{ borderLeft: `4px solid ${TEAM_COLORS[i % TEAM_COLORS.length]}` }}>
-            <div style={{ flex: 1 }}>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => updateTeamName(i, e.target.value)}
-                style={{ width: "100%", background: "transparent", border: "none", color: "inherit", font: "inherit" }}
-              />
-            </div>
-            {teamNames.length > 2 && (
-              <button className="secondary-button" type="button" onClick={() => removeTeam(i)}>✕</button>
-            )}
-          </div>
-        ))}
-      </section>
-    );
-  }
-
   return (
-    <>
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <h2>Asignar jugadores</h2>
-            <small>Seleccioná los jugadores para cada equipo (mínimo 5 por equipo)</small>
-          </div>
-          <div className="button-row">
-            <button className="secondary-button" type="button" onClick={() => setStep("names")}>← Nombres</button>
-            <button className="secondary-button" type="button" onClick={autoBalance}>Auto-balancear</button>
-            <button type="button" onClick={finish}>Crear equipos</button>
-          </div>
-        </div>
-        {error && <p className="form-message">{error}</p>}
-      </section>
-
-      {teamNames.map((name, i) => (
-        <section className="panel" key={i} style={{ borderLeft: `4px solid ${TEAM_COLORS[i % TEAM_COLORS.length]}` }}>
-          <div className="section-heading">
-            <strong>{name}</strong>
-            <span className="count-pill">
-              {(assignments[i] || []).length} jug · {getTeamRating(i)} estrellas
-            </span>
-          </div>
-          <div className="team-assign-grid">
-            {(assignments[i] || []).map((pid) => {
-              const player = profiles.find((p) => p.id === pid);
+    <Section
+      title={step === "names" ? "Paso 1 · Nombrar equipos" : "Paso 2 · Asignar jugadores"}
+      icon={Users}
+      className="tn-setup"
+      aside={step === "names" ? (
+        <>
+          <button className="md-btn md-btn-ghost" type="button" onClick={addTeam}><PlusCircle size={15} aria-hidden="true" /> Equipo</button>
+          <button className="md-btn md-btn-accent" type="button" onClick={() => setStep("assign")}>Siguiente <ChevronRight size={15} aria-hidden="true" /></button>
+        </>
+      ) : (
+        <>
+          <button className="md-btn md-btn-ghost" type="button" onClick={() => setStep("names")}><ArrowLeft size={15} aria-hidden="true" /> Nombres</button>
+          <button className="md-btn md-btn-ghost" type="button" onClick={autoBalance}><Wand2 size={15} aria-hidden="true" /> Auto-balancear</button>
+          <button className="md-btn md-btn-accent" type="button" onClick={finish}>Crear equipos</button>
+        </>
+      )}
+    >
+      <ol className="tn-steps" aria-label="Progreso">
+        <li className="is-done">Torneo</li><li className={step === "names" ? "is-now" : "is-done"}>Equipos</li><li className={step === "assign" ? "is-now" : ""}>Jugadores</li><li>Calendario</li>
+      </ol>
+      {error && <p className="fx-alert is-bad" role="alert">{error}</p>}
+      {step === "names" ? (
+        <ul className="tn-name-list">
+          {teamNames.map((name, i) => (
+            <li key={i} style={{ "--tn-team": teamColor(i) }}>
+              <span className="tn-swatch" aria-hidden="true" />
+              <input type="text" aria-label={`Nombre del equipo ${i + 1}`} value={name} onChange={(e) => updateTeamName(i, e.target.value)} />
+              {teamNames.length > 2 && (
+                <button className="fx-icon is-reject" type="button" aria-label={`Quitar ${name}`} onClick={() => removeTeam(i)}><X size={16} aria-hidden="true" /></button>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <>
+          <p className="fx-hint">Mínimo 5 jugadores por equipo · {unassigned.length} sin asignar.</p>
+          <div className="tn-assign-grid">
+            {teamNames.map((name, i) => {
+              const members = assignments[i] || [];
               return (
-                <div className="team-assign-player" key={pid}>
-                  <Avatar profile={player} size="sm" />
-                  <span>{displayName(player)}</span>
-                  <button className="ghost-button" type="button" onClick={() => unassignPlayer(pid)}>✕</button>
-                </div>
-              );
-            })}
-            <select
-              value=""
-              onChange={(e) => { if (e.target.value) assignPlayer(i, e.target.value); }}
-              style={{ marginTop: "0.3rem" }}
-            >
-              <option value="">+ Agregar jugador</option>
-              {unassigned.map((p) => (
-                <option key={p.id} value={p.id}>{displayName(p)} ({ratingMap.get(p.id)?.rating || 2}⭐)</option>
-              ))}
-            </select>
-          </div>
-        </section>
-      ))}
-    </>
-  );
-}
-
-function FixturesView({ matches, teams, onRecordResult }) {
-  const [editingId, setEditingId] = useState(null);
-  const [homeScore, setHomeScore] = useState("");
-  const [awayScore, setAwayScore] = useState("");
-
-  const teamMap = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams]);
-  const rounds = useMemo(() => {
-    const map = new Map();
-    matches.forEach((m) => { if (!map.has(m.round)) map.set(m.round, []); map.get(m.round).push(m); });
-    return [...map.entries()].sort((a, b) => a[0] - b[0]);
-  }, [matches]);
-
-  function saveResult(match) {
-    onRecordResult(match.id, Number(homeScore), Number(awayScore));
-    setEditingId(null); setHomeScore(""); setAwayScore("");
-  }
-
-  return (
-    <section className="panel">
-      <div className="section-heading">
-        <h2>Calendario</h2>
-        <span className="count-pill">{matches.length} partidos</span>
-      </div>
-      {rounds.map(([round, roundMatches]) => (
-        <div key={round} className="detail-section">
-          <div className="section-heading"><h2>Jornada {round}</h2></div>
-          <div className="ledger-list">
-            {roundMatches.map((m) => {
-              const home = teamMap.get(m.home_team_id);
-              const away = teamMap.get(m.away_team_id);
-              const isEditing = editingId === m.id;
-              return (
-                <article className="ledger-row" key={m.id}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <strong>{home?.name || "TBD"}</strong>
-                      <span style={{ color: "var(--text-muted)" }}>vs</span>
-                      <strong>{away?.name || "TBD"}</strong>
-                    </div>
-                    <small>{m.match_date ? new Date(m.match_date + "T12:00:00").toLocaleDateString("es-GT") : "Fecha pendiente"}{m.match_time ? ` · ${m.match_time}` : ""}</small>
-                  </div>
-                  <div className="ledger-meta">
-                    {m.status === "played" ? (
-                      <strong className="fine-amount">{m.home_score} - {m.away_score}</strong>
-                    ) : isEditing ? (
-                      <div className="button-row">
-                        <input type="number" min="0" style={{ width: "50px" }} value={homeScore} onChange={(e) => setHomeScore(e.target.value)} placeholder="0" />
-                        <span>-</span>
-                        <input type="number" min="0" style={{ width: "50px" }} value={awayScore} onChange={(e) => setAwayScore(e.target.value)} placeholder="0" />
-                        <button type="button" onClick={() => saveResult(m)}>OK</button>
-                        <button className="secondary-button" type="button" onClick={() => setEditingId(null)}>✕</button>
-                      </div>
-                    ) : (
-                      <button className="secondary-button" type="button" onClick={() => { setEditingId(m.id); setHomeScore(""); setAwayScore(""); }}>Resultado</button>
-                    )}
-                  </div>
+                <article key={i} className="tn-assign" style={{ "--tn-team": teamColor(i) }}>
+                  <header>
+                    <b>{name}</b>
+                    <small className={members.length >= 5 ? "is-ok" : ""}>{members.length} jug · {teamRating(members, ratingMap)} ★</small>
+                  </header>
+                  <ul>
+                    {members.map((pid) => {
+                      const player = profiles.find((p) => p.id === pid);
+                      return (
+                        <li key={pid}>
+                          <span><Avatar profile={player} size="sm" />{displayName(player)}</span>
+                          <button className="md-icon-btn" type="button" aria-label={`Quitar a ${displayName(player)}`} onClick={() => unassignPlayer(pid)}><X size={15} aria-hidden="true" /></button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <select className="rv-select" value="" aria-label={`Agregar jugador a ${name}`} onChange={(e) => { if (e.target.value) assignPlayer(i, e.target.value); }}>
+                    <option value="">+ Agregar jugador</option>
+                    {unassigned.map((p) => <option key={p.id} value={p.id}>{displayName(p)} ({ratingMap.get(p.id)?.rating || 2}⭐)</option>)}
+                  </select>
                 </article>
               );
             })}
           </div>
-        </div>
-      ))}
-    </section>
+        </>
+      )}
+    </Section>
   );
 }
 
-function StandingsTable({ standings }) {
+function TeamBadge({ team, index, align = "start" }) {
   return (
-    <section className="panel">
-      <div className="section-heading"><h2>Tabla de posiciones</h2></div>
-      <div className="standings-table">
-        <div className="standings-header">
-          <span className="col-pos">#</span>
-          <span className="col-team">Equipo</span>
-          <span className="col-stat">PJ</span><span className="col-stat">G</span>
-          <span className="col-stat">E</span><span className="col-stat">P</span>
-          <span className="col-stat">GF</span><span className="col-stat">GC</span>
-          <span className="col-stat">Pts</span>
-        </div>
-        {standings.map((s, i) => (
-          <div className="standings-row" key={s.id}>
-            <span className="col-pos">{i + 1}</span>
-            <span className="col-team">
-              <span className="team-dot" style={{ background: TEAM_COLORS[i % TEAM_COLORS.length] }} />
-              {s.tournament_team?.name}
-            </span>
-            <span className="col-stat">{s.played}</span><span className="col-stat">{s.won}</span>
-            <span className="col-stat">{s.drawn}</span><span className="col-stat">{s.lost}</span>
-            <span className="col-stat">{s.goals_for}</span><span className="col-stat">{s.goals_against}</span>
-            <span className="col-stat col-pts">{s.points}</span>
+    <span className={`tn-team is-${align}`} style={{ "--tn-team": teamColor(index) }}>
+      <i aria-hidden="true" />{team?.name || "Por definir"}
+    </span>
+  );
+}
+
+function ScoreEditor({ onSave, onCancel }) {
+  const [home, setHome] = useState("");
+  const [away, setAway] = useState("");
+  return (
+    <span className="tn-score-edit">
+      <input type="number" min="0" inputMode="numeric" aria-label="Goles local" value={home} onChange={(e) => setHome(e.target.value)} placeholder="0" />
+      <span aria-hidden="true">–</span>
+      <input type="number" min="0" inputMode="numeric" aria-label="Goles visitante" value={away} onChange={(e) => setAway(e.target.value)} placeholder="0" />
+      <button className="md-btn md-btn-accent fx-btn-sm" type="button" onClick={() => onSave(home, away)}>OK</button>
+      <button className="fx-icon is-reject" type="button" aria-label="Cancelar" onClick={onCancel}><X size={15} aria-hidden="true" /></button>
+    </span>
+  );
+}
+
+function FixturesView({ variant, matches, teams, onRecordResult }) {
+  const [editingId, setEditingId] = useState(null);
+  const teamIndex = useMemo(() => new Map(teams.map((t, i) => [t.id, i])), [teams]);
+  const teamMap = useMemo(() => new Map(teams.map((t) => [t.id, t])), [teams]);
+  const rounds = useMemo(() => groupRounds(matches), [matches]);
+  const playoffRounds = rounds.filter((r) => r.playoff);
+
+  function saveResult(match, homeScore, awayScore) {
+    onRecordResult(match.id, Number(homeScore), Number(awayScore));
+    setEditingId(null);
+  }
+
+  return (
+    <div className={`tn-rounds is-${variant}`}>
+      {rounds.map((g) => {
+        const title = g.playoff ? (bracketColumns(matches).find((c) => c.round === g.round)?.title || `Ronda ${g.round}`) : `Jornada ${g.round}`;
+        return (
+          <section key={g.round} className="tn-round" aria-label={title}>
+            <header className="tn-round-head">
+              <h3>{title}</h3>
+              <small>{shortDate(g.date)} · {g.played}/{g.matches.length} jugados</small>
+              {g.playoff && playoffRounds.length > 0 && <StatusChip tone="review">Playoff</StatusChip>}
+            </header>
+            <ul className="tn-fixtures">
+              {g.matches.map((m) => {
+                const home = teamMap.get(m.home_team_id);
+                const away = teamMap.get(m.away_team_id);
+                const winner = matchWinner(m);
+                return (
+                  <li key={m.id} className={`tn-fixture ${m.status === "played" ? "is-played" : ""}`}>
+                    <span className={`tn-side is-home ${winner && winner === m.home_team_id ? "is-win" : ""}`}><TeamBadge team={home} index={teamIndex.get(m.home_team_id) ?? 0} align="end" /></span>
+                    <span className="tn-mid">
+                      {m.status === "played" ? (
+                        <b className="tn-score" aria-label={`Resultado ${m.home_score} a ${m.away_score}`}>{m.home_score}<i>–</i>{m.away_score}</b>
+                      ) : editingId === m.id ? (
+                        <ScoreEditor onSave={(h, a) => saveResult(m, h, a)} onCancel={() => setEditingId(null)} />
+                      ) : (
+                        <button className="md-btn md-btn-ghost fx-btn-sm" type="button" onClick={() => setEditingId(m.id)}>Resultado</button>
+                      )}
+                      <small>{m.match_time || ""}{m.playoff_label ? ` · ${m.playoff_label}` : ""}</small>
+                    </span>
+                    <span className={`tn-side is-away ${winner && winner === m.away_team_id ? "is-win" : ""}`}><TeamBadge team={away} index={teamIndex.get(m.away_team_id) ?? 1} /></span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
+
+function StandingsTable({ variant, standings, teams, matches }) {
+  const teamIndex = new Map(teams.map((t, i) => [t.id, i]));
+  const maxPts = Math.max(1, ...standings.map((s) => s.points || 0));
+  return (
+    <div className="tn-table-wrap" tabIndex={0} role="region" aria-label="Tabla de posiciones (desplazable)">
+    <table className={`fx-table tn-table is-${variant}`}>
+      <caption className="sr-only">Tabla de posiciones</caption>
+      <thead>
+        <tr>
+          <th scope="col">#</th><th scope="col">Equipo</th>
+          <th scope="col" className="num" title="Partidos jugados">PJ</th><th scope="col" className="num" title="Ganados">G</th>
+          <th scope="col" className="num" title="Empatados">E</th><th scope="col" className="num" title="Perdidos">P</th>
+          <th scope="col" className="num tn-hide-sm" title="Goles a favor">GF</th><th scope="col" className="num tn-hide-sm" title="Goles en contra">GC</th>
+          <th scope="col" className="num" title="Diferencia de gol">DG</th>
+          <th scope="col" className="tn-hide-sm">Forma</th>
+          <th scope="col" className="num">Pts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {standings.map((s, i) => {
+          const idx = teamIndex.get(s.tournament_team_id) ?? i;
+          const dg = (s.goals_for || 0) - (s.goals_against || 0);
+          return (
+            <tr key={s.id} className={i === 0 ? "is-leader" : ""}>
+              <td className="tn-pos">{i + 1}</td>
+              <td><TeamBadge team={s.tournament_team} index={idx} /></td>
+              <td className="num">{s.played}</td><td className="num">{s.won}</td>
+              <td className="num">{s.drawn}</td><td className="num">{s.lost}</td>
+              <td className="num tn-hide-sm">{s.goals_for}</td><td className="num tn-hide-sm">{s.goals_against}</td>
+              <td className="num">{dg > 0 ? `+${dg}` : dg}</td>
+              <td className="tn-hide-sm"><span className="tn-form" aria-label="Últimos resultados">{formGuide(matches, s.tournament_team_id).map((r, k) => <i key={k} className={`is-${r}`}>{r}</i>)}</span></td>
+              <td className="num tn-pts">
+                <b>{s.points}</b>
+                {variant === "command" && <span className="fx-meter is-accent tn-pts-bar" aria-hidden="true"><i style={{ inlineSize: `${((s.points || 0) / maxPts) * 100}%` }} /></span>}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+    </div>
+  );
+}
+
+function Bracket({ variant, matches, teams }) {
+  const cols = bracketColumns(matches);
+  const teamMap = new Map(teams.map((t) => [t.id, t]));
+  const teamIndex = new Map(teams.map((t, i) => [t.id, i]));
+  if (cols.length === 0) return <Empty>Este formato no tiene llaves eliminatorias.</Empty>;
+  return (
+    <div className={`tn-bracket is-${variant}`} role="list" aria-label="Llaves eliminatorias">
+      {cols.map((c) => (
+        <section key={c.round} className="tn-col" role="listitem" aria-label={c.title}>
+          <h3>{c.title}</h3>
+          <div className="tn-col-matches">
+            {c.matches.map((m) => {
+              const w = matchWinner(m);
+              const row = (id, score) => (
+                <div className={`tn-slot ${w && w === id ? "is-win" : ""} ${w && id && w !== id ? "is-out" : ""}`}>
+                  <TeamBadge team={teamMap.get(id)} index={teamIndex.get(id) ?? 0} />
+                  <b>{m.status === "played" ? score : ""}</b>
+                </div>
+              );
+              return (
+                <article key={m.id} className="tn-tie">
+                  {m.playoff_label && <small>{m.playoff_label}</small>}
+                  {row(m.home_team_id, m.home_score)}
+                  {row(m.away_team_id, m.away_score)}
+                </article>
+              );
+            })}
           </div>
-        ))}
-      </div>
-    </section>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function TeamsGrid({ variant, teams, teamMembers, profiles, ratingMap }) {
+  return (
+    <div className={`tn-teams is-${variant}`}>
+      {teams.map((team, i) => {
+        const members = teamMembers.filter((m) => m.tournament_team_id === team.id);
+        return (
+          <article className="tn-team-card" key={team.id} style={{ "--tn-team": teamColor(i) }}>
+            <header>
+              <TeamBadge team={team} index={i} />
+              <small>{members.length} jug · {teamRating(members.map((m) => m.profile_id || m.profiles?.id), ratingMap)} ★</small>
+            </header>
+            <ul>
+              {members.map((m) => {
+                const player = m.profiles || profiles.find((p) => p.id === m.profile_id);
+                return <li key={m.id}><Avatar profile={player} size="sm" />{displayName(player)}</li>;
+              })}
+            </ul>
+          </article>
+        );
+      })}
+    </div>
   );
 }
 
@@ -353,15 +396,29 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState("fixtures");
   const [error, setError] = useState("");
+  const { design } = useAppearance();
+  const variant = design === "command" ? "command" : "editorial";
 
   const selected = tournaments.find((t) => t.id === selectedId);
 
   useEffect(() => {
+    if (import.meta.env.DEV && isDemoMode) {
+      // Local demo only (stripped from production builds): read-only sample tournaments.
+      import("../dev/tournamentDemo.js").then((d) => setTournaments(d.demoTournaments(profiles)));
+      return;
+    }
     if (!activeGroupId || isDemoMode) return;
     api.listTournaments(activeGroupId).then(setTournaments).catch(() => setTournaments([]));
   }, [activeGroupId, isDemoMode]);
 
   useEffect(() => {
+    if (import.meta.env.DEV && isDemoMode && selectedId) {
+      import("../dev/tournamentDemo.js").then((d) => {
+        const t = d.demoTournamentDetail(selectedId, profiles);
+        setTeams(t.teams); setMatches(t.matches); setStandings(t.standings); setTeamMembers(t.members);
+      });
+      return;
+    }
     if (!selectedId || isDemoMode) { setTeams([]); setMatches([]); setStandings([]); setTeamMembers([]); return; }
     setLoading(true);
     Promise.all([
@@ -431,104 +488,137 @@ export default function TournamentPage({ activeGroupId, profiles, ratingMap, isA
     }
   }
 
+  const shellClass = variant === "command" ? "mdc fx-shell" : "mde fx-shell";
+  const wrap = (children, view = "tournaments") => (
+    <div className={`md-matches md-design-${variant} fx-page tn-page`} data-design={variant} data-view={view}>
+      <div className={shellClass}>{children}</div>
+    </div>
+  );
+
   if (!isSuperAdmin) {
-    return <div className="page-grid"><section className="panel"><div className="empty-state compact">Solo el Super Admin puede gestionar torneos.</div></section></div>;
+    return wrap(<Empty>Solo el Super Admin puede gestionar torneos.</Empty>);
   }
 
   if (!selected) {
-    return (
-      <div className="page-grid">
-        <section className="panel">
-          <div className="section-heading">
-            <div><p className="eyebrow">Torneos</p><h2>Mis torneos</h2></div>
-            <button className="secondary-button" type="button" onClick={() => setShowForm((v) => !v)}>{showForm ? "Cancelar" : "+ Nuevo"}</button>
+    const active = tournaments.filter((t) => t.status === "active").length;
+    return wrap(
+      <>
+        {variant === "command" ? (
+          <div className="mdc-bar">
+            <h1>Torneos</h1>
+            <span className="mdc-pill"><Trophy size={14} aria-hidden="true" /> <b>{tournaments.length}</b> torneos</span>
+            <span className="mdc-pill"><b>{active}</b> activos</span>
           </div>
+        ) : (
+          <header className="fx-ed-hero">
+            <span className="mde-crumb">Competencias del grupo</span>
+            <h1>Torneos</h1>
+            <p className="fx-ed-lede"><b className="fx-lede-num">{tournaments.length}</b> torneos · <b className="fx-lede-num">{active}</b> activos</p>
+          </header>
+        )}
+        <Section
+          title="Mis torneos"
+          icon={Trophy}
+          aside={<button className={`md-btn ${showForm ? "md-btn-ghost" : "md-btn-accent"}`} type="button" onClick={() => setShowForm((v) => !v)}>{showForm ? "Cancelar" : <><PlusCircle size={15} aria-hidden="true" /> Nuevo torneo</>}</button>}
+        >
           {showForm && <TournamentForm onSave={createTournament} onCancel={() => setShowForm(false)} />}
-          {tournaments.length === 0 && !showForm && <div className="empty-state compact">No hay torneos creados.</div>}
-          {tournaments.map((t) => (
-            <article className="ledger-row" key={t.id} style={{ cursor: "pointer" }} onClick={() => setSelectedId(t.id)}>
-              <div>
-                <strong>{t.name}</strong>
-                <small>{FORMATS.find((f) => f.id === t.format)?.label} · {t.start_date || "Sin fecha"}</small>
-              </div>
-              <span className={`status-pill ${t.status === "active" ? "is-paid" : ""}`}>
-                {t.status === "draft" ? "Borrador" : t.status === "active" ? "Activo" : "Finalizado"}
-              </span>
-            </article>
-          ))}
-        </section>
-      </div>
+          {tournaments.length === 0 && !showForm && <Empty>No hay torneos creados.</Empty>}
+          <ul className={`tn-list is-${variant}`}>
+            {tournaments.map((t, i) => (
+              <li key={t.id}>
+                <button type="button" className="tn-list-item" onClick={() => setSelectedId(t.id)}>
+                  {variant === "editorial" && <span className="tn-list-n">{String(i + 1).padStart(2, "0")}</span>}
+                  {variant === "command" && <span className="tn-list-ico"><Trophy size={20} aria-hidden="true" /></span>}
+                  <span className="tn-list-main">
+                    <b>{t.name}</b>
+                    <small>{formatLabel(t.format)} · {t.start_date ? shortDate(t.start_date) : "Sin fecha"}{t.venue ? ` · ${t.venue}` : ""}</small>
+                  </span>
+                  <StatusChip tone={STATUS_TONE[t.status] || "forgiven"}>{tournamentStatusLabel(t.status)}</StatusChip>
+                  <ChevronRight size={18} aria-hidden="true" className="tn-go" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      </>,
     );
   }
 
   const hasTeams = teams.length > 0;
   const hasMatches = matches.length > 0;
+  const hasBracket = matches.some(isPlayoffMatch);
+  const progress = tournamentProgress(matches);
+  const leader = standings[0]?.tournament_team?.name;
+  const tabs = [
+    ["fixtures", "Calendario", CalendarDays],
+    ["standings", "Tabla", ListOrdered],
+    ...(hasBracket ? [["bracket", "Llaves", GitBranch]] : []),
+    ["teams", "Equipos", Shield],
+  ];
 
-  return (
-    <div className="page-grid">
-      <section className="panel">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">{FORMATS.find((f) => f.id === selected.format)?.label}</p>
-            <h2>{selected.name}</h2>
-          </div>
-          <button className="secondary-button" type="button" onClick={() => setSelectedId(null)}>← Volver</button>
+  return wrap(
+    <>
+      <button className="mdd-back md-btn md-btn-ghost tn-back" type="button" onClick={() => { setSelectedId(null); setTab("fixtures"); }}><ArrowLeft size={16} aria-hidden="true" /> Torneos</button>
+      {variant === "command" ? (
+        <div className="mdc-bar">
+          <h1>{selected.name}</h1>
+          <span className="mdc-pill">{formatLabel(selected.format)}</span>
+          <StatusChip tone={STATUS_TONE[selected.status] || "forgiven"}>{tournamentStatusLabel(selected.status)}</StatusChip>
         </div>
-        {error && <p className="form-message">{error}</p>}
-      </section>
+      ) : (
+        <header className="fx-ed-hero">
+          <span className="mde-crumb">{formatLabel(selected.format)} · {tournamentStatusLabel(selected.status)}</span>
+          <h1>{selected.name}</h1>
+          <p className="fx-ed-lede">
+            {selected.start_date ? `Desde ${shortDate(selected.start_date)}` : "Sin fecha"}
+            {selected.venue ? ` · ${selected.venue}` : ""}
+            {hasMatches ? <> · <b className="fx-lede-num">{progress.played}/{progress.total}</b> partidos jugados</> : null}
+          </p>
+        </header>
+      )}
+      {error && <p className="fx-alert is-bad" role="alert">{error}</p>}
+      {loading && <p className="fx-hint" role="status">Cargando torneo…</p>}
 
-      {!hasTeams && <TeamSetup tournament={selected} profiles={profiles} ratingMap={ratingMap} onSave={saveTeams} />}
+      {hasMatches && variant === "command" && (
+        <Kpis variant="command" items={[
+          { label: "Equipos", value: teams.length },
+          { label: "Partidos jugados", value: `${progress.played}/${progress.total}`, tone: progress.played === progress.total ? "good" : undefined },
+          { label: "Goles", value: progress.goals },
+          { label: "Líder", value: leader || "—", tone: leader ? "good" : undefined },
+        ]} />
+      )}
+
+      {!hasTeams && !loading && <TeamSetup tournament={selected} profiles={profiles} ratingMap={ratingMap} onSave={saveTeams} />}
 
       {hasTeams && !hasMatches && (
-        <section className="panel">
-          <div className="section-heading">
-            <div>
-              <h2>Equipos listos</h2>
-              <small>{teams.length} equipos · {teamMembers.length} jugadores</small>
-            </div>
-            <button type="button" onClick={generateCalendar}>Generar calendario</button>
-          </div>
-          <div className="team-grid">
-            {teams.map((team, i) => (
-              <article className="team-card" key={team.id} style={{ borderTop: `3px solid ${TEAM_COLORS[i % TEAM_COLORS.length]}` }}>
-                <div className="team-header">
-                  <strong>{team.name}</strong>
-                  <span>{teamMembers.filter((m) => m.tournament_team_id === team.id).reduce((s, m) => {
-                    const pid = m.profile_id || m.profiles?.id;
-                    return s + (ratingMap.get(pid)?.rating || 2);
-                  }, 0)} estrellas</span>
-                </div>
-                <ul>
-                  {teamMembers.filter((m) => m.tournament_team_id === team.id).map((m) => {
-                    const player = m.profiles || profiles.find((p) => p.id === m.profile_id);
-                    return (
-                      <li key={m.id}>
-                        <span className="team-member">
-                          <Avatar profile={player} size="sm" />
-                          {displayName(player)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </article>
-            ))}
-          </div>
-        </section>
+        <Section
+          title="Equipos listos"
+          icon={Shield}
+          aside={<>
+            <small>{teams.length} equipos · {teamMembers.length} jugadores</small>
+            <button className="md-btn md-btn-accent" type="button" onClick={generateCalendar}><CalendarDays size={15} aria-hidden="true" /> Generar calendario</button>
+          </>}
+        >
+          <TeamsGrid variant={variant} teams={teams} teamMembers={teamMembers} profiles={profiles} ratingMap={ratingMap} />
+        </Section>
       )}
 
       {hasMatches && (
-        <div className="tab-bar">
-          {["fixtures", "standings"].map((t) => (
-            <button key={t} className={tab === t ? "" : "secondary-button"} type="button" onClick={() => setTab(t)}>
-              {t === "fixtures" ? "Calendario" : "Tabla"}
-            </button>
-          ))}
-        </div>
+        <>
+          <nav className="pl-tabs fx-tabs" aria-label="Secciones del torneo">
+            {tabs.map(([id, label, Icon]) => (
+              <button key={id} type="button" className={tab === id ? "is-on" : ""} aria-current={tab === id ? "page" : undefined} onClick={() => setTab(id)}>
+                <Icon size={16} aria-hidden="true" /> {label}
+              </button>
+            ))}
+          </nav>
+          {tab === "fixtures" && <FixturesView variant={variant} matches={matches} teams={teams} onRecordResult={recordResult} />}
+          {tab === "standings" && <Section title="Tabla de posiciones" icon={ListOrdered}><StandingsTable variant={variant} standings={standings} teams={teams} matches={matches} /></Section>}
+          {tab === "bracket" && <Section title="Llaves" icon={GitBranch}><Bracket variant={variant} matches={matches} teams={teams} /></Section>}
+          {tab === "teams" && <Section title="Equipos" icon={Shield}><TeamsGrid variant={variant} teams={teams} teamMembers={teamMembers} profiles={profiles} ratingMap={ratingMap} /></Section>}
+        </>
       )}
-
-      {hasMatches && tab === "fixtures" && <FixturesView matches={matches} teams={teams} onRecordResult={recordResult} />}
-      {hasMatches && tab === "standings" && <StandingsTable standings={standings} />}
-    </div>
+    </>,
+    "tournament",
   );
 }

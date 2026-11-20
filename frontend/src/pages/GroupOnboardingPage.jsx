@@ -1,6 +1,7 @@
 import { Search, UsersRound } from "lucide-react";
 import { useMemo, useState } from "react";
 import { api } from "../api.js";
+import { PubNotice, PublicShell } from "../components/public/PublicShell.jsx";
 
 function extractGroupQuery(value) {
   const raw = value.trim();
@@ -72,92 +73,54 @@ export default function GroupOnboardingPage({ onCreateGroup, onJoinGroup }) {
   }
 
   return (
-    <div className="app onboarding-shell">
-      <section className="onboarding-hero" aria-labelledby="onboarding-title">
-        <div className="onboarding-copy">
-          <img className="auth-brand-mark" src="/brand/f5manager-logo.jpg" alt="F5Manager" />
-          <p className="eyebrow">f5manager</p>
-          <h1 id="onboarding-title">Organizá tu chamusca sin perseguir a nadie</h1>
-          <p>
-            Armá partidos, confirmaciones, equipos, cobros, multas y estadísticas en un solo lugar.
-            Entrás a un grupo por invitación, o empezás uno nuevo para tu equipo.
-          </p>
-        </div>
-      </section>
-
-      {formError && <div className="alert error">{formError}</div>}
-
-      <main className="onboarding-actions" aria-label="Elegir grupo">
-        <section className="panel onboarding-panel">
-          <div className="onboarding-panel-title">
-            <UsersRound aria-hidden="true" size={22} />
-            <div>
-              <p className="eyebrow">Nuevo grupo</p>
-              <h2>Crear mi chamusca</h2>
-            </div>
-          </div>
-          <p className="muted">
-            Ideal si vos vas a administrar jugadores, partidos y cobros.
-          </p>
-          <form className="form-grid" onSubmit={submitCreate}>
-            <label>
+    <PublicShell
+      view="onboarding"
+      wide
+      eyebrow="Bienvenido a F5Manager"
+      title="Organizá tu chamusca sin perseguir a nadie"
+      lede="Partidos, confirmaciones, equipos, cobros, multas y estadísticas en un solo lugar. Entrás a un grupo por invitación o empezás uno nuevo."
+      footer="Tus datos solo se comparten dentro de tu grupo"
+    >
+      {formError && <PubNotice tone="error">{formError}</PubNotice>}
+      <div className="pub-split" aria-label="Elegir grupo">
+        <section aria-labelledby="ob-create">
+          <UsersRound aria-hidden="true" size={24} />
+          <h2 id="ob-create">Crear mi chamusca</h2>
+          <p>Ideal si vas a administrar jugadores, partidos y cobros.</p>
+          <form className="pub-form" onSubmit={submitCreate}>
+            <label className="pub-field">
               Nombre del grupo
-              <input
-                placeholder="Ej. Chamusca de los miércoles"
-                value={groupName}
-                onChange={(event) => setGroupName(event.target.value)}
-              />
+              <input placeholder="Ej. Chamusca de los miércoles" value={groupName} onChange={(event) => setGroupName(event.target.value)} />
             </label>
-            <button type="submit">Crear grupo</button>
+            <button className="pub-btn" type="submit">Crear grupo</button>
           </form>
         </section>
 
-        <section className="panel onboarding-panel">
-          <div className="onboarding-panel-title">
-            <Search aria-hidden="true" size={22} />
-            <div>
-              <p className="eyebrow">Ya existe</p>
-              <h2>Buscar mi grupo</h2>
-            </div>
-          </div>
-          <p className="muted">
-            Pegá el enlace de invitación o buscá por nombre. Tu solicitud queda pendiente hasta que un admin te active.
-          </p>
-          <form className="form-grid" onSubmit={submitSearch}>
-            <label>
+        <section aria-labelledby="ob-search">
+          <Search aria-hidden="true" size={24} />
+          <h2 id="ob-search">Buscar mi grupo</h2>
+          <p>Pegá el enlace de invitación o buscá por nombre. Tu solicitud queda pendiente hasta que un admin te active.</p>
+          <form className="pub-form" onSubmit={submitSearch}>
+            <label className="pub-field">
               Enlace, ID o nombre
-              <input
-                placeholder="https://.../grupos?group=..."
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-              />
+              <input placeholder="https://.../grupos?group=..." value={searchText} onChange={(event) => setSearchText(event.target.value)} />
             </label>
-            <button className="secondary-button" disabled={searching} type="submit">
-              {searching ? "Buscando..." : "Buscar grupo"}
-            </button>
+            <button className="pub-btn is-ghost" disabled={searching} type="submit">{searching ? "Buscando…" : "Buscar grupo"}</button>
           </form>
-
           {results.length > 0 && (
-            <div className="group-list onboarding-results">
+            <div>
               {results.map((group) => (
-                <article className="group-card" key={group.id}>
-                  <div>
-                    <strong>{group.name || "Chamusca"}</strong>
-                    <small>{group.description || "Grupo existente"}</small>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={joiningId === group.id}
-                    onClick={() => join(group.id)}
-                  >
-                    {joiningId === group.id ? "Uniendo..." : "Unirme"}
+                <div className="pub-result" key={group.id}>
+                  <span><b>{group.name || "Chamusca"}</b><small>{group.description || "Grupo existente"}</small></span>
+                  <button className="pub-btn is-ghost" type="button" disabled={joiningId === group.id} onClick={() => join(group.id)}>
+                    {joiningId === group.id ? "Uniendo…" : "Unirme"}
                   </button>
-                </article>
+                </div>
               ))}
             </div>
           )}
         </section>
-      </main>
-    </div>
+      </div>
+    </PublicShell>
   );
 }
