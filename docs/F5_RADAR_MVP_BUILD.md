@@ -2,10 +2,9 @@
 
 - **Branch:** `feat/f5-radar-mvp`, on top of `docs/f5-radar-design`.
 - **Plan:** `docs/F5_RADAR_MVP_PLAN.md`, built with the recommended decisions D1–D6. D7 and D8 remain open.
-- **Status:** built and validated locally and on Chamusca-Staging.
-  - **Not pushed and not deployed.**
-  - The migration is applied to **Staging only**.
-- **Production:** untouched. It was read only for metadata during planning.
+- **Status:** **released to Production on 2026-11-21 with Radar OFF for every group** (technical release; no pilot yet).
+  - `master` @ `c9f4d3b`; Vercel Production `fut5-organizer-rgmrg5ebw` (f5manager.lat).
+  - Rollback target: `fut5-organizer-orjfw4n6o` (`master` @ `4c31018`).
 
 ## What was built
 
@@ -65,6 +64,40 @@ All accounts, groups and rows were synthetic and were removed after each run.
    - Even so, deploy it after the migration.
 4. **Pilot:** a super admin enables Radar in one group (D8).
 5. **Rollback:** turn Radar off per group (immediate), then redeploy the previous frontend. The tables can stay.
+
+## Production release log (2026-11-21)
+
+1. **Pre-checks (read-only):**
+   - Only `20261121180000_radar_mvp` was pending; `db push --dry-run` listed nothing else.
+   - All dependencies exist (helpers, columns, constraints), and nothing has a conflicting name.
+   - Policy fingerprint before: `a639065f…`, 90 policies.
+2. **Migration:**
+   - The file is identical to `c9f4d3b` (md5 `794c3bf4…`).
+   - Applied with `supabase db query --linked -f`, then `migration repair --status applied 20261121180000`. Only that version was recorded.
+   - `db push --dry-run` now reports "Remote database is up to date". `--include-all` was not used.
+3. **Verification:**
+   - The 90 existing policies are unchanged (`a639065f…`).
+   - The 6 new policies and 34 Radar functions are byte-identical to Staging (md5 `8a8f9764…` / `59f6ce83…`).
+   - The new tables have RLS on: `authenticated` has `SELECT` only and `anon` has nothing.
+   - 18 RPCs are executable by `authenticated`, 0 by `anon`.
+   - Triggers: `radar_enforce_capacity`, `radar_enforce_capacity_guests`, `radar_after_match_change` and `radar_guard_membership` (each acts only on Radar matches or players).
+4. **Radar OFF:**
+   - 0 rows in `radar_group_settings` (all 7 groups disabled by default).
+   - 0 listings, 0 requests, 0 access grants and 0 notifications.
+   - None of the 89 upcoming matches is published.
+   - Rechecked after the deploy with the same result.
+5. **Frontend:**
+   - Vitest 126/126, build OK and Playwright 93 passed (1 pre-existing skip) on exactly `c9f4d3b`.
+   - Fast-forwarded `master` `4c31018 → c9f4d3b` with a normal push.
+   - The deployment is Ready and f5manager.lat serves it.
+6. **Bundle:** Production Supabase only. No Staging reference, no demo code, and no service keys, secrets or JWTs.
+7. **Read-only smoke check, 32/32:**
+   - public pages render without overflow on desktop and mobile;
+   - `/partidos`, `/radar`, `/jugadores`, `/torneos`, `/grupos`, `/cobros` and `/reservas` require login and offer no demo;
+   - invalid proof and reservation links show safe errors;
+   - anonymous isolation holds, and every Radar table and RPC returns 401 to `anon`;
+   - no JS, console or HTTP errors, no writes, Production only.
+   - No test data was created in Production.
 
 ## Still open (not part of this build)
 
