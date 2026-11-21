@@ -1,3 +1,7 @@
+-- SUPERSEDED by 20261119104500_harden_rls_multigroup_and_finance (it drops and recreates these policies).
+-- Marked as applied in Production history on 2026-11-21 (migration repair, no SQL executed).
+-- Do not apply this file manually.
+
 -- Ensure RLS is enabled on the table
 ALTER TABLE public.match_player_stats ENABLE ROW LEVEL SECURITY;
 

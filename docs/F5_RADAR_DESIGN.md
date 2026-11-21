@@ -2,7 +2,7 @@
 
 - **Date:** 2026-11-21.
 - **Production state:** E1–E4 are live on f5manager.lat. The last functional commit is `c9ecdf8`; `master` is at `4c31018`.
-- **Scope of this document:** analysis and design only. Nothing in this document changed the code, the database, the migration history or RLS.
+- **Scope of this document:** analysis and design only. The one exception is the authorized migration-history repair in section 1, which changed only history rows: no SQL, no RLS.
 
 ---
 
@@ -30,7 +30,13 @@ Evidence comes from read-only queries on `pg_policies`, `pg_class`, `pg_proc` an
 - `20260714152000` would only add a duplicate policy with the same rule. That is harmless, but it is noise.
 - `20260723200000` would add a **global** delete policy. RLS policies are combined with OR, so any user with `profiles.is_admin = true` could delete attendances in **any** group. This undoes the multi-group isolation from 2026-11-19. **It must not be applied.**
 
-**Recommendation (needs your authorization; I did not run anything):**
+**Done (2026-11-21, authorized):**
+- I ran `supabase migration repair --linked --status applied 20260714152000 20260723200000`. No SQL was executed.
+- `migration list` now shows both versions on the remote side, and `db push --dry-run` reports "Remote database is up to date".
+- A fingerprint of all 90 public policies is identical before and after: md5 `a639065f…`, 90 policies.
+- Both files now carry a "superseded — do not apply" header.
+
+**Original recommendation:**
 1. Mark both versions as applied in Production's history only, without running their SQL:
    ```bash
    supabase migration repair --linked --status applied 20260714152000 20260723200000
