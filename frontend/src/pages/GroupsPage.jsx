@@ -156,6 +156,7 @@ export default function GroupsPage({
   onCreateGroup,
   onSwitchGroup,
   onUpdateDescription,
+  radarSettings = null,
 }) {
   const { design } = useAppearance();
   const variant = design === "command" ? "command" : "editorial";
@@ -225,6 +226,7 @@ export default function GroupsPage({
               : <Empty>Este grupo todavía no tiene configuración guardada.</Empty>}
           </Section>
         )}
+        {tab === "settings" && isSuperAdmin && radarSettings}
 
         {tab === "groups" && (
           <>

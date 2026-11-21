@@ -2115,4 +2115,127 @@ export const api = {
     const { error } = await client.from("group_expenses").delete().eq("id", expenseId);
     raise(error);
   },
+
+  // ── F5 Radar (MVP 1.0) ─────────────────────────────────────────────────────
+  // Outsiders only ever use the radar_* RPCs, which return fixed safe columns.
+  // Group admins also read radar_group_settings / radar_listings directly (member RLS).
+
+  async getRadarGroupSettings(groupId) {
+    const client = requireSupabase();
+    const rows = await readMany(client.from("radar_group_settings").select("*").eq("group_id", groupId).limit(1));
+    return rows[0] || { group_id: groupId, enabled: false, show_group_name: false };
+  },
+
+  async setRadarGroupSettings(groupId, enabled, showGroupName) {
+    return readOne(requireSupabase().rpc("radar_set_group_settings", {
+      p_group_id: groupId, p_enabled: !!enabled, p_show_group_name: !!showGroupName,
+    }));
+  },
+
+  async getRadarListingForMatch(matchId) {
+    const client = requireSupabase();
+    const rows = await readMany(client.from("radar_listings").select("*").eq("match_id", matchId).limit(1));
+    return rows[0] || null;
+  },
+
+  async listRadarListings(groupId) {
+    const client = requireSupabase();
+    return readMany(client.from("radar_listings").select("id, match_id, status, radar_slots").eq("group_id", groupId));
+  },
+
+  async publishRadarMatch(matchId, { radarSlots, levelBand = "any", positions = [], note = "", zoneLabel = "", closeAt = null }) {
+    return readOne(requireSupabase().rpc("radar_publish_match", {
+      p_match_id: matchId, p_radar_slots: Number(radarSlots), p_level_band: levelBand, p_positions: positions,
+      p_note: note || null, p_zone_label: zoneLabel || null, p_close_at: closeAt || null,
+    }));
+  },
+
+  async setRadarListingStatus(listingId, status) {
+    return readOne(requireSupabase().rpc("radar_set_listing_status", { p_listing_id: listingId, p_status: status }));
+  },
+
+  async radarNearby({ lat = null, lng = null, radiusKm = 10, from = null, to = null, level = null, zone = null } = {}) {
+    // Coordinates are rounded on the device (≈1 km) before they leave it; the server rounds again.
+    const round = (v) => (v == null || Number.isNaN(Number(v)) ? null : Math.round(Number(v) * 100) / 100);
+    return readMany(requireSupabase().rpc("radar_nearby", {
+      p_lat: round(lat), p_lng: round(lng), p_radius_km: radiusKm, p_from: from, p_to: to,
+      p_level: level || null, p_zone: zone || null,
+    }));
+  },
+
+  async radarZones() {
+    return readMany(requireSupabase().rpc("radar_zones"));
+  },
+
+  async radarListingCard(listingId) {
+    return readOne(requireSupabase().rpc("radar_listing_card", { p_listing_id: listingId }));
+  },
+
+  async radarRequestSpot(listingId, position, message) {
+    return readOne(requireSupabase().rpc("radar_request_spot", {
+      p_listing_id: listingId, p_position: position || null, p_message: message || null,
+    }));
+  },
+
+  async radarWithdrawRequest(requestId) {
+    return readOne(requireSupabase().rpc("radar_withdraw_request", { p_request_id: requestId }));
+  },
+
+  async radarCancelSpot(requestId) {
+    return readOne(requireSupabase().rpc("radar_cancel_spot", { p_request_id: requestId }));
+  },
+
+  async radarMyRequests() {
+    const data = await readOne(requireSupabase().rpc("radar_my_requests"));
+    return Array.isArray(data) ? data : [];
+  },
+
+  async radarMatchPeople(listingId) {
+    return readMany(requireSupabase().rpc("radar_match_people", { p_listing_id: listingId }));
+  },
+
+  async radarAdminRequests(matchId) {
+    return readMany(requireSupabase().rpc("radar_admin_requests", { p_match_id: matchId }));
+  },
+
+  async radarDecideRequest(requestId, approve, note) {
+    return readOne(requireSupabase().rpc("radar_decide_request", {
+      p_request_id: requestId, p_approve: !!approve, p_note: note || null,
+    }));
+  },
+
+  async radarBanRequester(requestId) {
+    return readOne(requireSupabase().rpc("radar_ban_requester", { p_request_id: requestId }));
+  },
+
+  async radarGroupBans(groupId) {
+    return readMany(requireSupabase().rpc("radar_group_bans_list", { p_group_id: groupId }));
+  },
+
+  async radarUnban(groupId, profileId) {
+    return readOne(requireSupabase().rpc("radar_unban", { p_group_id: groupId, p_profile_id: profileId }));
+  },
+
+  async radarGroupOutsiders(groupId) {
+    return readMany(requireSupabase().rpc("radar_group_outsiders", { p_group_id: groupId }));
+  },
+
+  async listNotifications(limit = 30) {
+    const client = requireSupabase();
+    return readMany(
+      client.from("app_notifications").select("*").order("created_at", { ascending: false }).limit(limit),
+    );
+  },
+
+  async countUnreadNotifications() {
+    const client = requireSupabase();
+    const { count, error } = await client
+      .from("app_notifications").select("id", { count: "exact", head: true }).is("read_at", null);
+    raise(error);
+    return count || 0;
+  },
+
+  async markNotificationsRead(ids = null) {
+    return readOne(requireSupabase().rpc("notifications_mark_read", { p_ids: ids && ids.length ? ids : null }));
+  },
 };

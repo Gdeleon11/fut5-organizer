@@ -41,6 +41,7 @@ export default function MatchDetail({
   onSaveStats,
   onBack,
   forceDesign,
+  radarPanel = null,
 }) {
   const { design: preferredDesign } = useAppearance();
   const design = forceDesign || preferredDesign;
@@ -336,6 +337,8 @@ export default function MatchDetail({
   };
 
   const admin = isAdmin ? (
+    <>
+    {radarPanel}
     <AdminTools
       vm={vm}
       attendances={attendances}
@@ -357,6 +360,7 @@ export default function MatchDetail({
       onUpdateGuestRating={onUpdateGuestRating}
       onDeleteMatch={onDeleteMatch}
     />
+    </>
   ) : null;
 
   const View = design === "command" ? CommandMatchDetail : EditorialMatchDetail;

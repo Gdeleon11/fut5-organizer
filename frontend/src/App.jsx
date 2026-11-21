@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, CalendarHeart, Home, Users, CreditCard, Shield, Trophy, UserCircle, BookOpen, Palette } from "lucide-react";
+import { CalendarDays, CalendarHeart, Home, Users, CreditCard, Shield, Trophy, UserCircle, BookOpen, Palette, Radar as RadarIcon } from "lucide-react";
 import { api } from "./api.js";
 import SectionHero from "./components/SectionHero.jsx";
 import { rolePageDecision } from "./routing/roleGate.js";
@@ -18,6 +18,11 @@ import ReservePage from "./pages/ReservePage.jsx";
 import SimPage from "./pages/SimPage.jsx";
 import TeamPage from "./pages/TeamPage.jsx";
 import TournamentPage from "./pages/TournamentPage.jsx";
+import RadarPage from "./pages/RadarPage.jsx";
+import RadarAdminPanel from "./components/radar/RadarAdminPanel.jsx";
+import NotificationBell from "./components/radar/NotificationBell.jsx";
+import RadarSettingsCard from "./components/radar/RadarSettingsCard.jsx";
+import { fillTeamProfiles, radarProfiles } from "./radar/radarModel.js";
 import LeaderboardPage from "./pages/LeaderboardPage.jsx";
 import CashierPage from "./pages/CashierPage.jsx";
 import PlayersPage from "./pages/PlayersPage.jsx";
@@ -71,6 +76,7 @@ const PAGE_PATHS = {
   reservations: "/reservas",
   players: "/jugadores",
   tournaments: "/torneos",
+  radar: "/radar",
   landing: "/",
   blog: "/blog",
   nosotros: "/nosotros",
@@ -158,6 +164,11 @@ export default function App() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [demoEnabled, setIsDemoMode] = useState(false);
   const isDemoMode = import.meta.env.DEV && demoEnabled;
+  // F5 Radar: Radar players' public identity (nickname/avatar) for match-level lists, and the
+  // API used by Radar screens (the DEV demo swaps in an in-memory copy; never in production).
+  const [radarOutsiders, setRadarOutsiders] = useState([]);
+  const [radarDemoApi, setRadarDemoApi] = useState(null);
+  const [radarTab, setRadarTab] = useState("near");
 
   const [loading, setLoading] = useState(false);
   // True once the signed-in user's groups/roles have been loaded (or failed to load).
@@ -445,6 +456,8 @@ export default function App() {
     { id: "cashier", label: "Cobros", mobileLabel: "Cobros", icon: <CreditCard size={18} /> },
     { id: "players", label: "Jugadores", mobileLabel: "Jugadores", icon: <Users size={18} /> },
     { id: "profile", label: "Mi FIFA", mobileLabel: "Mi FIFA", icon: <UserCircle size={18} /> },
+    // On phones Radar lives in the top bar (next to the bell) so the bottom bar keeps its 5 entries.
+    { id: "radar", label: "Radar", mobileLabel: "Radar", icon: <RadarIcon size={18} />, mobileHidden: true },
     ...(isSuperAdmin ? [
       { id: "tournaments", label: "Torneos", mobileLabel: "Torneos", icon: <Trophy size={18} /> },
     ] : []),
@@ -524,6 +537,14 @@ export default function App() {
   const profileById = useMemo(
     () => new Map((profiles || []).filter((p) => p && p.id).map((p) => [p.id, p])), [profiles]
   );
+  // Radar players are not group members, so profiles RLS hides them: show "Apodo · Radar" instead.
+  const radarList = useMemo(() => radarProfiles(radarOutsiders, profiles || []), [radarOutsiders, profiles]);
+  const matchProfiles = useMemo(() => [...(profiles || []), ...radarList], [profiles, radarList]);
+  const matchProfileById = useMemo(
+    () => new Map(matchProfiles.filter((p) => p && p.id).map((p) => [p.id, p])), [matchProfiles]
+  );
+  const teamsView = useMemo(() => fillTeamProfiles(teamsByMatch, radarList), [teamsByMatch, radarList]);
+  const radarApi = isDemoMode ? radarDemoApi : api;
   const matchGuests = guests?.[selectedMatch?.id] || [];
   const myPendingAssistedReservations = useMemo(
     () => matches.filter((match) =>
@@ -584,6 +605,22 @@ export default function App() {
       bootstrap(session.user);
     }
   }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!(import.meta.env.DEV && isDemoMode)) { setRadarDemoApi(null); return; }
+    const demoMatch = matches.find((m) => m.status === "upcoming" && m.match_date > new Date().toISOString().slice(0, 10));
+    import("./dev/radarDemo.js").then((d) => {
+      const demo = d.createRadarDemoApi({ groupId: activeGroupId, adminMatchId: demoMatch?.id });
+      setRadarDemoApi(demo);
+      demo.radarGroupOutsiders().then(setRadarOutsiders);
+    });
+  }, [isDemoMode, activeGroupId, matches.length]);
+
+  function openNotificationTarget(target) {
+    if (target?.page === "match" && target.matchId) { openMatch(target.matchId); return; }
+    setRadarTab(target?.tab || "near");
+    goToPage("radar");
+  }
 
   useEffect(() => {
     const allowedPages = new Set([
@@ -717,6 +754,20 @@ export default function App() {
   }
   function openMatch(matchId) { setSelectedMatchId(matchId); setPage("match"); }
 
+  async function onRadarApproved(result) {
+    if (!result || result.status !== "approved") return;
+    if (isDemoMode) { setNotice("Jugador de Radar aceptado (Simulación Local)."); return; }
+    try {
+      const m = matches.find((x) => x.id === result.match_id);
+      if (m && Number(m.court_cost) > 0 && Array.isArray(result.confirmed_profile_ids) && result.confirmed_profile_ids.length) {
+        const due = m.match_date ? new Date(`${m.match_date}T${m.start_time || "00:00"}`).toISOString() : null;
+        const fee = await api.upsertMatchFee(m.id, activeGroupId, m.court_cost, result.confirmed_profile_ids, due);
+        if (fee) setMatchFees((c) => [...c.filter((f) => f.match_id !== m.id), fee]);
+      }
+      await loadData(profile, activeGroupId);
+    } catch (err) { setError(err.message); }
+  }
+
   async function bootstrap(user) {
     setError(""); setLoading(true); setRolesResolved(false);
     try {
@@ -750,7 +801,8 @@ export default function App() {
       setAttendances([]); setTeamsByMatch({}); setFines([]); setSettings(null);
       setVenues([]); setMatchFees([]); setCollections([]);
       setReservations([]);
-      setSelectedMatchId(null); setPage("groups"); return null;
+      // Without a group the app shows onboarding; keep /radar so outsiders can use Radar directly.
+      setSelectedMatchId(null); setPage((current) => (current === "radar" ? "radar" : "groups")); return null;
     }
     const stored = typeof window === "undefined"
       ? "" : window.localStorage.getItem("fut5_active_group_id") || "";
@@ -770,7 +822,7 @@ export default function App() {
     if (!currentProfile || !groupId) return;
     const [matchRows, attendanceRows, fineRows, ratingRows, settingRows,
            profileRows, venueRows, collectionRows, tagRows, guestRows,
-           statsRows, expensesRows, reservationRows] = await Promise.all([
+           statsRows, expensesRows, reservationRows, radarRows] = await Promise.all([
       api.listMatches(groupId), api.listAttendances(groupId),
       api.listFines(groupId), api.listRatings(groupId),
       api.listSettings(groupId), api.listGroupProfiles(groupId),
@@ -779,7 +831,9 @@ export default function App() {
       api.listGroupMatchPlayerStats(groupId).catch(() => []),
       api.listGroupExpenses(groupId).catch(() => []),
       api.listReservations(groupId).catch(() => []),
+      api.radarGroupOutsiders(groupId).catch(() => []),
     ]);
+    setRadarOutsiders(radarRows || []);
     let voteRows = [];
     try { voteRows = await api.getPlayerVotes(groupId); } catch (e) { console.warn("Votes not available:", e.message); }
     const teamsMap = await api.listAllTeams(matchRows);
@@ -832,9 +886,11 @@ export default function App() {
     }
 
     const memberIds = new Set((profileRows || []).map((p) => p && p.id).filter(Boolean));
+    // Radar players attend without joining the group: never auto-add them as members.
+    const radarIds = new Set((radarRows || []).map((r) => r.profile_id));
     const orphanProfileIds = [...new Set(
       (attendanceRows || [])
-        .filter((a) => a && !memberIds.has(a.profile_id))
+        .filter((a) => a && !memberIds.has(a.profile_id) && !radarIds.has(a.profile_id))
         .map((a) => a.profile_id)
     )];
     if (orphanProfileIds.length > 0) {
@@ -1453,7 +1509,7 @@ export default function App() {
         options.aiAssignments = options.aiTeams.teams;
       }
 
-      const result = await api.generateTeamsForMatch(match, freshProfiles, attendances, ratings, options);
+      const result = await api.generateTeamsForMatch(match, [...freshProfiles, ...radarProfiles(radarOutsiders, freshProfiles)], attendances, ratings, options);
       setTeamsByMatch((c) => ({ ...c, [match.id]: result.teams }));
       setNotice(options.aiFallback
         ? "La IA devolvió equipos incompletos; se generaron equipos automáticos con todos los confirmados."
@@ -2094,9 +2150,21 @@ export default function App() {
     return <ShellMessage title="Cargando" message="Buscando tus grupos..." />;
   }
   if (profile && memberships.length === 0 && !activeGroupId) {
+    if (page === "radar") {
+      return (
+        <div className={`app md-app md-design-${appearanceDesign} rd-solo`}>
+          <AppearanceScope />
+          <div className="rd-solo-top">
+            <button type="button" className="md-btn md-btn-ghost" onClick={() => goToPage("matches")}>← Volver</button>
+            {radarApi && <NotificationBell radarApi={radarApi} onNavigate={openNotificationTarget} />}
+          </div>
+          {radarApi && <RadarPage key={radarTab} radarApi={radarApi} initialTab={radarTab} hasGroup={false} onGoToGroups={() => goToPage("matches")} />}
+        </div>
+      );
+    }
     return (
       <>
-        <GroupOnboardingPage onCreateGroup={createGroup} onJoinGroup={requestJoinGroup} />
+        <GroupOnboardingPage onCreateGroup={createGroup} onJoinGroup={requestJoinGroup} onOpenRadar={() => goToPage("radar")} />
         {loading && <div className="app"><div className="empty-state compact">Cargando...</div></div>}
         {notice && <div className="app"><div className="alert success">{notice}</div></div>}
         {error && <div className="app"><div className="alert error">{error}</div></div>}
@@ -2138,6 +2206,7 @@ export default function App() {
         userRating={userRating}
         refresh={refresh}
         signOut={signOut}
+        bell={radarApi ? <NotificationBell radarApi={radarApi} onNavigate={openNotificationTarget} compact /> : null}
       />
 
       <div className="md-workspace">
@@ -2155,10 +2224,19 @@ export default function App() {
           userRating={userRating}
           refresh={refresh}
           signOut={signOut}
+          bell={radarApi ? (
+            <>
+              <button type="button" className={`md-icon-btn rd-top-radar${page === "radar" ? " is-active" : ""}`} aria-label="Radar"
+                aria-current={page === "radar" ? "page" : undefined} onClick={() => { setRadarTab("near"); goToPage("radar"); }}>
+                <RadarIcon size={18} aria-hidden="true" />
+              </button>
+              <NotificationBell radarApi={radarApi} onNavigate={openNotificationTarget} />
+            </>
+          ) : null}
         />
       </div>
 
-      {!["matches", "match", "appearance", "players", "profile", "leaderboard", "cashier", "reservations", "groups", "tournaments"].includes(page) && (
+      {!["matches", "match", "appearance", "players", "profile", "leaderboard", "cashier", "reservations", "groups", "tournaments", "radar"].includes(page) && (
         <SectionHero
           page={page}
           showArtwork={
@@ -2242,16 +2320,27 @@ export default function App() {
             onReconfirm={(id) => reconfirmAttendance(id)}
             onUpdateGuestRating={(id, rating) => updateGuestRating(selectedMatch.id, id, rating)}
             guests={matchGuests}
-            profile={currentPlayer} profiles={profiles} profileById={profileById}
+            profile={currentPlayer} profiles={matchProfiles} profileById={matchProfileById}
             skills={skills} ratingMap={ratingMap}
-            teams={teamsByMatch[selectedMatch.id] || []}
+            teams={teamsView[selectedMatch.id] || []}
+            radarPanel={isAdmin && radarApi ? (
+              <RadarAdminPanel
+                key={selectedMatch.id}
+                match={selectedMatch}
+                venue={venues.find((v) => v.id === selectedMatch.venue_id) || null}
+                groupId={activeGroupId}
+                occupancy={confirmedAttendances(selectedMatch.id).length + matchGuests.length}
+                radarApi={radarApi}
+                onApproved={onRadarApproved}
+              />
+            ) : null}
             venues={venues}
             matchStats={matchStats}
             onSaveStats={saveMatchStats}
             onBack={() => setPage("matches")} />
         )}
         {page === "team" && (
-          <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsByMatch} isAdmin={isAdmin} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
+          <TeamPage matches={sortedMatches} profile={currentPlayer} teamsByMatch={teamsView} isAdmin={isAdmin} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
         )}
         {page === "leaderboard" && (
           <LeaderboardPage
@@ -2278,7 +2367,7 @@ export default function App() {
             onAddExpense={addExpense}
             onDeleteExpense={deleteExpense}
             profile={currentPlayer}
-            profileById={profileById}
+            profileById={matchProfileById}
             profiles={profiles}
             onCreateCollection={createCollection}
             onUpdateCollection={updateCollection}
@@ -2324,6 +2413,7 @@ export default function App() {
         {page === "groups" && (
           <GroupsPage activeGroupId={activeGroupId} memberships={memberships}
             isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} settings={settings} onUpdateSettings={updateSettings}
+            radarSettings={isSuperAdmin && radarApi ? <RadarSettingsCard groupId={activeGroupId} radarApi={radarApi} /> : null}
             onCreateGroup={createGroup} onSwitchGroup={switchGroup}
             onUpdateDescription={async (desc) => {
               await api.updateGroupDescription(activeGroupId, desc);
@@ -2379,6 +2469,9 @@ export default function App() {
             setReservations={setReservations}
           />
         )}
+        {page === "radar" && radarApi && (
+          <RadarPage key={radarTab} radarApi={radarApi} initialTab={radarTab} hasGroup />
+        )}
         {page === "tournaments" && !isSuperAdmin && !isDemoMode && !rolesResolved && (
           <div className="empty-state compact" role="status" aria-live="polite" data-view="role-check">Verificando tus permisos…</div>
         )}
@@ -2424,7 +2517,7 @@ export default function App() {
 
       {/* ── MOBILE BOTTOM NAVIGATION V2 ── */}
       <MobileBottomNav
-        navItems={navItems}
+        navItems={navItems.filter((i) => !i.mobileHidden)}
         moreExtras={[{ id: "appearance", label: "Apariencia", mobileLabel: "Apariencia", icon: <Palette size={18} /> }]}
         activePage={page}
         goToPage={goToPage}

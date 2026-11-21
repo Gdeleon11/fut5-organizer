@@ -19,6 +19,7 @@ export function AppHeader({
   userRating,
   refresh,
   signOut,
+  bell = null,
 }) {
   return (
     <header className="f5-app-header">
@@ -56,6 +57,9 @@ export function AppHeader({
           activeGroupId={activeGroupId}
           switchGroup={switchGroup}
         />
+
+        {/* In-app notices (Radar) */}
+        {bell}
 
         {/* Notifications Icon */}
         <PushNotifications profile={profile} />

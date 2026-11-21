@@ -15,7 +15,7 @@ function extractGroupQuery(value) {
   }
 }
 
-export default function GroupOnboardingPage({ onCreateGroup, onJoinGroup }) {
+export default function GroupOnboardingPage({ onCreateGroup, onJoinGroup, onOpenRadar }) {
   const [groupName, setGroupName] = useState("");
   const [searchText, setSearchText] = useState("");
   const [results, setResults] = useState([]);
@@ -82,6 +82,11 @@ export default function GroupOnboardingPage({ onCreateGroup, onJoinGroup }) {
       footer="Tus datos solo se comparten dentro de tu grupo"
     >
       {formError && <PubNotice tone="error">{formError}</PubNotice>}
+      {onOpenRadar && (
+        <PubNotice tone="info">
+          ¿Solo querés jugar? <button type="button" className="pub-btn is-ghost" onClick={onOpenRadar}>Buscar partidos en Radar</button>
+        </PubNotice>
+      )}
       <div className="pub-split" aria-label="Elegir grupo">
         <section aria-labelledby="ob-create">
           <UsersRound aria-hidden="true" size={24} />

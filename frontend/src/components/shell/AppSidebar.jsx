@@ -52,6 +52,7 @@ export function AppSidebar({
   userRating,
   refresh,
   signOut,
+  bell = null,
 }) {
   const [mode, setMode] = useState(() => readMode(variant));
   const isNarrow = useMediaQuery("(max-width: 1279px)");
@@ -204,6 +205,7 @@ export function AppSidebar({
           </div>
         )}
         <div className="md-tools">
+          {bell}
           {isRail && (
             <button type="button" className="md-tool" data-tip="Notificaciones" aria-label="Notificaciones" onClick={toggle}>
               <Bell size={18} aria-hidden="true" />
