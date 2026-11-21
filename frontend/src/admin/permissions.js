@@ -29,6 +29,7 @@ export const CAPABILITIES = [
   ["Grupo", "Editar la descripción y compartir la invitación", "admin"],
   ["Grupo", "Nombrar administradores (Mi FIFA → Roles)", "admin"],
   ["Torneos", "Crear torneos, equipos, calendario y cargar resultados", "super_admin"],
+  ["Grupo", "Configurar montos de multas (Grupos → Configuración)", "super_admin"],
 ];
 
 export function roleRank(role) {

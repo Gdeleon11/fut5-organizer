@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, CalendarHeart, Home, Users, CreditCard, Shield, Trophy, UserCircle, BookOpen, Palette } from "lucide-react";
 import { api } from "./api.js";
 import SectionHero from "./components/SectionHero.jsx";
+import { rolePageDecision } from "./routing/roleGate.js";
 import AdBanner from "./components/AdBanner.jsx";
 
 import PostMatchSurveyModal from "./components/PostMatchSurveyModal.jsx";
@@ -159,6 +160,10 @@ export default function App() {
   const isDemoMode = import.meta.env.DEV && demoEnabled;
 
   const [loading, setLoading] = useState(false);
+  // True once the signed-in user's groups/roles have been loaded (or failed to load).
+  // Role-gated pages (e.g. /torneos) must not be redirected before this, otherwise a
+  // direct link or a reload bounces a super admin to /partidos.
+  const [rolesResolved, setRolesResolved] = useState(false);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const mobileNavRefs = useRef({});
@@ -599,8 +604,9 @@ export default function App() {
       "landing",
       "auth",
     ]);
-    if (!allowedPages.has(page)) setPage("matches");
-  }, [navItems, page]);
+    // Wait for the real session/groups/role before deciding a role-gated page is not allowed.
+    if (rolePageDecision({ page, allowedPages, rolesResolved, isDemoMode }) === "redirect") setPage("matches");
+  }, [navItems, page, rolesResolved, isDemoMode]);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -712,13 +718,13 @@ export default function App() {
   function openMatch(matchId) { setSelectedMatchId(matchId); setPage("match"); }
 
   async function bootstrap(user) {
-    setError(""); setLoading(true);
+    setError(""); setLoading(true); setRolesResolved(false);
     try {
       const p = await api.ensureProfile(user);
       setProfile(p);
       if (profileComplete(p)) await initializeWorkspace(p);
     } catch (err) { setError(err.message); }
-    finally { setLoading(false); }
+    finally { setLoading(false); setRolesResolved(true); }
   }
 
   async function initializeWorkspace(currentProfile = profile) {
@@ -2317,7 +2323,8 @@ export default function App() {
         )}
         {page === "groups" && (
           <GroupsPage activeGroupId={activeGroupId} memberships={memberships}
-            isAdmin={isAdmin} onCreateGroup={createGroup} onSwitchGroup={switchGroup}
+            isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} settings={settings} onUpdateSettings={updateSettings}
+            onCreateGroup={createGroup} onSwitchGroup={switchGroup}
             onUpdateDescription={async (desc) => {
               await api.updateGroupDescription(activeGroupId, desc);
               const rows = await api.listMyGroups(profile.id);
@@ -2371,6 +2378,9 @@ export default function App() {
             reservations={reservations}
             setReservations={setReservations}
           />
+        )}
+        {page === "tournaments" && !isSuperAdmin && !isDemoMode && !rolesResolved && (
+          <div className="empty-state compact" role="status" aria-live="polite" data-view="role-check">Verificando tus permisos…</div>
         )}
         {page === "tournaments" && isSuperAdmin && (
           <TournamentPage activeGroupId={activeGroupId} profiles={profiles} ratingMap={ratingMap}

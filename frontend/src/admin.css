@@ -107,7 +107,7 @@
 .tn-form i.is-P { background: color-mix(in oklab, var(--md-bad) 18%, transparent); color: var(--md-bad); }
 
 /* ---------- Bracket ---------- */
-.tn-bracket { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 1fr); gap: 0 28px; overflow-x: auto; padding-block-end: 8px; }
+.tn-bracket { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(220px, 380px); gap: 0 28px; overflow-x: auto; padding-block-end: 8px; }
 .tn-col { display: grid; grid-template-rows: auto 1fr; gap: 10px; min-inline-size: 0; }
 .tn-col h3 { font: 600 13px var(--md-ui); letter-spacing: 0.16em; text-transform: uppercase; color: var(--md-text-3); }
 .tn-col-matches { display: flex; flex-direction: column; justify-content: space-around; gap: 16px; }

@@ -187,7 +187,7 @@ export default function ProofUploadPage({ token, session }) {
             {uploading ? "Subiendo…" : "Enviar comprobante"}
           </button>
         </>
-      ) : isSubmitted ? (
+      ) : isSubmitted && !success ? (
         <PubNotice tone="info">Tu comprobante fue enviado y está esperando revisión del admin.</PubNotice>
       ) : isApproved ? (
         <PubNotice tone="success">Tu comprobante fue aprobado. ¡Gracias!</PubNotice>

@@ -1393,8 +1393,7 @@ export const api = {
           .from("match_fee_payments")
           .select(`
             id, profile_id, group_id, status, proof_status, proof_url,
-            match_fees!inner(per_player_amount, match_id, due_before),
-            matches!inner(title)
+            match_fees!inner(per_player_amount, match_id, due_before, matches(title))
           `)
           .eq("id", paymentId)
           .eq("profile_id", profileId)
@@ -1444,7 +1443,7 @@ export const api = {
           ? paymentRecord.match_fees?.per_player_amount
           : paymentRecord.collections?.amount_per_player,
         title: paymentType === "match_fee"
-          ? paymentRecord.matches?.title
+          ? paymentRecord.match_fees?.matches?.title
           : paymentRecord.collections?.title,
         match_id: paymentType === "match_fee"
           ? paymentRecord.match_fees?.match_id
@@ -1635,7 +1634,10 @@ export const api = {
 
   async createTournamentMatches(matches) {
     const client = requireSupabase();
-    return readMany(client.from("tournament_matches").insert(matches).select("*"));
+    // Fixtures are heterogeneous (only playoff rows carry is_playoff / playoff_label / is_final).
+    // In a bulk insert PostgREST receives the union of keys; defaultToNull:false makes the
+    // missing ones take the column DEFAULT (false) instead of an explicit NULL.
+    return readMany(client.from("tournament_matches").insert(matches, { defaultToNull: false }).select("*"));
   },
 
   async listTournamentMatches(tournamentId) {

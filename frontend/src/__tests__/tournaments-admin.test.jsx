@@ -15,6 +15,7 @@ import { api } from "../api.js";
 import { generateFixtures, updateStandings } from "../tournamentEngine.js";
 import { bracketColumns, formGuide, groupRounds, matchWinner, teamRating } from "../tournament/tournamentModel.js";
 import { CAPABILITIES, canRole } from "../admin/permissions.js";
+import { rolePageDecision } from "../routing/roleGate.js";
 import TournamentPage from "../pages/TournamentPage.jsx";
 import GroupsPage from "../pages/GroupsPage.jsx";
 import ReservePage from "../pages/ReservePage.jsx";
@@ -87,6 +88,20 @@ describe("TournamentPage keeps the same writes", () => {
   });
 });
 
+describe("/torneos direct navigation and reload", () => {
+  const base = new Set(["matches", "players", "groups"]);
+  it("waits (no redirect) while the session, groups and role are loading", () => {
+    expect(rolePageDecision({ page: "tournaments", allowedPages: base, rolesResolved: false, isDemoMode: false })).toBe("wait");
+  });
+  it("keeps the page for a super admin once roles are known", () => {
+    expect(rolePageDecision({ page: "tournaments", allowedPages: new Set([...base, "tournaments"]), rolesResolved: true, isDemoMode: false })).toBe("stay");
+  });
+  it("redirects a player only after roles are known", () => {
+    expect(rolePageDecision({ page: "tournaments", allowedPages: base, rolesResolved: true, isDemoMode: false })).toBe("redirect");
+    expect(rolePageDecision({ page: "unknown-page", allowedPages: base, rolesResolved: false, isDemoMode: false })).toBe("redirect");
+  });
+});
+
 describe("Groups and roles", () => {
   it("permission matrix is cumulative and the super admin sees every capability", () => {
     expect(canRole("super_admin", "admin")).toBe(true);
@@ -115,6 +130,23 @@ describe("Groups and roles", () => {
     render(<GroupsPage activeGroupId="g" memberships={memberships} isAdmin={false} onCreateGroup={vi.fn()} onSwitchGroup={vi.fn()} onUpdateDescription={vi.fn()} />);
     expect(screen.queryByRole("button", { name: /Editar descripción/ })).toBeNull();
     expect(screen.queryByText("Invitación del grupo")).toBeNull();
+  });
+});
+
+describe("Fine settings (restored from the former Super Admin page)", () => {
+  const memberships = [{ group_id: "g", role: "admin", is_active: true, groups: { id: "g", name: "Chamusca QA" } }];
+  const settings = { group_id: "g", fine_amount: 50, late_cancel_fine_amount: 25 };
+
+  it("only the super admin sees Configuración, and it saves the same payload", async () => {
+    const onUpdateSettings = vi.fn().mockResolvedValue();
+    const { unmount } = render(<GroupsPage activeGroupId="g" memberships={memberships} isAdmin isSuperAdmin={false} settings={settings} onUpdateSettings={onUpdateSettings} onCreateGroup={vi.fn()} onSwitchGroup={vi.fn()} onUpdateDescription={vi.fn()} />);
+    expect(screen.queryByRole("button", { name: /Configuración/ })).toBeNull();
+    unmount();
+    render(<GroupsPage activeGroupId="g" memberships={[{ ...memberships[0], role: "super_admin" }]} isAdmin isSuperAdmin settings={settings} onUpdateSettings={onUpdateSettings} onCreateGroup={vi.fn()} onSwitchGroup={vi.fn()} onUpdateDescription={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /Configuración/ }));
+    fireEvent.change(screen.getByLabelText(/Multa por no llegar/), { target: { value: "60" } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar configuración" }));
+    await waitFor(() => expect(onUpdateSettings).toHaveBeenCalledWith({ fine_amount: 60, late_cancel_fine_amount: 25 }));
   });
 });
 

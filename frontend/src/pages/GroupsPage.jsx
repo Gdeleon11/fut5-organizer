@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Check, FileText, KeyRound, MessageCircle, PlusCircle, ShieldCheck, Users } from "lucide-react";
+import { Check, FileText, KeyRound, MessageCircle, PlusCircle, Settings2, ShieldCheck, Users } from "lucide-react";
 import ExportCard from "../components/ExportCard.jsx";
 import { Empty, Kpis, Section, StatusChip } from "../components/finance/FinanceBlocks.jsx";
 import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 import { CAPABILITIES, ROLE_INFO, ROLE_ORDER, canRole } from "../admin/permissions.js";
-import { groupInvitationText, roleLabel } from "../utils.js";
+import { formatMoney, groupInvitationText, roleLabel } from "../utils.js";
 
 function GroupDescriptionEditor({ group, isAdmin, onSave }) {
   const [editing, setEditing] = useState(false);
@@ -59,6 +59,49 @@ function GroupDescriptionEditor({ group, isAdmin, onSave }) {
   );
 }
 
+/* Fine amounts — the same SettingsPanel the former SuperAdminPage offered (super_admin only),
+ * same defaults and the same onUpdateSettings handler / payload. */
+function FineSettings({ settings, onUpdateSettings }) {
+  const [form, setForm] = useState({
+    fine_amount: settings?.fine_amount ?? 50,
+    late_cancel_fine_amount: settings?.late_cancel_fine_amount ?? 25,
+  });
+  const [saved, setSaved] = useState(false);
+
+  function update(patch) {
+    setForm((f) => ({ ...f, ...patch }));
+    setSaved(false);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    await onUpdateSettings({
+      fine_amount: Number(form.fine_amount),
+      late_cancel_fine_amount: Number(form.late_cancel_fine_amount),
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  return (
+    <form className="form-grid md-form fx-form" onSubmit={submit} aria-label="Configuración de multas">
+      <label>
+        Multa por no llegar (Q)
+        <input min="0" step="1" type="number" inputMode="numeric" value={form.fine_amount} onChange={(e) => update({ fine_amount: e.target.value })} />
+      </label>
+      <label>
+        Multa por cancelar tarde (Q)
+        <input min="0" step="1" type="number" inputMode="numeric" value={form.late_cancel_fine_amount} onChange={(e) => update({ late_cancel_fine_amount: e.target.value })} />
+      </label>
+      <p className="fx-hint md-form-wide">Valores actuales: no llegar {formatMoney(settings?.fine_amount ?? 50)} · cancelar tarde {formatMoney(settings?.late_cancel_fine_amount ?? 25)}. Solo afectan multas nuevas.</p>
+      <div className="md-form-actions">
+        {saved && <span className="fx-chip is-paid" role="status">Guardado</span>}
+        <button className="md-btn md-btn-accent" type="submit">Guardar configuración</button>
+      </div>
+    </form>
+  );
+}
+
 function RolesMatrix({ variant, myRole }) {
   const areas = [...new Set(CAPABILITIES.map(([a]) => a))];
   return (
@@ -107,6 +150,9 @@ export default function GroupsPage({
   activeGroupId,
   memberships,
   isAdmin,
+  isSuperAdmin = false,
+  settings = null,
+  onUpdateSettings,
   onCreateGroup,
   onSwitchGroup,
   onUpdateDescription,
@@ -134,7 +180,11 @@ export default function GroupsPage({
     setName("");
   }
 
-  const tabs = [["groups", "Mis grupos", Users], ["roles", "Roles y permisos", ShieldCheck]];
+  const tabs = [
+    ["groups", "Mis grupos", Users],
+    ["roles", "Roles y permisos", ShieldCheck],
+    ...(isSuperAdmin ? [["settings", "Configuración", Settings2]] : []),
+  ];
 
   return (
     <div className={`md-matches md-design-${variant} fx-page gr-page`} data-design={variant} data-view="groups">
@@ -165,6 +215,14 @@ export default function GroupsPage({
         {tab === "roles" && (
           <Section title="Roles y permisos" icon={ShieldCheck}>
             <RolesMatrix variant={variant} myRole={myRole} />
+          </Section>
+        )}
+
+        {tab === "settings" && isSuperAdmin && (
+          <Section title="Configuración de multas" icon={Settings2}>
+            {settings
+              ? <FineSettings settings={settings} onUpdateSettings={onUpdateSettings} />
+              : <Empty>Este grupo todavía no tiene configuración guardada.</Empty>}
           </Section>
         )}
 

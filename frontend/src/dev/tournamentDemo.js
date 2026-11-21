@@ -28,7 +28,7 @@ export function demoTournamentDetail(id, profiles = []) {
   let standings = teams.map((team, i) => ({ id: `${id}-st-${i}`, tournament_team_id: team.id, tournament_team: team, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0 }));
   const matches = fixtures.map((f, i) => {
     const score = SCORES[id][i];
-    const m = { ...f, id: `${id}-m-${i}`, tournament_id: id, status: score ? "played" : "scheduled", home_score: score?.[0] ?? null, away_score: score?.[1] ?? null };
+    const m = { ...f, id: `${id}-m-${i}`, tournament_id: id, status: score ? "played" : "pending", home_score: score?.[0] ?? null, away_score: score?.[1] ?? null };
     if (id === T_CUP && f.round === 2) { m.home_team_id = teams[0].id; m.away_team_id = teams[3].id; } // winners advance
     if (score && m.home_team_id && m.away_team_id && !f.is_playoff) standings = updateStandings(standings, m.home_team_id, m.away_team_id, score[0], score[1]);
     return m;
