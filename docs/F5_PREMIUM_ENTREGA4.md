@@ -1,8 +1,8 @@
 # F5 Premium — Entrega 4: Torneos, Grupos/Administración y páginas públicas
 
 - **Branch:** `feat/f5-premium-tournaments-admin` (from `master` @ `e158568`).
-- **Status:** validated locally and on Chamusca-Staging. Not pushed or deployed.
-- **Production:** untouched. It was read only for schema metadata and for `limit=0` query validation.
+- **Status:** released to Production on 2026-11-21 (`master` @ `c9ecdf8`, f5manager.lat).
+- **Production database:** only the migration `20261121120000_tournament_playoff_columns.sql` was applied, with authorization. Nothing else changed.
 
 ## What is delivered
 
@@ -77,7 +77,30 @@
 - **Onboarding:** renders and searches.
 - **Cleanup:** all synthetic rows and Storage objects were removed, roles were restored, and there were 0 production requests.
 
+## Release log (2026-11-21)
+
+1. **Preview** `fut5-organizer-8jsx8atnh` (protected, uses Staging): E4 QA 31/31 with no Production requests.
+2. **Production migration:**
+   - Applied with `supabase db query --linked -f supabase/migrations/20261121120000_tournament_playoff_columns.sql`.
+   - Recorded with `supabase migration repair --status applied 20261121120000`.
+   - Verified: `information_schema` lists `is_playoff` (boolean, not null, default false), `is_final` (same) and `playoff_label` (text, nullable). `limit=0` GETs return 200 for the new columns, the team embed and the proof-link query.
+   - `supabase db push` was **not** used. Its dry run wanted to include two older local migrations that are missing from Production's history (see risks).
+3. **Frontend:**
+   - `master` fast-forwarded `e158568 → c9ecdf8` and pushed.
+   - Vercel Production deployment `fut5-organizer-9bcd2lyvz` is Ready, and f5manager.lat serves the E4 bundle.
+4. **Production smoke check (read-only, 26/26):**
+   - landing, FAQ and login render without overflow, on desktop and mobile;
+   - `/partidos`, `/torneos`, `/grupos`, `/cobros` and `/reservas` require login and offer no demo;
+   - invalid `/proof` and `/reserve` links show the premium error or login state, with no file input;
+   - anonymous isolation holds;
+   - no JS, console or HTTP errors, no writes, and Supabase Production only.
+
 ## Known risks / pending decisions
+
+- **Migration history drift in Production:**
+  - `20260714152000_allow_players_to_manage_own_stats.sql` and `20260723200000_allow_admin_delete_attendances.sql` exist in the repo but are not recorded in Production's migration history.
+  - Their policies may or may not be in place in Production. This was not changed or investigated (outside E4).
+  - Until it is reconciled, do not run `supabase db push --include-all`.
 
 - **Anonymous reservation-proof upload is denied (Production too).** The Storage policy `reservation_proofs_insert_valid_reservation` checks `court_reservations` with a subquery, and `anon` cannot read that table under RLS. Signed-in group members can upload.
   - Fixing it needs a security decision, for example a `SECURITY DEFINER` helper in the policy. Not changed here.
