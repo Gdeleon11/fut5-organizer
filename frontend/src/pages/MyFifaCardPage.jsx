@@ -29,6 +29,7 @@ export default function MyFifaCardPage({
   isSuperAdmin,
   activeGroupId,
   onSaveProfile,
+  onSavePosition,
   onAddSkill,
   onRemoveSkill,
   onUpdateRole, // Nombrar administradores
@@ -193,9 +194,9 @@ export default function MyFifaCardPage({
       matches={matches}
       attendances={attendances}
       matchStats={matchStats}
-      onSavePosition={(preferred_position) => onSaveProfile({
+      onSavePosition={onSavePosition || ((preferred_position) => onSaveProfile({
         full_name: profile.full_name, nickname: profile.nickname || null, phone: profile.phone || "555-5555", preferred_position,
-      }, null)}
+      }, null))}
     />
   ) : null;
 

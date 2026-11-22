@@ -1256,6 +1256,22 @@ export default function App() {
     } catch (err) { setError(err.message); }
   }
 
+  // Player Builder: change only the main position, staying on Mi FIFA.
+  async function savePosition(preferred_position) {
+    if (isDemoMode) {
+      const updated = { ...profile, preferred_position };
+      setProfile(updated); setProfiles((c) => c.map((p) => (p.id === updated.id ? { ...p, preferred_position } : p)));
+      return updated;
+    }
+    // updateMyProfile writes every field: send the current ones so nothing else changes.
+    const updated = await api.updateMyProfile(profile.id, {
+      full_name: profile.full_name, nickname: profile.nickname, phone: profile.phone, preferred_position,
+    });
+    setProfile(updated);
+    setProfiles((c) => c.map((p) => (p.id === updated.id ? { ...p, preferred_position } : p)));
+    return updated;
+  }
+
   async function saveProfile(payload, avatarFile) {
     setNotice(""); setError("");
     try {
@@ -2475,6 +2491,7 @@ export default function App() {
             isSuperAdmin={isSuperAdmin}
             activeGroupId={activeGroupId}
             onSaveProfile={saveProfile}
+            onSavePosition={savePosition}
             onAddSkill={addSkill}
             onRemoveSkill={removeSkill}
             onUpdateRole={updateMemberRole}
