@@ -203,11 +203,11 @@ export function confirmedRoster({ matchId, attendances = [], profiles = [], gues
     .map((a) => {
       const p = byId.get(a.profile_id) || a.profiles || null;
       const name = p ? displayName(p) : "Jugador";
-      return { id: a.profile_id, name, initial: initialOf(name), isMe: a.profile_id === meId, isGuest: false };
+      return { id: a.profile_id, name, initial: initialOf(name), isMe: a.profile_id === meId, isGuest: false, profile: p };
     });
   const guestRows = ((guests || {})[matchId] || []).map((g, i) => {
     const name = g?.name || g?.full_name || "Invitado";
-    return { id: g?.id || `guest-${i}`, name, initial: initialOf(name), isMe: false, isGuest: true };
+    return { id: g?.id || `guest-${i}`, name, initial: initialOf(name), isMe: false, isGuest: true, profile: null, guestRating: g?.rating || null };
   });
   return [...members, ...guestRows];
 }

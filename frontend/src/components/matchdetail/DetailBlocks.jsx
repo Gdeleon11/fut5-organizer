@@ -22,6 +22,7 @@ import {
   Zap,
 } from "lucide-react";
 import Avatar from "../Avatar.jsx";
+import PlayerFace, { playerPhotoUrl } from "../PlayerFace.jsx";
 import PlayerBadge from "../PlayerBadge.jsx";
 import FifaCard from "../FifaCard.jsx";
 import WeatherWidget from "../WeatherWidget.jsx";
@@ -82,7 +83,7 @@ export function FifaModal({ player, onClose, ratingMap, skills, matchStats }) {
   );
 }
 
-const asFifaPlayer = (p) =>
+export const asFifaPlayer = (p) =>
   p.isGuest ? { isGuest: true, full_name: p.name, guestRating: p.guestRating || 3 } : p.profile;
 
 /* ---------- Roster ---------- */
@@ -110,7 +111,7 @@ export function RosterSection({ vm, variant, onOpenPlayer, onCopyGuestLink, gues
             <li key={p.key}>
               <button type="button" className={`mdd-cc-player${p.isMe ? " is-me" : ""}`} onClick={() => onOpenPlayer(asFifaPlayer(p))} disabled={!p.isGuest && !p.profile}>
                 <span className="mdd-cc-pos">{p.positionShort}</span>
-                <span className="mdd-cc-tok">{p.initial}</span>
+                <span className={`mdd-cc-tok${playerPhotoUrl(p.profile) ? " has-photo" : ""}`}><PlayerFace profile={p.profile} initial={p.initial} size={32} /></span>
                 <span className="mdd-cc-name">
                   {p.name}
                   <small>{p.isGuest ? "Invitado" : p.positionLabel}</small>
@@ -186,11 +187,13 @@ export function TeamsPitch({ teams, onOpenPlayer }) {
               <button
                 type="button"
                 key={m.key}
-                className={`mdd-pitch-tok${m.isMe ? " is-me" : ""}`}
+                className={`mdd-pitch-tok${m.isMe ? " is-me" : ""}${playerPhotoUrl(m.profile) ? " has-photo" : ""}`}
                 onClick={() => onOpenPlayer(asFifaPlayer(m))}
+                disabled={!m.isGuest && !m.profile}
+                aria-label={`Ver ficha de ${m.name} · ${m.positionLabel}`}
                 title={`${m.name} · ${m.positionLabel}`}
               >
-                {m.initial}
+                <PlayerFace profile={m.profile} initial={m.initial} size={40} />
                 <small>{m.name}</small>
               </button>
             ))}

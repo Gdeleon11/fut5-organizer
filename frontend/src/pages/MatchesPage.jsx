@@ -5,6 +5,7 @@ import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 import { buildMatchdayModel } from "../matchday/matchdayModel.js";
 import EditorialMatchesView from "../components/matchday/EditorialMatchesView.jsx";
 import CommandMatchesView from "../components/matchday/CommandMatchesView.jsx";
+import { FifaModal, useFifaModal } from "../components/matchdetail/DetailBlocks.jsx";
 import { useMatchActions } from "../components/matchday/shared.jsx";
 
 const HISTORY_PAGE = 6;
@@ -39,7 +40,11 @@ export default function MatchesPage({
   groupName = "",
   forceDesign,
   now,
+  ratingMap,
+  skills = [],
+  matchStats = [],
 }) {
+  const fifa = useFifaModal();
   const { design: preferredDesign } = useAppearance();
   const design = forceDesign || preferredDesign;
   const [showCreate, setShowCreate] = useState(false);
@@ -170,12 +175,14 @@ export default function MatchesPage({
       {design === "command" ? (
         <CommandMatchesView
           {...shared}
+          onOpenPlayer={fifa.open}
           upcomingCount={(matches || []).length}
           playedCount={model.history.filter((h) => h.state.key === "finished").length + (model.featured?.state.key === "finished" ? 1 : 0)}
         />
       ) : (
         <EditorialMatchesView {...shared} />
       )}
+      <FifaModal player={fifa.player} onClose={fifa.close} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import {
   StateChip,
   StateIcon,
 } from "./shared.jsx";
+import PlayerFace, { playerPhotoUrl } from "../PlayerFace.jsx";
 
 /** Splits N tokens into pitch columns (e.g. 15 → 3·4·4·4, like the prototype). */
 export function lineupColumns(total) {
@@ -35,6 +36,7 @@ export default function CommandMatchesView({
   onOpenMatch,
   upcomingCount,
   playedCount,
+  onOpenPlayer,
 }) {
   const { featured, agenda, lastPlayed } = model;
 
@@ -55,7 +57,7 @@ export default function CommandMatchesView({
       {createForm}
 
       {featured ? (
-        <CommandArena entry={featured} actions={actions} />
+        <CommandArena entry={featured} actions={actions} onOpenPlayer={onOpenPlayer} />
       ) : (
         <section className="mdc-arena is-empty" data-match-state="empty" aria-labelledby="mdc-empty-title">
           <div className="mdc-emptyarena">
@@ -209,7 +211,7 @@ export default function CommandMatchesView({
   );
 }
 
-export function CommandArena({ entry, actions }) {
+export function CommandArena({ entry, actions, onOpenPlayer }) {
   const { state, parts, roster, capacity, confirmedCount, free } = entry;
   const busy = actions.busyId === entry.id;
   const total = Math.max(capacity, roster.length);
@@ -230,21 +232,30 @@ export function CommandArena({ entry, actions }) {
           <StateChip state={state} />
           {parts.whenTag && state.key !== "finished" && <span className="mdc-when">{parts.whenTag}</span>}
         </div>
-        <div className="mdc-lineup" role="img" aria-label={`${confirmedCount} de ${capacity} confirmados`}>
+        <div className="mdc-lineup" role="group" aria-label={`${confirmedCount} de ${capacity} confirmados`}>
           {cols.map((count, c) => (
             <div className="mdc-lcol" key={c}>
               {Array.from({ length: count }, () => {
                 const p = roster[k];
                 const idx = k++;
+                const cls = `mdc-tok${p ? " on" : ""}${p?.isMe ? " me" : ""}${p?.isGuest ? " guest" : ""}${playerPhotoUrl(p?.profile) ? " has-photo" : ""}`;
+                if (!p) {
+                  return <span key={`free-${idx}`} className={cls} title="Cupo libre" aria-hidden="true">+</span>;
+                }
+                const canOpen = Boolean(onOpenPlayer) && (p.isGuest || p.profile);
                 return (
-                  <span
-                    key={p ? p.id : `free-${idx}`}
-                    className={`mdc-tok${p ? " on" : ""}${p?.isMe ? " me" : ""}${p?.isGuest ? " guest" : ""}`}
-                    title={p ? p.name : "Cupo libre"}
+                  <button
+                    type="button"
+                    key={p.id}
+                    className={cls}
+                    title={p.name}
+                    aria-label={canOpen ? `Ver ficha de ${p.name}` : p.name}
+                    disabled={!canOpen}
+                    onClick={() => onOpenPlayer(p.isGuest ? { isGuest: true, full_name: p.name, guestRating: p.guestRating || 3 } : p.profile)}
                   >
-                    {p ? p.initial : "+"}
-                    {p && <small>{p.name}</small>}
-                  </span>
+                    <PlayerFace profile={p.profile} initial={p.initial} size={50} />
+                    <small>{p.name}</small>
+                  </button>
                 );
               })}
             </div>

@@ -837,3 +837,14 @@ html[data-f5-palette] .f5-sticky-cta { background: color-mix(in oklab, var(--md-
 .mdc-mcard-open:focus-visible { outline: 2px solid var(--md-accent); outline-offset: 2px; }
 .mdc-mcard .md-quick { position: relative; z-index: 2; }
 .mdc-mcard:has(.mdc-mcard-open:hover) { border-color: var(--md-line-2); translate: 0 -2px; }
+
+/* Player photos on the pitch (Mi FIFA photo, initials fallback) */
+.pf-img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.mdc-tok.has-photo { border: 2px solid var(--md-tok); background: var(--md-tok); }
+.mdc-tok.has-photo.me { border-color: var(--md-accent); }
+.mdc-tok.has-photo .pf-img { inset: 2px; inline-size: calc(100% - 4px); block-size: calc(100% - 4px); }
+button.mdc-tok { padding: 0; min-height: 0; font: 800 20px var(--md-score); cursor: pointer; transition: transform 0.15s; }
+button.mdc-tok:hover:not(:disabled) { transform: scale(1.07); }
+button.mdc-tok:disabled { cursor: default; opacity: 1; }
+button.mdc-tok:focus-visible { outline: 3px solid var(--md-accent); outline-offset: 3px; }
+.mdc-tok small { z-index: 1; }

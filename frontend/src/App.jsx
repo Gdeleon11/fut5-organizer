@@ -2327,6 +2327,9 @@ export default function App() {
               guests={guests}
               onOpenPizarra={() => setIsSimulating(true)}
               groupName={activeGroup?.name || ""}
+              ratingMap={ratingMap}
+              skills={skills}
+              matchStats={matchStats}
             />
           )
         )}

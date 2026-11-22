@@ -366,3 +366,12 @@ html[data-f5-design="editorial"] .md-create h2 { font: 600 clamp(30px, 3vw, 42px
 .mdd-editorial .summary-mvp { grid-column: 1/-1; border-block-start: 1px solid var(--border); }
 .mdd-command :is(.post-match-stats,.performance-inputs) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .5rem; }
 .mdd-command :is(.post-match-stats > div,.performance-inputs > label,.weather-details) { padding: .75rem; background: var(--surface-2); border-radius: .5rem; }
+
+/* Player photos on the pitch and roster tokens */
+.mdd-cc-tok { position: relative; overflow: hidden; }
+.mdd-cc-tok.has-photo { box-shadow: 0 0 0 2px var(--md-tok); }
+.mdd-cc-player.is-me .mdd-cc-tok.has-photo { box-shadow: 0 0 0 2px var(--md-accent); }
+.mdd-pitch-tok .pf-img { inset: 0; }
+.mdd-pitch-tok.has-photo { background: var(--team); }
+.mdd-pitch-tok:disabled { cursor: default; }
+.mdd-pitch-tok:focus-visible { outline: 3px solid var(--md-accent); outline-offset: 3px; }
