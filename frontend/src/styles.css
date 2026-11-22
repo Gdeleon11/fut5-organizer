@@ -6934,3 +6934,23 @@ small, .muted {
 
 
 
+
+/* Startup states (signed-in boot: session → profile → groups → matches, or a recoverable error) */
+.su-panel { display: grid; gap: 0.75rem; text-align: center; justify-items: center; }
+.su-panel h1 { font-size: 1.6rem; }
+.su-spinner {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 3px solid rgba(var(--accent-rgb), 0.2); border-top-color: var(--accent);
+  animation: su-spin 0.9s linear infinite;
+}
+@keyframes su-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .su-spinner { animation-duration: 2.4s; } }
+.su-steps { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; list-style: none; margin: 0.25rem 0 0; padding: 0; }
+.su-steps li {
+  font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--text-muted);
+}
+.su-steps li.is-done { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.45); }
+.su-steps li.is-current { color: var(--text-primary); border-color: var(--accent); font-weight: 600; }
+.su-actions, .su-slow { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; align-items: center; }
+.su-slow { flex-direction: column; }

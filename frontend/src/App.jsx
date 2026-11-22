@@ -3,6 +3,7 @@ import { CalendarDays, CalendarHeart, Home, Users, CreditCard, Shield, Trophy, U
 import { api } from "./api.js";
 import SectionHero from "./components/SectionHero.jsx";
 import { rolePageDecision } from "./routing/roleGate.js";
+import StartupState from "./components/StartupState.jsx";
 import AdBanner from "./components/AdBanner.jsx";
 
 import PostMatchSurveyModal from "./components/PostMatchSurveyModal.jsx";
@@ -175,6 +176,10 @@ export default function App() {
   // Role-gated pages (e.g. /torneos) must not be redirected before this, otherwise a
   // direct link or a reload bounces a super admin to /partidos.
   const [rolesResolved, setRolesResolved] = useState(false);
+  // Startup phase for a signed-in user: "idle" → "profile" → "groups" → "data" → "ready",
+  // or "error" (recoverable, with retry). Nothing renders the workspace before "ready".
+  const [bootPhase, setBootPhase] = useState("idle");
+  const [bootError, setBootError] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const mobileNavRefs = useRef({});
@@ -592,7 +597,7 @@ export default function App() {
       if (!mounted) return;
       setSession(data.session);
       setSessionReady(true);
-    });
+    }).catch(() => { if (mounted) setSessionReady(true); });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
       if (!s) resetState();
@@ -603,8 +608,17 @@ export default function App() {
   useEffect(() => {
     if (session?.user) {
       bootstrap(session.user);
+    } else {
+      setBootPhase("idle");
     }
   }, [session?.user?.id]);
+
+  // Signed in on /login or / → the dashboard (replace, so Back does not bounce to an empty page).
+  useEffect(() => {
+    if (!session || isDemoMode || !["auth", "landing"].includes(page)) return;
+    if (typeof window !== "undefined") window.history.replaceState({}, "", "/partidos");
+    setPage("matches");
+  }, [session, isDemoMode, page]);
 
   useEffect(() => {
     if (!(import.meta.env.DEV && isDemoMode)) { setRadarDemoApi(null); return; }
@@ -769,17 +783,22 @@ export default function App() {
   }
 
   async function bootstrap(user) {
-    setError(""); setLoading(true); setRolesResolved(false);
+    setError(""); setBootError(""); setLoading(true); setRolesResolved(false); setBootPhase("profile");
     try {
       const p = await api.ensureProfile(user);
       setProfile(p);
-      if (profileComplete(p)) await initializeWorkspace(p);
-    } catch (err) { setError(err.message); }
+      if (profileComplete(p)) await initializeWorkspace(p, setBootPhase);
+      setBootPhase("ready");
+    } catch (err) {
+      setBootError(err?.message || "No pudimos cargar tus datos.");
+      setBootPhase("error");
+    }
     finally { setLoading(false); setRolesResolved(true); }
   }
 
-  async function initializeWorkspace(currentProfile = profile) {
+  async function initializeWorkspace(currentProfile = profile, onPhase = null) {
     if (!currentProfile) return null;
+    onPhase?.("groups");
     const params = typeof window === "undefined"
       ? new URLSearchParams() : new URLSearchParams(window.location.search);
     const sharedGroupId = params.get("group");
@@ -814,6 +833,7 @@ export default function App() {
     setActiveGroupId(nextGroupId);
     if (typeof window !== "undefined")
       window.localStorage.setItem("fut5_active_group_id", nextGroupId);
+    onPhase?.("data");
     await loadData(currentProfile, nextGroupId);
     return nextGroupId;
   }
@@ -901,6 +921,12 @@ export default function App() {
       setProfiles(refreshed || []);
     }
 
+    // A direct /partidos/<id> link to a match outside this group: say so instead of opening another one.
+    const wantedMatchId = routeFromLocation().matchId;
+    if (wantedMatchId && !matchRows.some((m) => m.id === wantedMatchId)) {
+      setPage((current) => (current === "match" ? "matches" : current));
+      setNotice("Ese partido no está disponible en tu grupo activo.");
+    }
     if (!matchRows.some((m) => m.id === selectedMatchId))
       setSelectedMatchId(matchRows[0]?.id || null);
   }
@@ -2064,7 +2090,7 @@ export default function App() {
   } : undefined;
 
   // Render guards
-  if (!sessionReady && !isDemoMode) return <ShellMessage title="Cargando" message="Revisando tu sesión..." />;
+  if (!sessionReady && !isDemoMode) return <StartupState phase="session" />;
 
   // Render proof upload page (requires auth, so we prompt login first if no session)
   if (proofToken && !session && !isDemoMode) {
@@ -2093,10 +2119,9 @@ export default function App() {
     setPage(pageKey);
   }
 
-  // Auto-redirect logged-in users away from auth/landing to the app
-  if (session && !isDemoMode && (page === "auth")) {
-    window.history.replaceState({}, "", "/partidos");
-    setPage("matches");
+  // Logged-in users on /login or / go to the app (previously "/" rendered an empty workspace).
+  if (session && !isDemoMode && (page === "auth" || page === "landing")) {
+    return <StartupState phase="redirect" />;
   }
 
   if (!session && !isDemoMode) {
@@ -2138,7 +2163,10 @@ export default function App() {
   if (page === "terms") return <TermsPage onNavigate={handlePublicNavigate} />;
   if (page === "contact") return <ContactPage onNavigate={handlePublicNavigate} />;
 
-  if (loading && !profile) return <ShellMessage title="Cargando" message="Preparando tu perfil..." />;
+  if (session && !isDemoMode && bootPhase === "error") {
+    return <StartupState phase="error" message={bootError} onRetry={() => bootstrap(session.user)} onSignOut={signOut} />;
+  }
+  if (session && !isDemoMode && !profile) return <StartupState phase="profile" />;
   if (profile && !profileComplete(profile)) {
     return (
       <div className="app auth-shell">
@@ -2146,8 +2174,8 @@ export default function App() {
       </div>
     );
   }
-  if (profile && loading && memberships.length === 0 && !activeGroupId) {
-    return <ShellMessage title="Cargando" message="Buscando tus grupos..." />;
+  if (session && !isDemoMode && profileComplete(profile) && bootPhase !== "ready") {
+    return <StartupState phase={bootPhase === "data" ? "data" : "groups"} />;
   }
   if (profile && memberships.length === 0 && !activeGroupId) {
     if (page === "radar") {
