@@ -77,19 +77,10 @@ describe("MatchDetail experiences", () => {
       expect(onGenerateTeams).toHaveBeenCalledWith({});
     });
 
-    it(`${design}: the stats modal edits with steppers and saves through onSaveStats`, async () => {
-      const onSaveStats = vi.fn().mockResolvedValue();
-      render(<MatchDetail {...base} onSaveStats={onSaveStats} forceDesign={design} />);
-      fireEvent.click(screen.getByRole("button", { name: /Cargar estadísticas/ }));
-      const dialog = screen.getByRole("dialog", { name: /Estadísticas del partido/ });
-      fireEvent.click(screen.getAllByRole("button", { name: "Sumar Goles" })[0]);
-      fireEvent.click(screen.getAllByRole("button", { name: "Sumar Goles" })[0]);
-      fireEvent.click(screen.getAllByRole("button", { name: "Sumar Asist." })[0]);
-      fireEvent.click(screen.getAllByRole("checkbox", { name: "MVP" })[0]);
-      fireEvent.click(screen.getAllByRole("checkbox", { name: "Valla" })[0]);
-      expect(dialog.querySelector(".mdd-stats-board b").textContent).toBe("2");
-      await act(async () => { fireEvent.click(screen.getByRole("button", { name: /Guardar estadísticas/ })); });
-      expect(onSaveStats).toHaveBeenCalledWith("m1", expect.arrayContaining([expect.objectContaining({ goals: 2, assists: 1, mvp: true, clean_sheet: true })]));
+    it(`${design}: an upcoming match has no postmatch and no direct stats editor`, () => {
+      const { container } = render(<MatchDetail {...base} forceDesign={design} />);
+      expect(container.querySelector("[data-postmatch]")).toBeNull();
+      expect(screen.queryByRole("button", { name: /Cargar estadísticas|Ir al postpartido/ })).toBeNull();
     });
   }
 

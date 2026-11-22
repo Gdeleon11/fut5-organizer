@@ -485,7 +485,11 @@ export default function App() {
     const now = new Date();
     // Find closed matches that the user attended
     const surveyMatches = matches.filter(m => {
+      if (m.status === "canceled") return false;
       if (m.status !== "closed" && new Date(`${m.match_date}T${m.start_time || "19:00"}`) >= now) return false;
+      // Only recent matches (last 7 days) and never twice.
+      if (now - new Date(`${m.match_date}T${m.start_time || "19:00"}`) > 7 * 864e5) return false;
+      if (localStorage.getItem(`survey_done_${m.id}`)) return false;
       const attended = attendances.some(a => a.match_id === m.id && a.profile_id === profile.id && ["confirmed", "checked_in"].includes(a.status));
       if (!attended) return false;
       const hasStats = matchStats.some(s => s.match_id === m.id && s.player_id === profile.id);
@@ -775,6 +779,10 @@ export default function App() {
         if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
     }
+  }
+  async function reloadMatchStats() {
+    if (isDemoMode || !activeGroupId) return;
+    try { setMatchStats(await api.listGroupMatchPlayerStats(activeGroupId)); } catch { /* keep current */ }
   }
   function openMatch(matchId) { setSelectedMatchId(matchId); setPage("match"); }
   // Radar page → a match's Radar panel (publishing itself still happens there, behind its checks).
@@ -2362,7 +2370,7 @@ export default function App() {
           )
         )}
         {page === "match" && selectedMatch && (
-          <MatchDetail attendances={matchAttendances(selectedMatch.id)}
+          <MatchDetail onPostmatchChanged={reloadMatchStats} attendances={matchAttendances(selectedMatch.id)}
             confirmedCount={confirmedAttendances(selectedMatch.id).length + matchGuests.length}
             fineAmount={lateCancelFineAmount} fines={fines} isAdmin={isAdmin}
             match={selectedMatch} myAttendance={myAttendance(selectedMatch.id)}
@@ -2591,17 +2599,13 @@ export default function App() {
         <PostMatchSurveyModal 
           match={activeSurveyMatch}
           profile={profile}
-          activeGroupId={activeGroupId}
-          attendances={attendances}
-          profiles={profiles}
+          profiles={matchProfiles}
           onClose={() => {
             localStorage.setItem(`skipped_survey_${activeSurveyMatch.id}`, 'true');
             setActiveSurveyMatch(null);
           }}
-          onSaveStats={refresh}
+          onDone={() => { localStorage.setItem(`survey_done_${activeSurveyMatch.id}`, "1"); reloadMatchStats(); }}
           onNotice={setNotice}
-          onVote={votePlayer}
-          userVoteMap={userVoteMap}
         />
       )}
     </div>

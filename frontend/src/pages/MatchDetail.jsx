@@ -8,6 +8,7 @@ import { buildMatchDetailModel } from "../matchday/matchDetailModel.js";
 import { useMatchActions } from "../components/matchday/shared.jsx";
 import { EditorialMatchDetail, CommandMatchDetail } from "../components/matchdetail/MatchDetailViews.jsx";
 import { AdminTools, FifaModal, StatsModal, useFifaModal } from "../components/matchdetail/DetailBlocks.jsx";
+import PostmatchPanel from "../components/postmatch/PostmatchPanel.jsx";
 import { Toast } from "../components/ui/Toast.jsx";
 
 export default function MatchDetail({
@@ -39,6 +40,7 @@ export default function MatchDetail({
   venues = [],
   matchStats = [],
   onSaveStats,
+  onPostmatchChanged,
   onBack,
   forceDesign,
   radarPanel = null,
@@ -330,7 +332,13 @@ export default function MatchDetail({
     (a) => a.profile_id === profile?.id && ["confirmed", "checked_in"].includes(a.status),
   );
 
+  const started = match?.match_date
+    && new Date(`${match.match_date}T${String(match.start_time || "00:00").slice(0, 5)}:00-06:00`) <= new Date();
+  const showPostmatch = started && match?.status !== "canceled";
   const shared = {
+    postmatch: showPostmatch ? (
+      <PostmatchPanel match={match} me={profile} isAdmin={isAdmin} profileById={profileById} onChanged={onPostmatchChanged} />
+    ) : null,
     isAdmin,
     roster: { onOpenPlayer: (p) => p && fifa.open(p), onCopyGuestLink: handleCopyGuestLink, guestLinkCopied },
     summary: { profile, matchStats, currentMatchStats, didParticipate },
@@ -351,7 +359,7 @@ export default function MatchDetail({
       aiError={aiError}
       teamInstructions={teamInstructions}
       setTeamInstructions={setTeamInstructions}
-      onOpenStats={() => setIsEditingStats(true)}
+      onOpenStats={showPostmatch ? () => document.getElementById("postpartido")?.scrollIntoView({ behavior: "smooth", block: "start" }) : null}
       onCheckIn={onCheckIn}
       onMarkNoShow={onMarkNoShow}
       onReconfirm={onReconfirm}

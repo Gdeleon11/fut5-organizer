@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { expect, it } from "vitest";
 import { AppearanceProvider } from "../appearance/AppearanceProvider.jsx";
 import MatchDemo from "../dev/MatchDemo.jsx";
@@ -23,11 +23,12 @@ for (const design of ["editorial", "command"]) {
     expect(container.querySelector(".fifa-modal-overlay")).toBeTruthy();
     fireEvent.keyDown(window, { key: "Escape" });
     fireEvent.click(screen.getByText("Abrir encuesta de práctica"));
+    fireEvent.click(await screen.findByRole("button", { name: "Sumar Goles" }));
     fireEvent.click(screen.getByText("Siguiente"));
-    const stars = await screen.findByRole("group", { name: "Calificación para Jugador 2" });
-    fireEvent.click(within(stars).getByLabelText("4 estrellas"));
-    expect(stars.querySelectorAll('[aria-pressed=true]')).toHaveLength(4);
-    fireEvent.click(screen.getByText("Finalizar encuesta"));
-    expect(screen.getByRole("status").textContent).toContain("Gracias");
+    const mvp = await screen.findByRole("radiogroup", { name: "Elegí al MVP" });
+    expect(within(mvp).queryByRole("radio", { name: /Jugador 1$/ })).toBeNull(); // no self vote
+    fireEvent.click(within(mvp).getByRole("radio", { name: /Jugador 2$/ }));
+    fireEvent.click(screen.getByText("Votar y terminar"));
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Gracias"));
   });
 }

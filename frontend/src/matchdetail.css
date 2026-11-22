@@ -375,3 +375,31 @@ html[data-f5-design="editorial"] .md-create h2 { font: 600 clamp(30px, 3vw, 42px
 .mdd-pitch-tok.has-photo { background: var(--team); }
 .mdd-pitch-tok:disabled { cursor: default; }
 .mdd-pitch-tok:focus-visible { outline: 3px solid var(--md-accent); outline-offset: 3px; }
+
+/* ---------- Postmatch ---------- */
+.pm-panel { display: grid; gap: 12px; }
+.pm-toolbar, .pm-actions, .pm-vote { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pm-report, .pm-correction { display: grid; gap: 10px; padding: 12px; border-radius: 12px; border: 1px solid var(--md-line-2); background: var(--md-surface); }
+.pm-report label, .pm-correction label { display: grid; gap: 6px; font-size: 13px; color: var(--md-text-2); }
+.pm-steppers { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.pm-check { display: inline-flex !important; align-items: center; gap: 8px; color: var(--md-text) !important; font-size: 14px; }
+.pm-check input { inline-size: 18px; block-size: 18px; }
+.pm-rows { list-style: none; margin: 0; padding: 0; display: grid; }
+.pm-rows li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 12px; padding: 10px 0; border-block-end: 1px solid var(--md-line); }
+.pm-rows li.is-me b { color: var(--md-accent); }
+.pm-rows em { font-style: normal; font-weight: 500; color: var(--md-text-3); }
+.pm-events { display: flex; flex-wrap: wrap; gap: 6px; }
+.pm-ev { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--md-text); }
+.pm-ev.is-rejected { text-decoration: line-through; color: var(--md-text-3); }
+.pm-decide h3, .pm-mvp h3 { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font: 600 14px var(--md-ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--md-text-2); }
+.pm-decide ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pm-decide li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: color-mix(in oklab, var(--md-warn) 8%, transparent); }
+.pm-mvp { display: grid; gap: 8px; padding: 12px; border-radius: 12px; border: 1px solid rgba(var(--md-accent-rgb), 0.35); }
+.pm-mvp-win { margin: 0; font-size: 15px; color: var(--md-text); }
+.pm-mvp-win b { color: var(--md-accent); font: 600 22px var(--md-cond); text-transform: uppercase; }
+.pm-vote.is-survey { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.pm-history summary { cursor: pointer; display: inline-flex; align-items: center; gap: 6px; color: var(--md-text-2); font-size: 13px; }
+.pm-history ol { margin: 8px 0 0; padding-inline-start: 18px; display: grid; gap: 4px; font-size: 13px; color: var(--md-text-2); }
+.pm-history time { color: var(--md-text-3); margin-inline-end: 4px; }
+.pm-wide { grid-column: 1 / -1; }
+.md-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-block-start: 14px; flex-wrap: wrap; }

@@ -56,6 +56,7 @@ export function EditorialMatchDetail({ vm, entry, actions, onBack, shared, admin
         </div>
       </div>
       <SummarySection vm={vm} variant="editorial" {...shared.summary} />
+      {shared.postmatch && React.cloneElement(shared.postmatch, { variant: "editorial" })}
       <VenueSection vm={vm} variant="editorial" />
       {admin && <div id="admin">{React.cloneElement(admin, { variant: "editorial" })}</div>}
     </div>
@@ -87,6 +88,7 @@ export function CommandMatchDetail({ vm, entry, actions, onBack, shared, admin }
           <TeamsSection vm={vm} variant="command" isAdmin={shared.isAdmin} onOpenPlayer={shared.roster.onOpenPlayer} />
           <RosterSection vm={vm} variant="command" {...shared.roster} />
           <SummarySection vm={vm} variant="command" {...shared.summary} />
+          {shared.postmatch && React.cloneElement(shared.postmatch, { variant: "command" })}
         </div>
         <aside className="mdd-cc-side">
           <WaitlistSection vm={vm} variant="command" />

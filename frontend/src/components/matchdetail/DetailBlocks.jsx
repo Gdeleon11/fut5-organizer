@@ -486,9 +486,11 @@ export function AdminTools({
         <button type="button" className="md-btn md-btn-ghost" onClick={onAIDistribute} disabled={aiLoading}>
           <Sparkles size={16} aria-hidden="true" /> {aiLoading ? "Generando con IA…" : "Generar con IA"}
         </button>
-        <button type="button" className="md-btn md-btn-ghost" onClick={onOpenStats}>
-          <Trophy size={16} aria-hidden="true" /> Cargar estadísticas
-        </button>
+        {onOpenStats && (
+          <button type="button" className="md-btn md-btn-ghost" onClick={onOpenStats}>
+            <Trophy size={16} aria-hidden="true" /> Ir al postpartido
+          </button>
+        )}
       </div>
       <label className="mdd-field">
         <span>Instrucciones para la IA (opcional)</span>
