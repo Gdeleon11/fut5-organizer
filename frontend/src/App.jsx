@@ -2376,7 +2376,7 @@ export default function App() {
           )
         )}
         {page === "match" && selectedMatch && (
-          <MatchDetail onPostmatchChanged={reloadMatchStats} playerStyles={playerStyles} attendances={matchAttendances(selectedMatch.id)}
+          <MatchDetail onPostmatchChanged={reloadMatchStats} postmatchEnabled={!isDemoMode} playerStyles={playerStyles} attendances={matchAttendances(selectedMatch.id)}
             confirmedCount={confirmedAttendances(selectedMatch.id).length + matchGuests.length}
             fineAmount={lateCancelFineAmount} fines={fines} isAdmin={isAdmin}
             match={selectedMatch} myAttendance={myAttendance(selectedMatch.id)}

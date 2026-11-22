@@ -32,33 +32,21 @@ for (const design of ["editorial", "command"]) {
       expect(overflow).toBe(false);
     });
 
-    test("player opens the FIFA card; stats modal edits and closes with Escape", async ({ page }, info) => {
+    test("player opens the FIFA card; official stats are not edited directly", async ({ page }, info) => {
       await enterDemo(page, design);
       await openDetail(page);
       await page.locator("#equipos .mdd-team li button").first().click();
       await expect(page.locator(".fifa-modal-overlay")).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(page.locator(".fifa-modal-overlay")).toHaveCount(0);
-      await page.getByRole("button", { name: /Cargar estadísticas/ }).click();
-      await expect(page.getByRole("dialog", { name: /Estadísticas del partido/ })).toBeVisible();
-      const row = page.locator(".mdd-stats-rows li").last();
-      await row.getByLabel("Sumar Goles").click();
-      await row.getByLabel("Sumar Asist.").click();
-      await row.getByLabel("MVP", { exact: true }).check();
-      await row.getByLabel("Valla", { exact: true }).check();
-      await expect(row.getByLabel("MVP")).toBeChecked();
-      await expect(row.getByLabel("Valla")).toBeChecked();
-      await expect(row.locator(".mdd-stepper b")).toHaveText(["1", "1"]);
-      await page.screenshot({ path: info.outputPath("estadisticas.png") });
-      await page.keyboard.press("Escape");
-      await expect(page.getByRole("dialog", { name: /Estadísticas del partido/ })).toHaveCount(0);
+      // Official stats come from the Postmatch flow (validated events), never from a direct editor.
+      await expect(page.getByRole("button", { name: /Cargar estadísticas/ })).toHaveCount(0);
       if (capturePalette) {
         await expect(page.locator("html")).toHaveAttribute("data-f5-palette", capturePalette);
-        await page.getByRole("button", { name: /Cargar estadísticas/ }).click();
-        await page.getByRole("button", { name: /Guardar estadísticas/ }).click();
         for (const [name, selector] of [
           ["resumen", ".post-match-card"], ["clima", ".weather-widget .weather-info"], ["rendimiento", ".self-performance"],
         ]) {
+          if (!(await page.locator(selector).count())) continue;
           await expect(page.locator(selector)).toBeVisible();
           const panel = page.locator(name === "clima" ? ".weather-widget" : selector);
           await panel.evaluate(el => el.scrollIntoView({ block: "center", behavior: "instant" }));
@@ -103,12 +91,13 @@ for (const design of ["editorial", "command"]) {
     await expect(page.locator(".fifa-modal-overlay")).toBeVisible();
     await page.keyboard.press("Escape");
     await page.getByText("Abrir encuesta de práctica").click();
+    await page.getByRole("button", { name: "Sumar Goles" }).click();
     await page.getByText("Siguiente").click();
-    const rating = page.getByRole("group", { name: "Calificación para Jugador 2", exact: true });
-    await rating.getByLabel("4 estrellas").click();
-    await expect(rating.locator("[aria-pressed=true]")).toHaveCount(4);
+    const mvp = page.getByRole("radiogroup", { name: "Elegí al MVP" });
+    await expect(mvp.getByRole("radio")).toHaveCount(17); // the lineup without me
+    await mvp.getByRole("radio", { name: /Jugador 2$/ }).click();
     await page.screenshot({ path: info.outputPath("encuesta.png") });
-    await page.getByText("Finalizar encuesta").click();
+    await page.getByText("Votar y terminar").click();
     await expect(page.getByRole("status")).toContainText("Gracias");
   });
 }

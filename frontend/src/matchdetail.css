@@ -418,7 +418,7 @@ html[data-f5-design="editorial"] .md-create h2 { font: 600 clamp(30px, 3vw, 42px
 .mdd-balance-how p { margin: 6px 0 0; font-size: 13px; color: var(--md-text-2); }
 .mdd-balance-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .mdd-team li { display: flex; align-items: center; gap: 4px; }
-.mdd-team li > button:first-child { flex: 1; min-inline-size: 0; }
-.mdd-pin { flex: none; display: grid; place-items: center; inline-size: 30px; block-size: 30px; min-height: 0; padding: 0; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--md-text-3); cursor: pointer; }
-.mdd-pin:hover:not(:disabled) { color: var(--md-text); background: color-mix(in oklab, var(--md-text) 6%, transparent); transform: none; }
-.mdd-pin.is-on { color: var(--md-accent); border-color: rgba(var(--md-accent-rgb), 0.5); background: rgba(var(--md-accent-rgb), 0.1); }
+.mdd-team li > button:first-child { flex: 1 1 auto; min-inline-size: 0; inline-size: auto; }
+.mdd-team li button.mdd-pin { flex: none; display: grid; place-items: center; inline-size: 30px; block-size: 30px; min-height: 0; padding: 0; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--md-text-3); cursor: pointer; }
+.mdd-team li button.mdd-pin:hover:not(:disabled) { color: var(--md-text); background: color-mix(in oklab, var(--md-text) 6%, transparent); transform: none; }
+.mdd-team li button.mdd-pin.is-on { color: var(--md-accent); border-color: rgba(var(--md-accent-rgb), 0.5); background: rgba(var(--md-accent-rgb), 0.1); }

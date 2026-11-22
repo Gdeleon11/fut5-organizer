@@ -43,6 +43,7 @@ export default function MatchDetail({
   onSaveStats,
   onPostmatchChanged,
   playerStyles,
+  postmatchEnabled = true,
   onBack,
   forceDesign,
   radarPanel = null,
@@ -350,7 +351,7 @@ export default function MatchDetail({
 
   const started = match?.match_date
     && new Date(`${match.match_date}T${String(match.start_time || "00:00").slice(0, 5)}:00-06:00`) <= new Date();
-  const showPostmatch = started && match?.status !== "canceled";
+  const showPostmatch = postmatchEnabled && started && match?.status !== "canceled";
   const shared = {
     balance: explanation ? {
       explanation,
