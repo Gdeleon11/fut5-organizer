@@ -43,6 +43,7 @@ export default function MatchesPage({
   ratingMap,
   skills = [],
   matchStats = [],
+  rosterProfiles = null, // group members + accepted Radar players ("Apodo · Radar") for the pitch
 }) {
   const fifa = useFifaModal();
   const { design: preferredDesign } = useAppearance();
@@ -62,7 +63,7 @@ export default function MatchesPage({
       upcoming: matches,
       pastMatches,
       attendances,
-      profiles,
+      profiles: rosterProfiles || profiles,
       guests,
       profile,
       clearance,
@@ -77,7 +78,7 @@ export default function MatchesPage({
       return { ...entry, place };
     };
     return { ...m, featured: withPlace(m.featured) };
-  }, [nextMatch, matches, pastMatches, attendances, profiles, guests, profile, clearance, fineAmount, now, venueById]);
+  }, [nextMatch, matches, pastMatches, attendances, profiles, guests, profile, clearance, fineAmount, now, venueById, rosterProfiles]);
 
   const hasFilter = Boolean(historyFrom || historyTo);
   const filteredHistory = model.history.filter(({ match }) => {

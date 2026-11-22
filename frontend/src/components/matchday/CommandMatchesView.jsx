@@ -242,7 +242,8 @@ export function CommandArena({ entry, actions, onOpenPlayer }) {
                 if (!p) {
                   return <span key={`free-${idx}`} className={cls} title="Cupo libre" aria-hidden="true">+</span>;
                 }
-                const canOpen = Boolean(onOpenPlayer) && (p.isGuest || p.profile);
+                // Radar players (outside the group) keep initials and no card: their profile is not the group's to show.
+                const canOpen = Boolean(onOpenPlayer) && (p.isGuest || (p.profile && !p.profile.is_radar));
                 return (
                   <button
                     type="button"

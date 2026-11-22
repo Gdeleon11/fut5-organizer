@@ -2357,6 +2357,7 @@ export default function App() {
               ratingMap={ratingMap}
               skills={skills}
               matchStats={matchStats}
+              rosterProfiles={matchProfiles}
             />
           )
         )}
