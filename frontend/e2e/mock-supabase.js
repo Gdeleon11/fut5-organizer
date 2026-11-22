@@ -5,8 +5,11 @@ export const MOCK_SUPABASE_ORIGIN = "http://supabase.mock.test";
 
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 
-export function createMockDb() {
-  const user = { id: "11111111-1111-4111-8111-111111111111", email: "jugador@example.test" };
+export function createMockDb({ design = "editorial" } = {}) {
+  const user = {
+    id: "11111111-1111-4111-8111-111111111111", email: "jugador@example.test",
+    user_metadata: { f5_appearance: { design, palette: "neon", updatedAt: 1 } },
+  };
   const group = { id: "22222222-2222-4222-8222-222222222222", name: "Jueves Mock", owner_id: "99999999-9999-4999-8999-999999999999" };
   const profile = {
     id: user.id, full_name: "Jugador Mock", nickname: "Mock", phone: "5555-0000",
@@ -19,8 +22,11 @@ export function createMockDb() {
     group_members: [{ id: "gm-1", group_id: group.id, profile_id: user.id, role: "player", is_active: true, created_at: "2026-01-01T00:00:00Z", groups: group, profiles: profile }],
     matches: [
       { id: "33333333-3333-4333-8333-333333333333", group_id: group.id, title: "Jueves de fútbol", venue: "Domo Mock", status: "upcoming", max_players: 10, court_cost: 0, match_date: day(3), start_time: "19:00", allowed_tags: [] },
+      { id: "44444444-4444-4444-8444-444444444444", group_id: group.id, title: "Sábado temprano", venue: "Cancha Norte", status: "upcoming", max_players: 10, court_cost: 0, match_date: day(5), start_time: "08:00", allowed_tags: [] },
     ],
-    attendances: [],
+    attendances: [
+      { id: "att-other-1", match_id: "44444444-4444-4444-8444-444444444444", profile_id: "55555555-5555-4555-8555-555555555555", status: "confirmed", checked_in: false, created_at: "2026-01-01T00:00:00Z" },
+    ],
     settings: [{ group_id: group.id, fine_amount: 50, late_cancel_fine_amount: 25 }],
     failNext: {}, // table → number of requests to fail with 500
     writes: [],

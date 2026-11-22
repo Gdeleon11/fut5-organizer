@@ -2277,8 +2277,8 @@ export default function App() {
         />
       )}
 
-      {error && <div className="alert error">{error}</div>}
-      {notice && <div className="alert success">{notice}</div>}
+      {error && <div className="alert error" role="alert">{error}</div>}
+      {notice && <div className="alert success" role="status">{notice}</div>}
       {myPendingAssistedReservations.length > 0 && page !== "reservations" && (
         <div className="alert success reservation-alert">
           <span>Tienes reservas pendientes para este período</span>

@@ -43,6 +43,8 @@ export function StateChip({ state, size = 13 }) {
 export function useMatchActions({ onConfirm, onCancel, onJoinWaitlist, onOpenMatch }) {
   const [busyId, setBusyId] = useState(null);
   const alive = useRef(true);
+  // Synchronous guard: two taps in the same frame must not both reach the handler.
+  const inFlight = useRef(new Set());
   useEffect(() => () => { alive.current = false; }, []);
 
   const run = useCallback(
@@ -54,11 +56,13 @@ export function useMatchActions({ onConfirm, onCancel, onJoinWaitlist, onOpenMat
       }
       const handler =
         action.kind === "confirm" ? onConfirm : action.kind === "waitlist" ? onJoinWaitlist : action.kind === "cancel" ? onCancel : null;
-      if (!handler) return;
+      if (!handler || inFlight.current.has(match.id)) return;
+      inFlight.current.add(match.id);
       setBusyId(match.id);
       try {
         await handler(match);
       } finally {
+        inFlight.current.delete(match.id);
         if (alive.current) setBusyId(null);
       }
     },
@@ -170,6 +174,39 @@ export function ActionButton({ action, match, run, busy, className }) {
       onClick={() => run(action, match)}
     >
       {busy && action.kind !== "open" && action.kind !== "summary" ? "Procesando…" : action.label}
+    </button>
+  );
+}
+
+/** The card's confirm action when the player can join right now (same gating as the hero CTA). */
+export function quickConfirmAction(state) {
+  return state?.key === "available" && state.primary?.kind === "confirm" && !state.primary.disabled ? state.primary : null;
+}
+
+/**
+ * "+ Confirmarme" on an upcoming card/row: runs the existing confirm handler through
+ * useMatchActions (clearance, tags, membership and fines checks stay in App.confirmMatch).
+ * Falls back to the plain state chip when the player cannot confirm directly.
+ */
+export function QuickConfirm({ entry, actions, size = 12 }) {
+  const action = quickConfirmAction(entry.state);
+  if (!action) return <StateChip state={entry.state} size={size} />;
+  const busy = actions.busyId === entry.id;
+  return (
+    <button
+      type="button"
+      className="md-chip tone-info md-quick"
+      disabled={busy}
+      aria-busy={busy || undefined}
+      aria-label={busy ? `Confirmando tu asistencia a ${entry.title}` : `Confirmarme en ${entry.title}`}
+      data-quick-confirm={entry.id}
+      onClick={(event) => {
+        event.stopPropagation();
+        actions.run(action, entry.match);
+      }}
+    >
+      {busy ? <span className="md-quick-spin" aria-hidden="true" /> : <Plus size={size} aria-hidden="true" className="md-ic" />}
+      {busy ? "Confirmando…" : "Confirmarme"}
     </button>
   );
 }

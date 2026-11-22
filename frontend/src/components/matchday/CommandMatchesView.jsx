@@ -6,6 +6,7 @@ import {
   DeleteControl,
   HistoryFilter,
   HistoryMore,
+  QuickConfirm,
   StateChip,
   StateIcon,
 } from "./shared.jsx";
@@ -95,7 +96,15 @@ export default function CommandMatchesView({
           </div>
           <div className="mdc-strip">
             {agenda.map((entry) => (
-              <button type="button" key={entry.id} className="mdc-mcard" onClick={() => onOpenMatch(entry.id)}>
+              // Card = div with a full-size "open" button underneath a real "+ Confirmarme" action
+              // (a button cannot contain another button).
+              <div key={entry.id} className="mdc-mcard">
+                <button
+                  type="button"
+                  className="mdc-mcard-open"
+                  aria-label={`Ver partido ${entry.title}, ${entry.parts.dow} ${entry.parts.day} ${entry.parts.mon}`}
+                  onClick={() => onOpenMatch(entry.id)}
+                />
                 <span className="mdc-mcard-top">
                   <span className="mdc-dt">
                     <b>{entry.parts.day}</b>
@@ -103,7 +112,7 @@ export default function CommandMatchesView({
                       {entry.parts.dow} {entry.parts.mon}
                     </span>
                   </span>
-                  <StateChip state={entry.state} size={12} />
+                  <QuickConfirm entry={entry} actions={actions} />
                 </span>
                 <span className="mdc-mcard-body">
                   <span className="mdc-mcard-title">{entry.title}</span>
@@ -137,7 +146,7 @@ export default function CommandMatchesView({
                     <span>{entry.free > 0 ? `${entry.free} cupos` : "Completo"}</span>
                   </span>
                 </span>
-              </button>
+              </div>
             ))}
             {admin.isAdmin ? (
               <button type="button" className="mdc-ghostcard" onClick={admin.onToggleCreate}>

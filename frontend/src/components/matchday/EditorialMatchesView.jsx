@@ -6,6 +6,8 @@ import {
   DeleteControl,
   HistoryFilter,
   HistoryMore,
+  QuickConfirm,
+  quickConfirmAction,
   StateChip,
   StateIcon,
 } from "./shared.jsx";
@@ -52,7 +54,7 @@ export default function EditorialMatchesView({
           </h2>
           <ul className="mde-rows">
             {agenda.map((entry) => (
-              <li key={entry.id}>
+              <li key={entry.id} className={quickConfirmAction(entry.state) ? "mde-agenda-item has-quick" : "mde-agenda-item"}>
                 <button type="button" className="mde-row" onClick={() => onOpenMatch(entry.id)}>
                   <span className="mde-d">
                     <small>{entry.parts.dow}</small>
@@ -75,8 +77,9 @@ export default function EditorialMatchesView({
                   >
                     <i style={{ inlineSize: `${Math.round(entry.fillRatio * 100)}%` }} />
                   </span>
-                  <StateChip state={entry.state} size={12} />
+                  {!quickConfirmAction(entry.state) && <StateChip state={entry.state} size={12} />}
                 </button>
+                {quickConfirmAction(entry.state) && <QuickConfirm entry={entry} actions={actions} />}
               </li>
             ))}
           </ul>
