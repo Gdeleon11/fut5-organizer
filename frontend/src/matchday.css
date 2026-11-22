@@ -231,8 +231,9 @@ html[data-f5-palette="light"] .md-side-command { background: var(--md-surface); 
 .md-side button { min-height: 0; }
 
 .md-brand { display: flex; align-items: center; gap: 12px; padding: 0 8px 20px; background: none; border: 0; cursor: pointer; color: var(--md-text); text-align: start; }
-.md-brand img { inline-size: 36px; block-size: 36px; border-radius: 9px; flex: none; }
-.md-side-command .md-brand img { inline-size: 42px; block-size: 42px; border-radius: 12px; box-shadow: 0 0 0 1px var(--md-line-2), 0 0 28px -6px rgba(var(--md-accent-rgb), 0.55); }
+.md-brand img { inline-size: 36px; block-size: 36px; flex: none; object-fit: contain; }
+/* Club crest: no square frame; a soft accent glow follows the shield outline. */
+.md-side-command .md-brand img { inline-size: 42px; block-size: 42px; filter: drop-shadow(0 0 10px rgba(var(--md-accent-rgb), 0.45)); }
 .md-brand b { display: block; font: 600 20px/1 var(--md-cond); letter-spacing: 0.04em; }
 .md-brand small { display: block; font-size: 10px; letter-spacing: 0.18em; color: var(--md-text-3); text-transform: uppercase; margin-block-start: 3px; }
 .md-side.is-rail .md-brand { padding-inline: 0; justify-content: center; }

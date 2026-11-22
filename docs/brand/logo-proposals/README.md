@@ -1,6 +1,6 @@
-# F5 Manager — logo proposals (Monogram selected)
+# F5 Manager — logo proposals (Club selected)
 
-Three vector directions for review. **Selected: F5 Monogram (2026-11-22)** — applied to the app mark, favicon, PWA icons and share image (`frontend/public/brand/f5-monogram.svg`). Pulse and Club stay here as reference only.
+Three vector directions for review. **Selected: F5 Club (2026-11-22)**, replacing a brief Monogram trial — applied to the app mark, favicon, PWA icons and share image (`frontend/public/brand/f5-club.svg`, maskable/apple-touch variant `f5-club-maskable.svg`). Monogram and Pulse stay here as reference only.
 
 | Concept | Folder | Idea |
 |---|---|---|

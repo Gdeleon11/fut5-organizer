@@ -133,7 +133,7 @@ export default function AuthScreen({ onMockLogin }) {
   return (
     <div className="app auth-shell">
       <section className="panel auth-panel">
-        <img className="auth-brand-mark" src="/brand/f5-monogram.svg" alt="F5Manager" />
+        <img className="auth-brand-mark" src="/brand/f5-club.svg" alt="F5Manager" />
         <div>
           <p className="eyebrow">f5manager</p>
           <h1>{import.meta.env.DEV && !hasSupabaseConfig ? "Modo Demo Sandbox" : isSignup ? "Crear cuenta" : "Entrar"}</h1>

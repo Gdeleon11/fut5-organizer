@@ -24,7 +24,7 @@ export default function PublicFooter({ onNavigate }) {
         {/* Columna 1: Brand & Info */}
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-            <img src="/brand/f5-monogram.svg" alt="F5Manager" style={{ width: "32px", height: "32px", borderRadius: "6px" }} />
+            <img src="/brand/f5-club.svg" alt="F5Manager" style={{ width: "32px", height: "32px", objectFit: "contain" }} />
             <span style={{ fontSize: "1.25rem", fontWeight: "800", color: "var(--text, #ffffff)" }}>F5Manager</span>
           </div>
           <p style={{ lineHeight: "1.6", marginBottom: "1rem" }}>
