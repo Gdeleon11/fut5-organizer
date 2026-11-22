@@ -10,8 +10,10 @@ import {
   MapPin,
   Minus,
   Plus,
+  Pin,
   RefreshCw,
   Save,
+  Scale,
   Shield,
   Sparkles,
   Trash2,
@@ -214,7 +216,35 @@ export function TeamsPitch({ teams, onOpenPlayer }) {
   );
 }
 
-export function TeamsSection({ vm, variant, isAdmin, onOpenPlayer }) {
+function BalanceBox({ balance, isAdmin }) {
+  const ex = balance?.explanation;
+  if (!ex) return null;
+  const pinnedCount = Object.keys(balance.pins || {}).length;
+  return (
+    <div className="mdd-balance" data-balance={ex.level}>
+      <p className="mdd-balance-head"><Scale size={16} aria-hidden="true" /> <b>Equilibrio: {ex.level}</b> <small>diferencia de {ex.gap} por jugador entre el equipo más fuerte y el más débil</small></p>
+      <ul className="mdd-balance-teams">
+        {ex.teams.map((t) => (
+          <li key={t.name}><b>{t.name}</b> <span>{t.size} jug · promedio {t.avg}</span> <span>{t.goalkeepers} POR · {t.lines.Defender} DEF · {t.lines.Midfielder} MED · {t.lines.Forward} DEL</span></li>
+        ))}
+      </ul>
+      {ex.notes.length > 0 && <ul className="mdd-balance-notes">{ex.notes.map((n) => <li key={n}>{n}</li>)}</ul>}
+      <details className="mdd-balance-how"><summary>¿Cómo se calcula?</summary>
+        <p>Cada jugador parte del rating que le asignó la administración o, si no tiene, del promedio del grupo. A medida que juega, sus goles, asistencias y MVP confirmados pesan más (con 5 partidos, la mitad). El estilo que cada uno declara solo ordena posiciones y porteros: nunca sube ni baja su nivel.</p>
+      </details>
+      {isAdmin && balance.onRegenerate && (
+        <div className="mdd-balance-actions">
+          <button type="button" className="md-btn md-btn-ghost fx-btn-sm" onClick={balance.onRegenerate} disabled={balance.busy}>
+            <RefreshCw size={14} aria-hidden="true" /> {pinnedCount ? `Regenerar sin mover a los ${pinnedCount} fijados` : "Regenerar equipos"}
+          </button>
+          {pinnedCount > 0 && <button type="button" className="md-linkbtn" onClick={balance.onClearPins}>Quitar fijados</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function TeamsSection({ vm, variant, isAdmin, onOpenPlayer, balance = null }) {
   const has = vm.teams.length > 0;
   return (
     <section className={`mdd-section mdd-teams is-${variant}`} aria-labelledby="mdd-teams-title" id="equipos">
@@ -229,8 +259,9 @@ export function TeamsSection({ vm, variant, isAdmin, onOpenPlayer }) {
       ) : (
         <>
           {variant === "command" && vm.teams.length >= 2 && <TeamsPitch teams={vm.teams} onOpenPlayer={onOpenPlayer} />}
+          <BalanceBox balance={balance} isAdmin={isAdmin} />
           <div className={`mdd-team-grid cols-${Math.min(vm.teams.length, 3)}`}>
-            {vm.teams.map((t) => (
+            {vm.teams.map((t, ti) => (
               <article key={t.key} className="mdd-team" style={{ "--team": t.color }}>
                 <header>
                   <span className="mdd-team-dot" aria-hidden="true" />
@@ -245,6 +276,12 @@ export function TeamsSection({ vm, variant, isAdmin, onOpenPlayer }) {
                         <span className="mdd-team-name">{m.name}</span>
                         {m.isGuest && <span className="mdd-team-guest">Invitado</span>}
                       </button>
+                      {isAdmin && balance?.onTogglePin && (
+                        <button type="button" className={`mdd-pin${balance.pins?.[m.id] === ti ? " is-on" : ""}`} aria-pressed={balance.pins?.[m.id] === ti}
+                          aria-label={`${balance.pins?.[m.id] === ti ? "Soltar" : "Fijar"} a ${m.name} en ${t.name}`} onClick={() => balance.onTogglePin(m.id, ti)}>
+                          <Pin size={14} aria-hidden="true" />
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>

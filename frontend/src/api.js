@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { generateBalancedTeams, playerEffectiveRating } from "./teamGeneration.js";
+import { enrichPlayers } from "./teams/balance.js";
 
 function requireSupabase() {
   if (!supabase) {
@@ -746,6 +747,14 @@ export const api = {
       skills: p.is_guest ? [] : (skillsByPlayer.get(p.id) || []),
     }));
 
+    // Strength with evidence weighting: official rating or group average (new players are not
+    // penalised), confirmed results weigh more as they accumulate; style only sets role/goalkeeper.
+    players = enrichPlayers(players, {
+      ratingMap,
+      stats: options.balance?.stats || [],
+      styles: options.balance?.styles || new Map(),
+    });
+
     let penaltyTeam = null;
 
     if (options.penaltyTeam && players.length === 14) {
@@ -791,9 +800,9 @@ export const api = {
             confirmed_player_count: players.length,
             teams: aiTeams,
           }
-        : generateBalancedTeams(players);
+        : generateBalancedTeams(players, { pins: options.pins });
     } else {
-      generated = generateBalancedTeams(players);
+      generated = generateBalancedTeams(players, { pins: options.pins });
     }
 
     if (penaltyTeam && penaltyTeam.length > 0) {

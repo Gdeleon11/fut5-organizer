@@ -9,6 +9,7 @@ import { useMatchActions } from "../components/matchday/shared.jsx";
 import { EditorialMatchDetail, CommandMatchDetail } from "../components/matchdetail/MatchDetailViews.jsx";
 import { AdminTools, FifaModal, StatsModal, useFifaModal } from "../components/matchdetail/DetailBlocks.jsx";
 import PostmatchPanel from "../components/postmatch/PostmatchPanel.jsx";
+import { enrichPlayers, explainTeams } from "../teams/balance.js";
 import { Toast } from "../components/ui/Toast.jsx";
 
 export default function MatchDetail({
@@ -41,6 +42,7 @@ export default function MatchDetail({
   matchStats = [],
   onSaveStats,
   onPostmatchChanged,
+  playerStyles,
   onBack,
   forceDesign,
   radarPanel = null,
@@ -326,6 +328,20 @@ export default function MatchDetail({
     onOpenMatch: () => document.getElementById("resumen")?.scrollIntoView({ behavior: "smooth", block: "start" }),
   });
 
+  const [pins, setPins] = useState({});
+  const [regenerating, setRegenerating] = useState(false);
+  const explanation = useMemo(() => {
+    if (!vm?.teams?.length) return null;
+    const ctx = { ratingMap: ratingMap || new Map(), stats: matchStats || [], styles: playerStyles || new Map() };
+    const teams = vm.teams.map((t, ti) => ({
+      name: t.name,
+      players: enrichPlayers(t.members.map((m) => ({
+        id: m.id, preferred_position: m.position, is_guest: m.isGuest, rating: m.isGuest ? m.guestRating || 3 : undefined,
+      })), ctx).map((p) => ({ ...p, pinned: pins[p.id] === ti })),
+    }));
+    return explainTeams(teams);
+  }, [vm, ratingMap, matchStats, playerStyles, pins]);
+
   if (!vm) return null;
 
   const didParticipate = (attendances || []).some(
@@ -336,6 +352,14 @@ export default function MatchDetail({
     && new Date(`${match.match_date}T${String(match.start_time || "00:00").slice(0, 5)}:00-06:00`) <= new Date();
   const showPostmatch = started && match?.status !== "canceled";
   const shared = {
+    balance: explanation ? {
+      explanation,
+      pins,
+      busy: regenerating,
+      onTogglePin: (id, ti) => setPins((p) => { const n = { ...p }; if (n[id] === ti) delete n[id]; else n[id] = ti; return n; }),
+      onClearPins: () => setPins({}),
+      onRegenerate: async () => { setRegenerating(true); try { await onGenerateTeams?.({ pins }); } finally { setRegenerating(false); } },
+    } : null,
     postmatch: showPostmatch ? (
       <PostmatchPanel match={match} me={profile} isAdmin={isAdmin} profileById={profileById} onChanged={onPostmatchChanged} />
     ) : null,

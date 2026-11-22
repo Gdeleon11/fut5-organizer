@@ -403,3 +403,22 @@ html[data-f5-design="editorial"] .md-create h2 { font: 600 clamp(30px, 3vw, 42px
 .pm-history time { color: var(--md-text-3); margin-inline-end: 4px; }
 .pm-wide { grid-column: 1 / -1; }
 .md-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-block-start: 14px; flex-wrap: wrap; }
+
+/* ---------- Team balance explanation + pins ---------- */
+.mdd-balance { display: grid; gap: 8px; margin-block: 10px 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--md-line-2); background: var(--md-surface); }
+.mdd-balance-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; color: var(--md-text); }
+.mdd-balance-head svg { color: var(--md-accent); }
+.mdd-balance-head small { color: var(--md-text-3); }
+.mdd-balance[data-balance="algo desigual"] .mdd-balance-head b, .mdd-balance[data-balance="desigual"] .mdd-balance-head b { color: var(--md-warn); }
+.mdd-balance-teams, .mdd-balance-notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; color: var(--md-text-2); }
+.mdd-balance-teams li { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.mdd-balance-teams b { color: var(--md-text); min-inline-size: 80px; }
+.mdd-balance-notes li::before { content: "• "; color: var(--md-accent); }
+.mdd-balance-how summary { cursor: pointer; font-size: 13px; color: var(--md-text-2); }
+.mdd-balance-how p { margin: 6px 0 0; font-size: 13px; color: var(--md-text-2); }
+.mdd-balance-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mdd-team li { display: flex; align-items: center; gap: 4px; }
+.mdd-team li > button:first-child { flex: 1; min-inline-size: 0; }
+.mdd-pin { flex: none; display: grid; place-items: center; inline-size: 30px; block-size: 30px; min-height: 0; padding: 0; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--md-text-3); cursor: pointer; }
+.mdd-pin:hover:not(:disabled) { color: var(--md-text); background: color-mix(in oklab, var(--md-text) 6%, transparent); transform: none; }
+.mdd-pin.is-on { color: var(--md-accent); border-color: rgba(var(--md-accent-rgb), 0.5); background: rgba(var(--md-accent-rgb), 0.1); }

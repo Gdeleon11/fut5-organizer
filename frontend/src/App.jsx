@@ -172,6 +172,8 @@ export default function App() {
   const [radarDemoApi, setRadarDemoApi] = useState(null);
   const [radarTab, setRadarTab] = useState("near");
   const [groupsTab, setGroupsTab] = useState("groups");
+  // Self-declared player styles (Player Builder); empty where the table does not exist yet.
+  const [playerStyles, setPlayerStyles] = useState(new Map());
 
   const [loading, setLoading] = useState(false);
   // True once the signed-in user's groups/roles have been loaded (or failed to load).
@@ -888,6 +890,9 @@ export default function App() {
       api.radarGroupOutsiders(groupId).catch(() => []),
     ]);
     setRadarOutsiders(radarRows || []);
+    api.listPlayerStyles((profileRows || []).map((p) => p.id))
+      .then((rows) => setPlayerStyles(new Map((rows || []).map((r) => [r.profile_id, r]))))
+      .catch(() => setPlayerStyles(new Map()));
     let voteRows = [];
     try { voteRows = await api.getPlayerVotes(groupId); } catch (e) { console.warn("Votes not available:", e.message); }
     const teamsMap = await api.listAllTeams(matchRows);
@@ -1569,7 +1574,8 @@ export default function App() {
         options.aiAssignments = options.aiTeams.teams;
       }
 
-      const result = await api.generateTeamsForMatch(match, [...freshProfiles, ...radarProfiles(radarOutsiders, freshProfiles)], attendances, ratings, options);
+      const result = await api.generateTeamsForMatch(match, [...freshProfiles, ...radarProfiles(radarOutsiders, freshProfiles)], attendances, ratings,
+        { ...options, balance: { stats: matchStats, styles: playerStyles } });
       setTeamsByMatch((c) => ({ ...c, [match.id]: result.teams }));
       setNotice(options.aiFallback
         ? "La IA devolvió equipos incompletos; se generaron equipos automáticos con todos los confirmados."
@@ -2370,7 +2376,7 @@ export default function App() {
           )
         )}
         {page === "match" && selectedMatch && (
-          <MatchDetail onPostmatchChanged={reloadMatchStats} attendances={matchAttendances(selectedMatch.id)}
+          <MatchDetail onPostmatchChanged={reloadMatchStats} playerStyles={playerStyles} attendances={matchAttendances(selectedMatch.id)}
             confirmedCount={confirmedAttendances(selectedMatch.id).length + matchGuests.length}
             fineAmount={lateCancelFineAmount} fines={fines} isAdmin={isAdmin}
             match={selectedMatch} myAttendance={myAttendance(selectedMatch.id)}

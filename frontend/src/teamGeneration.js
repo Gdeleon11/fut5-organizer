@@ -135,8 +135,22 @@ function skillsBalanceScore(teams) {
   return totalImbalance;
 }
 
+// Lines (defence / midfield / attack) spread evenly: from the balance enrichment or the position.
+function lineOf(player) {
+  return player.balance?.line || player.preferred_position || "Flexible";
+}
+
+function linesBalanceScore(teams) {
+  let total = 0;
+  for (const line of ["Defender", "Midfielder", "Forward"]) {
+    const counts = teams.map((t) => t.players.filter((p) => lineOf(p) === line).length);
+    if (counts.some((c) => c > 0)) total += Math.max(...counts) - Math.min(...counts);
+  }
+  return total;
+}
+
 function combinedScore(teams) {
-  return fairnessScore(teams) + skillsBalanceScore(teams) * 0.5;
+  return fairnessScore(teams) + skillsBalanceScore(teams) * 0.5 + linesBalanceScore(teams) * 0.25;
 }
 
 function cloneTeams(teams) {
@@ -198,7 +212,7 @@ function bestTeamForPlayer(teams, player) {
   return sorted[0];
 }
 
-function greedyAssign(players, teamCount) {
+function greedyAssign(players, teamCount, pins = {}) {
   const sizes = targetSizes(players.length, teamCount);
   const teams = sizes.map((targetSize, index) => ({
     name: `Equipo ${String.fromCharCode(65 + index)}`,
@@ -207,7 +221,16 @@ function greedyAssign(players, teamCount) {
     players: [],
   }));
 
-  sortPlayers(players).forEach((player) => {
+  // Organizer pins first (only into a real team with room); everyone else is balanced around them.
+  const rest = [];
+  players.forEach((player) => {
+    const idx = pins[player.id];
+    const team = Number.isInteger(idx) ? teams[idx] : null;
+    if (team && team.players.length < team.target_size) team.players.push({ ...player, pinned: true });
+    else rest.push(player);
+  });
+
+  sortPlayers(rest).forEach((player) => {
     bestTeamForPlayer(teams, player).players.push(player);
   });
 
@@ -243,6 +266,7 @@ function improveWithSwaps(teams) {
             const candidate = cloneTeams(bestTeams);
             const firstPlayer = candidate[firstIndex].players[firstPlayerIndex];
             const secondPlayer = candidate[secondIndex].players[secondPlayerIndex];
+            if (firstPlayer.pinned || secondPlayer.pinned) continue;
             candidate[firstIndex].players[firstPlayerIndex] = secondPlayer;
             candidate[secondIndex].players[secondPlayerIndex] = firstPlayer;
             const candidateScore = combinedScore(candidate);
@@ -261,8 +285,10 @@ function improveWithSwaps(teams) {
   return bestTeams;
 }
 
-export function generateBalancedTeams(players) {
-  const normalizedPlayers = players.map((player) => ({
+export function generateBalancedTeams(players, options = {}) {
+  const seen = new Set();
+  const unique = players.filter((player) => player && !seen.has(player.id) && seen.add(player.id));
+  const normalizedPlayers = unique.map((player) => ({
     ...player,
     rating: normalizeRating(player.rating),
     attack_rating: normalizeRating(player.attack_rating || player.rating),
@@ -271,7 +297,7 @@ export function generateBalancedTeams(players) {
     goalkeeper_rating: normalizeRating(player.goalkeeper_rating || player.rating),
   }));
   const teamCount = teamCountForPlayers(normalizedPlayers.length);
-  const teams = improveWithSwaps(greedyAssign(normalizedPlayers, teamCount));
+  const teams = improveWithSwaps(greedyAssign(normalizedPlayers, teamCount, options.pins || {}));
 
   return {
     team_count: teamCount,
