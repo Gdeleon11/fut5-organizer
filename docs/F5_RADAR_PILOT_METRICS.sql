@@ -5,7 +5,7 @@
 -- What is NOT measured, on purpose: who viewed a listing ("discovery"). Radar 1.0 does not log views
 -- or searches, and the user's location is never stored. Discovery is approximated by unique requesters.
 WITH params AS (
-  SELECT '00000000-0000-0000-0000-000000000000'::uuid AS group_id   -- ← «Mi chamusca»
+  SELECT 'ff77c66a-24d8-48a1-82f4-d1474867345e'::uuid AS group_id   -- «Mi chamusca» (pilot)
 ),
 l AS (SELECT * FROM public.radar_listings WHERE group_id = (SELECT group_id FROM params)),
 r AS (SELECT * FROM public.radar_requests WHERE group_id = (SELECT group_id FROM params)),
