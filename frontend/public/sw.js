@@ -1,8 +1,8 @@
-const CACHE_NAME = "f5manager-v4";
+const CACHE_NAME = "f5manager-v5";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
-  "/brand/f5manager-logo.jpg",
+  "/brand/f5-monogram.svg",
   "/icon-192.png",
   "/icon-512.png",
 ];

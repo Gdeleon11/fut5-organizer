@@ -36,7 +36,7 @@ export default function PublicHeader({ activePath = "/", onNavigate }) {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         <a href="/" onClick={(e) => handleLinkClick(e, "/")} style={{ display: "flex", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}>
-          <img src="/brand/f5manager-logo.jpg" alt="F5Manager Logo" style={{ width: "36px", height: "36px", borderRadius: "8px", objectFit: "cover" }} />
+          <img src="/brand/f5-monogram.svg" alt="F5Manager Logo" style={{ width: "36px", height: "36px", borderRadius: "8px", objectFit: "cover" }} />
           <span style={{ fontSize: "1.35rem", fontWeight: "800", background: "linear-gradient(90deg, #10b981, #3b82f6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
             F5Manager
           </span>

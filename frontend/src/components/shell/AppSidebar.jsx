@@ -103,7 +103,7 @@ export function AppSidebar({
       aria-label="Barra lateral F5 Manager"
     >
       <button type="button" className="md-brand" onClick={() => goToPage("matches")} aria-label="F5 Manager — ir a Partidos">
-        <img src="/brand/f5manager-logo.jpg" alt="" />
+        <img src="/brand/f5-monogram.svg" alt="" />
         <span className="md-brand-text">
           <b>F5MANAGER</b>
           <small>Matchday</small>

@@ -33,7 +33,7 @@ export function AppHeader({
       >
         <img
           className="f5-brand-logo"
-          src="/brand/f5manager-logo.jpg"
+          src="/brand/f5-monogram.svg"
           alt="F5Manager"
         />
         <div className="f5-brand-text">
