@@ -221,3 +221,41 @@
   .mf-role-form.md-form.form-grid { grid-template-columns: 1fr; }
   .rk-table th:nth-child(n+8), .rk-table td:nth-child(n+8) { display: none; }
 }
+
+/* ---------- Player Builder: style (self-declared) / verified / achievements ---------- */
+.pb-layers { grid-column: 1 / -1; }
+.pb-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.pb-card { display: grid; gap: 10px; align-content: start; padding: 16px; border-radius: 14px; border: 1px solid var(--md-line); background: var(--md-surface); }
+.mdc .pb-card { border-radius: 18px; background: var(--md-surface-2); }
+.pb-card header { display: flex; align-items: center; gap: 8px; }
+.pb-card header svg { color: var(--md-accent); }
+.pb-card h3 { margin: 0; font: 600 18px var(--md-cond); text-transform: uppercase; color: var(--md-text); }
+.mdc .pb-card h3 { font: italic 800 16px var(--md-score); letter-spacing: 0.04em; }
+.pb-tag { margin-inline-start: auto; font: 600 10.5px var(--md-ui); letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px dashed var(--md-line-2); color: var(--md-text-2); }
+.pb-tag.is-ok { border-style: solid; border-color: rgba(var(--md-accent-rgb), 0.5); color: var(--md-accent); }
+.pb-pos { margin: 0; color: var(--md-text-2); font-size: 14px; }
+.pb-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pb-bars li { display: grid; grid-template-columns: minmax(110px, 1fr) 2fr 20px; align-items: center; gap: 8px; font-size: 13px; color: var(--md-text-2); }
+.pb-bars b { text-align: end; color: var(--md-text); font-variant-numeric: tabular-nums; }
+.pb-bar { display: block; block-size: 8px; border-radius: 6px; background: var(--md-line-2); overflow: hidden; }
+.pb-bar i { display: block; block-size: 100%; background: repeating-linear-gradient(90deg, var(--md-accent) 0 calc(10% - 2px), transparent calc(10% - 2px) 10%); }
+.pb-empty { display: grid; gap: 10px; justify-items: start; }
+.pb-empty p, .pb-note { margin: 0; color: var(--md-text-2); font-size: 14px; }
+.pb-note { padding: 10px 12px; border-radius: 10px; background: color-mix(in oklab, var(--md-text) 4%, transparent); }
+.pb-builder { display: grid; gap: 12px; }
+.pb-positions { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.pb-positions label { display: grid; gap: 6px; font-size: 13px; color: var(--md-text-2); }
+.pb-points { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+.pb-points legend { display: flex; justify-content: space-between; inline-size: 100%; margin-block-end: 4px; font: 600 14px var(--md-ui); color: var(--md-text); }
+.pb-points legend b { color: var(--md-warn); font-weight: 600; }
+.pb-points legend b.is-ok { color: var(--md-accent); }
+.pb-point { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-block: 4px; border-block-end: 1px solid var(--md-line); }
+.pb-point > span:first-child { display: grid; min-inline-size: 0; }
+.pb-point small { color: var(--md-text-3); font-size: 12px; }
+.pb-record { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.pb-record div { display: grid; gap: 2px; text-align: center; padding: 8px 4px; border-radius: 10px; background: color-mix(in oklab, var(--md-text) 4%, transparent); }
+.pb-record dt { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--md-text-3); }
+.pb-record dd { margin: 0; font: 600 24px var(--md-cond); color: var(--md-text); font-variant-numeric: tabular-nums; }
+.pb-awards { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.pb-awards li { display: grid; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(var(--md-accent-rgb), 0.35); background: rgba(var(--md-accent-rgb), 0.07); }
+.pb-awards small { color: var(--md-text-2); font-size: 12px; }

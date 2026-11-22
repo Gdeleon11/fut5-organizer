@@ -9,6 +9,7 @@ import { EvolutionStrip, PlayerIdentity, SkillChips, StatTiles } from "../compon
 import { attendanceLabel, formatMatchDate } from "../utils.js";
 import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 import { DESIGNS, PALETTES } from "../appearance/appearance.js";
+import { PlayerLayers } from "../components/profile/PlayerBuilder.jsx";
 
 const SPANISH_POSITION_OPTIONS = [
   { id: "Flexible", label: "Flexible" },
@@ -184,6 +185,20 @@ export default function MyFifaCardPage({
     </div>
   );
 
+  const playerLayers = profile?.id ? (
+    <PlayerLayers
+      profile={profile}
+      activeGroupId={activeGroupId}
+      ratingObj={ratingMap.get(profile.id)}
+      matches={matches}
+      attendances={attendances}
+      matchStats={matchStats}
+      onSavePosition={(preferred_position) => onSaveProfile({
+        full_name: profile.full_name, nickname: profile.nickname || null, phone: profile.phone || "555-5555", preferred_position,
+      }, null)}
+    />
+  ) : null;
+
   const sections = (
     <>
       {!isCommand && (
@@ -307,6 +322,7 @@ export default function MyFifaCardPage({
             </div>
           </div>
           <div className="pv-cc-grid">
+            {playerLayers}
             {sections}
             {editForm}
             {adminBlock}
@@ -325,6 +341,7 @@ export default function MyFifaCardPage({
             {cardBlock}
           </header>
           <div className="pv-ed-body">
+            {playerLayers}
             {sections}
             {editForm}
             {adminBlock}

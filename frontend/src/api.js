@@ -2045,6 +2045,55 @@ export const api = {
   },
 
   // Match Stats API
+  // ---------------------------------------------------------------------------
+  // Player Evolution: self-declared style (never the official rating)
+  // ---------------------------------------------------------------------------
+  async listPlayerStyles(profileIds = []) {
+    const client = requireSupabase();
+    if (!profileIds.length) return [];
+    return readMany(client.from("player_styles").select("*").in("profile_id", profileIds));
+  },
+
+  async savePlayerStyle(profileId, style) {
+    const client = requireSupabase();
+    const row = {
+      profile_id: profileId,
+      secondary_position: style.secondary_position || null,
+      attack: style.attack, defense: style.defense, passing: style.passing, pace: style.pace, goalkeeping: style.goalkeeping,
+    };
+    return readOne(client.from("player_styles").upsert(row, { onConflict: "profile_id" }).select("*").single());
+  },
+
+  // ---------------------------------------------------------------------------
+  // Postmatch: events (provisional/confirmed), corrections, history, MVP
+  // ---------------------------------------------------------------------------
+  async postmatchSummary(matchId) {
+    return readOne(requireSupabase().rpc("postmatch_summary", { p_match_id: matchId }));
+  },
+  async postmatchReport(matchId, subjectId, kind, quantity) {
+    return readOne(requireSupabase().rpc("postmatch_report", { p_match_id: matchId, p_subject_id: subjectId, p_kind: kind, p_quantity: quantity }));
+  },
+  async postmatchDecide(eventId, confirm) {
+    return readOne(requireSupabase().rpc("postmatch_decide", { p_event_id: eventId, p_confirm: !!confirm }));
+  },
+  async postmatchRequestCorrection(matchId, eventId, message, proposed) {
+    return readOne(requireSupabase().rpc("postmatch_request_correction", {
+      p_match_id: matchId, p_event_id: eventId || null, p_message: message, p_proposed: proposed ?? null,
+    }));
+  },
+  async postmatchResolveCorrection(correctionId, accept, note) {
+    return readOne(requireSupabase().rpc("postmatch_resolve_correction", { p_correction_id: correctionId, p_accept: !!accept, p_note: note || null }));
+  },
+  async postmatchVoteMvp(matchId, votedId) {
+    return readOne(requireSupabase().rpc("postmatch_vote_mvp", { p_match_id: matchId, p_voted_id: votedId }));
+  },
+  async postmatchClose(matchId) {
+    return readOne(requireSupabase().rpc("postmatch_close", { p_match_id: matchId }));
+  },
+  async listPostmatchClosures(groupId) {
+    return readMany(requireSupabase().from("match_postmatch").select("match_id, mvp_profile_id, mvp_votes, voters, participants, closed_at").eq("group_id", groupId));
+  },
+
   async listGroupMatchPlayerStats(groupId) {
     const client = requireSupabase();
     return readMany(
