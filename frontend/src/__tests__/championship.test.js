@@ -121,7 +121,37 @@ describe("full championships reach a champion", () => {
 });
 
 describe("draws, tie-breaks and validation", () => {
-  it("league draws give 1 point each; the table uses points then goals for (existing rule)", () => {
+  const game = (id, h, a, hs, as) => ({ id, round: 1, match_order: 1, home_team_id: h, away_team_id: a, status: "played", home_score: hs, away_score: as });
+
+  it("goal difference ranks before goals for", () => {
+    const ts = teams(3); // both win once: t1 5-4 (DG +1, GF 5), t2 3-1 (DG +2, GF 3)
+    const rows = computeStandings(ts, [game("x1", "t1", "t3", 5, 4), game("x2", "t2", "t3", 3, 1)]);
+    expect(rows.map((r) => r.tournament_team_id)).toEqual(["t2", "t1", "t3"]);
+    expect(rows[0].goal_diff).toBe(2);
+    expect(rows[1].goals_for).toBeGreaterThan(rows[0].goals_for);
+  });
+
+  it("head-to-head separates teams level on points, DG and GF", () => {
+    // B is registered before A; both end 6 pts, +1, 3 GF; A beat B → A ranks higher.
+    const ts = [{ id: "B", name: "B", team_order: 1 }, { id: "A", name: "A", team_order: 2 }, { id: "C", name: "C", team_order: 3 }, { id: "D", name: "D", team_order: 4 }];
+    const ms = [
+      game("1", "A", "B", 1, 0), game("2", "A", "C", 0, 2), game("3", "A", "D", 2, 0),
+      game("4", "B", "C", 1, 0), game("5", "B", "D", 2, 1), game("6", "C", "D", 0, 0),
+    ];
+    const rows = computeStandings(ts, ms);
+    const a = rows.find((r) => r.tournament_team_id === "A"); const bRow = rows.find((r) => r.tournament_team_id === "B");
+    expect([a.points, a.goal_diff, a.goals_for]).toEqual([bRow.points, bRow.goal_diff, bRow.goals_for]);
+    expect(rows.slice(0, 2).map((r) => r.tournament_team_id)).toEqual(["A", "B"]);
+    expect(championOf("league", ts, ms)).toMatchObject({ status: "decided", teamId: "A" });
+  });
+
+  it("a tie on every criterion is reported, never decided", () => {
+    const ts = teams(3); // circular 1-0 wins: all 3 pts, 0 DG, 1 GF, and equal head-to-head
+    const ms = [game("1", "t1", "t2", 1, 0), game("2", "t2", "t3", 1, 0), game("3", "t3", "t1", 1, 0)];
+    expect(championOf("league", ts, ms)).toMatchObject({ status: "tie" });
+  });
+
+  it("league draws give 1 point each; level on every criterion means a declared tie", () => {
     const ts = teams(4);
     const ms = withIds(generateChampionshipFixtures({ format: "league", teams: ts, startDate: "2026-12-01" }))
       .map((m) => ({ ...m, status: "played", home_score: 1, away_score: 1 }));

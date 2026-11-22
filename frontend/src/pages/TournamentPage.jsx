@@ -351,9 +351,9 @@ function StandingsTable({ variant, tournament, teams, matches }) {
         </table>
       </div>
       <p className="fx-hint tn-legend">
-        Orden: puntos y goles a favor (regla actual del módulo). DG es informativa.
+        Orden: puntos, diferencia de gol, goles a favor y enfrentamiento directo.
         {q && <> Los primeros {q.n} pasan a {q.label}.</>}
-        {cutTie && <b className="tn-warn"> Hay empate en la línea de clasificación: se ordena por inscripción hasta que acuerden un criterio.</b>}
+        {cutTie && <b className="tn-warn"> Hay un empate total en la línea de clasificación: se ordena por inscripción hasta que lo definan.</b>}
       </p>
     </>
   );
@@ -491,7 +491,7 @@ function SharePanel({ tournament, teams, matches, champion }) {
 function ChampionBanner({ variant, tournament, teams, champion, canManage, onFinish }) {
   const [busy, setBusy] = useState(false);
   if (champion.status === "tie") {
-    return <p className="fx-alert is-warn tn-champ-tie" role="status">La liga terminó con empate en puntos y goles a favor entre {champion.teamIds.map((id) => teams.find((t) => t.id === id)?.name).join(" y ")}. Definan el campeón (por ejemplo, con un partido extra) antes de cerrar.</p>;
+    return <p className="fx-alert is-warn tn-champ-tie" role="status">La liga terminó empatada en todos los criterios entre {champion.teamIds.map((id) => teams.find((t) => t.id === id)?.name).join(" y ")}. Definan el campeón (por ejemplo, con un partido extra) antes de cerrar.</p>;
   }
   if (champion.status !== "decided") return null;
   const champ = teams.find((t) => t.id === champion.teamId); const runner = teams.find((t) => t.id === champion.runnerUpId);

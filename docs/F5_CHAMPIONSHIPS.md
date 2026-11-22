@@ -34,7 +34,7 @@ All four formats were played to a champion in unit tests (4–8 teams), Playwrig
 - Teams and calendar in one step ("Crear equipos y calendario"); players optional with "Repartir parejo".
 - "Próximo paso" hint for the organizer; empty states for organizers and players.
 - Fixtures: "Cargar resultado" / "Corregir", explained locks ("Bloqueado"), placeholders that say where teams come from, resting team for odd leagues.
-- Table: PJ G E P GF GC DG Pts, qualification line (top 2 / top 4) and a warning when it is tied.
+- Table: PJ G E P GF GC DG Pts ordered by points, DG, GF and head-to-head; qualification line (top 2 / top 4) and a warning when it stays tied.
 - Champion banner (with runner-up) and a closed, read-only finished state.
 - Players can follow every championship read-only (calendar, table, knockouts, teams, sharing). RLS already allowed members to read; only admins (admin or super admin, as RLS says) see management controls. **Product decision to confirm** — previously only the super admin could open Torneos.
 - Sharing tab: WhatsApp text (champion, table, next round, last results) via `wa.me` links (no paid API) and a PNG image of the table or a round drawn on a canvas (shared with the native share sheet or downloaded).
@@ -42,18 +42,15 @@ All four formats were played to a champion in unit tests (4–8 teams), Playwrig
 
 ## Rules kept and rules that need a decision
 
-Kept as they were: 3/1/0 points; table order = points, then goals for (existing `listStandings` order); Liga+Playoffs semifinals 1–4 / 2–3; Solo Playoffs pairs in registration order.
+Kept as they were: 3/1/0 points; Liga+Playoffs semifinals 1–4 / 2–3; Solo Playoffs pairs in registration order.
 
-Two rules were missing; nothing that changes results was invented:
-
-1. **Tie-break** — current rule stops at goals for. When two teams are still level, the app keeps registration order and shows a warning on the qualification line; a league that ends level at the top shows "definan el campeón" instead of guessing.
-   **Proposal (not applied):** points → goal difference → goals for → head-to-head → draw (sorteo). Switching is one comparator in `tournament/championship.js` (`compareStandings`).
+1. **Table order — approved 2026-11-22:** points → goal difference → goals for → head-to-head (points, then goal difference, in the games between the teams that are still level). Teams level on every criterion keep registration order and the app flags it: a warning on the qualification line, and a league that ends level at the top shows "definan el campeón" instead of choosing one. (Previously: points, then goals for.)
 2. **Knockout draws** — a knockout game must have a winner, so the app refuses a draw and asks for the deciding score (e.g. including penalties).
    **Proposal (not applied):** record penalties separately (needs two nullable columns, additive migration).
 
 ## Tests
 
-- Vitest: 161/161 (31 new championship tests: round robin for 4–8 teams, rest days, full championships for every format, seeding, draws, validation, corrections and locks).
+- Vitest: 164/164 (34 new championship tests, including goal difference, head-to-head and full-tie cases: round robin for 4–8 teams, rest days, full championships for every format, seeding, draws, validation, corrections and locks).
 - Playwright (mock Supabase, desktop + Pixel 7): 10 new championship tests (organizer flow in both designs, 8-team knockout, odd league read-only for a player, incomplete data) + updated regression tests.
 - Staging (local build, synthetic users/group, all removed): 23/23 — Liga+Playoffs 6 teams on a phone (draw, correction, refused knockout draw, champion, finish, image), Cuadrangular 4 (final = 1º v 2º), Solo Playoffs 8, odd Liga 5 by an admin with an all-draw tie, player read-only + RLS refusing player writes, delete; no JS/console/HTTP errors, no Production requests.
 

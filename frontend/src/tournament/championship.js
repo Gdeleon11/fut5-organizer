@@ -3,9 +3,9 @@
  *
  * Rules kept from the existing module (not invented here):
  *   - 3 points per win, 1 per draw, 0 per loss (tournamentEngine.updateStandings).
- *   - Table order: points, then goals for (api.listStandings order). Ties beyond that fall back
- *     to registration order so the table is stable; see docs/F5_CHAMPIONSHIPS.md for the proposed
- *     goal-difference rule, which is NOT applied until approved.
+ *   - Table order (approved 2026-11-22): points → goal difference → goals for → head-to-head
+ *     (points, then goal difference, in the games between the tied teams). Teams still level after
+ *     that keep registration order and the UI flags the tie instead of deciding it.
  *   - Liga + Playoffs: Semifinal 1 = 1º vs 4º, Semifinal 2 = 2º vs 3º, then a Final.
  *   - Cuadrangular: 4 teams round robin + Final.
  *   - Solo Playoffs: 2, 4 or 8 teams, paired in registration order (1v2, 3v4, …).
@@ -150,9 +150,23 @@ const byRoundOrder = (a, b) => (a.round - b.round) || ((a.match_order || 0) - (b
 export const leagueMatches = (matches = []) => matches.filter((m) => !isKnockout(m));
 export const knockoutMatches = (matches = []) => matches.filter(isKnockout).sort(byRoundOrder);
 
-/** Existing table rule: points, then goals for; registration order only to keep ties stable. */
+/** Overall criteria: points → goal difference → goals for. */
 export function compareStandings(a, b) {
-  return (b.points - a.points) || (b.goals_for - a.goals_for) || ((a.team_order ?? 0) - (b.team_order ?? 0));
+  return (b.points - a.points) || (b.goal_diff - a.goal_diff) || (b.goals_for - a.goals_for);
+}
+
+/** Mini table among tied teams: points, then goal difference, in their games against each other. */
+function headToHead(ids, played) {
+  const set = new Set(ids);
+  const mini = new Map(ids.map((id) => [id, { pts: 0, gd: 0 }]));
+  for (const m of played) {
+    if (!set.has(m.home_team_id) || !set.has(m.away_team_id)) continue;
+    const h = mini.get(m.home_team_id); const a = mini.get(m.away_team_id);
+    const hs = Number(m.home_score); const as = Number(m.away_score);
+    h.gd += hs - as; a.gd += as - hs;
+    if (hs > as) h.pts += 3; else if (hs < as) a.pts += 3; else { h.pts += 1; a.pts += 1; }
+  }
+  return mini;
 }
 
 /** League table derived from every played league-phase match (knockout games never count). */
@@ -172,11 +186,29 @@ export function computeStandings(teams = [], matches = []) {
     else if (hs < as) { a.won += 1; a.points += 3; h.lost += 1; }
     else { h.drawn += 1; a.drawn += 1; h.points += 1; a.points += 1; }
   }
-  return [...rows.values()].map((r) => ({ ...r, goal_diff: r.goals_for - r.goals_against })).sort(compareStandings);
+  const played = leagueMatches(matches).filter(isPlayed);
+  const list = [...rows.values()].map((r) => ({ ...r, goal_diff: r.goals_for - r.goals_against, h2h_points: 0, h2h_diff: 0 }))
+    .sort((a, b) => compareStandings(a, b) || ((a.team_order ?? 0) - (b.team_order ?? 0)));
+  // Resolve each block of teams level on points, DG and GF with head-to-head.
+  const out = [];
+  for (let i = 0; i < list.length;) {
+    let j = i + 1;
+    while (j < list.length && compareStandings(list[i], list[j]) === 0) j += 1;
+    const block = list.slice(i, j);
+    if (block.length > 1) {
+      const mini = headToHead(block.map((r) => r.tournament_team_id), played);
+      block.forEach((r) => { r.h2h_points = mini.get(r.tournament_team_id).pts; r.h2h_diff = mini.get(r.tournament_team_id).gd; });
+      block.sort((a, b) => (b.h2h_points - a.h2h_points) || (b.h2h_diff - a.h2h_diff) || ((a.team_order ?? 0) - (b.team_order ?? 0)));
+    }
+    out.push(...block);
+    i = j;
+  }
+  return out;
 }
 
-/** True when two rows cannot be separated by the existing rule (points + goals for). */
-export const tiedOnRule = (a, b) => Boolean(a && b && a.points === b.points && a.goals_for === b.goals_for);
+/** True when two rows stay level after every criterion (points, DG, GF, head-to-head). */
+export const tiedOnRule = (a, b) => Boolean(a && b && compareStandings(a, b) === 0
+  && a.h2h_points === b.h2h_points && a.h2h_diff === b.h2h_diff);
 
 export function leagueComplete(matches = []) {
   const lm = leagueMatches(matches);
@@ -303,7 +335,7 @@ export function nextStep(format, teams = [], matches = []) {
   if (!matches.length) return "Generá el calendario para empezar.";
   const champ = championOf(format, teams, matches);
   if (champ.status === "decided") return "Campeonato definido: declaralo para cerrarlo.";
-  if (champ.status === "tie") return "La liga terminó empatada en puntos y goles a favor: definí el campeón con tu grupo antes de cerrarlo.";
+  if (champ.status === "tie") return "La liga terminó empatada en todos los criterios: definí el campeón con tu grupo antes de cerrarlo.";
   const pending = [...matches].sort(byRoundOrder).find((m) => !isPlayed(m) && m.home_team_id && m.away_team_id);
   if (pending) {
     return isKnockout(pending)
