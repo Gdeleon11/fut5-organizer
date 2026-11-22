@@ -6,10 +6,10 @@
  */
 
 export const FORMATS = [
-  { id: "cuadrangular", label: "Cuadrangular", desc: "4 equipos, todos contra todos + final" },
+  { id: "cuadrangular", label: "Cuadrangular", desc: "Todos contra todos y final entre los 2 primeros" },
   { id: "league", label: "Liga", desc: "Todos contra todos, campeón por puntos" },
-  { id: "league_playoffs", label: "Liga + Playoffs", desc: "Liga regular + semifinales y final" },
-  { id: "playoffs_only", label: "Solo Playoffs", desc: "Eliminación directa (2, 4 u 8 equipos)" },
+  { id: "league_playoffs", label: "Liga + Playoffs", desc: "Liga y después semifinales (1º-4º, 2º-3º) y final" },
+  { id: "playoffs_only", label: "Solo Playoffs", desc: "Eliminación directa desde la primera fecha" },
 ];
 
 export const DAYS = [
@@ -22,7 +22,7 @@ export const DAYS = [
 export const TEAM_COLORS = ["#22c55e", "#3b82f6", "#ef4444", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
 
 export const formatLabel = (id) => FORMATS.find((f) => f.id === id)?.label || id;
-export const tournamentStatusLabel = (s) => (s === "draft" ? "Borrador" : s === "active" ? "Activo" : "Finalizado");
+export const tournamentStatusLabel = (s) => (s === "draft" ? "Borrador" : s === "active" ? "En juego" : "Finalizado");
 export const teamColor = (index) => TEAM_COLORS[index % TEAM_COLORS.length];
 
 /** Same rating sum as before: missing ratings count as 2. */

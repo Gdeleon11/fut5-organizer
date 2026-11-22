@@ -42,9 +42,14 @@ function jwt(sub) {
 function filterRows(rows, url) {
   let out = rows;
   for (const [key, value] of url.searchParams.entries()) {
+    if (key.includes(".")) continue;
     const m = /^eq\.(.*)$/.exec(value);
-    if (!m || key.includes(".")) continue;
-    out = out.filter((r) => String(r[key]) === m[1]);
+    if (m) { out = out.filter((r) => String(r[key]) === m[1]); continue; }
+    const inList = /^in\.\((.*)\)$/.exec(value);
+    if (inList) {
+      const vals = inList[1].split(",").map((v) => v.replace(/^"|"$/g, ""));
+      out = out.filter((r) => vals.includes(String(r[key])));
+    }
   }
   return out;
 }
@@ -109,7 +114,11 @@ export async function mockSupabase(context, db = createMockDb()) {
       rows.forEach((r) => Object.assign(r, body));
       return json(single ? rows[0] || {} : rows);
     }
-    if (method === "DELETE") return json([]);
+    if (method === "DELETE") {
+      const gone = new Set(filterRows(db[table] || [], url));
+      db[table] = (db[table] || []).filter((r) => !gone.has(r));
+      return json([]);
+    }
     return json([]);
   });
   return db;

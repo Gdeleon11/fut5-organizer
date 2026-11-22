@@ -51,10 +51,14 @@ describe("tournament presentation model (engine untouched)", () => {
 describe("TournamentPage keeps the same writes", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("only the super admin can manage tournaments", () => {
+  it("players follow championships read-only; admins can create them", async () => {
     api.listTournaments.mockResolvedValue([]);
+    const { unmount } = render(<TournamentPage activeGroupId="g" profiles={[]} ratingMap={new Map()} isAdmin={false} isSuperAdmin={false} />);
+    expect(await screen.findByText(/Tu grupo todavía no tiene campeonatos/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Nuevo campeonato/ })).toBeNull();
+    unmount();
     render(<TournamentPage activeGroupId="g" profiles={[]} ratingMap={new Map()} isAdmin isSuperAdmin={false} />);
-    expect(screen.getByText("Solo el Super Admin puede gestionar torneos.")).toBeTruthy();
+    expect((await screen.findAllByRole("button", { name: /Nuevo campeonato/ })).length).toBeGreaterThan(0);
   });
 
   it("recording a result updates the match and the standings with tournamentEngine values", async () => {
@@ -71,10 +75,10 @@ describe("TournamentPage keeps the same writes", () => {
 
     render(<TournamentPage activeGroupId="g" profiles={[]} ratingMap={new Map()} isAdmin isSuperAdmin />);
     fireEvent.click(await screen.findByRole("button", { name: /Liga QA/ }));
-    fireEvent.click(await screen.findByRole("button", { name: "Resultado" }));
+    fireEvent.click(await screen.findByRole("button", { name: /Cargar resultado/ }));
     fireEvent.change(screen.getByLabelText("Goles local"), { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("Goles visitante"), { target: { value: "1" } });
-    fireEvent.click(screen.getByRole("button", { name: "OK" }));
+    fireEvent.click(screen.getByRole("button", { name: "Guardar" }));
 
     await waitFor(() => expect(api.updateStanding).toHaveBeenCalledTimes(2));
     expect(api.updateTournamentMatch).toHaveBeenCalledWith("M1", { home_score: 3, away_score: 1, status: "played" });

@@ -81,8 +81,10 @@ test.describe("F5 Manager — Security & Core Functional Regressions (Isolated D
     const roleSelect = page.getByLabel("Simular Rol");
     await expect(roleSelect).toBeVisible();
     await roleSelect.selectOption({ label: "Javi B (Jugador)" });
-    await expect(page.locator("button:visible").filter({ hasText: /^Torneos$/ })).toHaveCount(0);
-    await expect(page.locator("button:visible").filter({ hasText: /^Más$/ })).toHaveCount(0);
+    // Players can follow championships (read-only); management controls stay admin-only.
+    await openNavDestination(page, /^Torneos$/);
+    await expect(page).toHaveURL(/\/torneos/);
+    await expect(page.getByRole("button", { name: /Nuevo campeonato/ })).toHaveCount(0);
   });
 
   test("opens Match Detail and shows attendances and generated teams", async ({ page }) => {

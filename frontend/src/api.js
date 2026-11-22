@@ -1602,6 +1602,12 @@ export const api = {
     return readMany(client.from("tournament_team_members").insert(rows).select("*"));
   },
 
+  async removeTournamentTeamMember(memberId) {
+    const client = requireSupabase();
+    const { error } = await client.from("tournament_team_members").delete().eq("id", memberId);
+    raise(error);
+  },
+
   async listTournamentTeamMembers(tournamentId) {
     const client = requireSupabase();
     return readMany(

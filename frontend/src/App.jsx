@@ -465,9 +465,9 @@ export default function App() {
     { id: "profile", label: "Mi FIFA", mobileLabel: "Mi FIFA", icon: <UserCircle size={18} /> },
     // On phones Radar lives in the top bar (next to the bell) so the bottom bar keeps its 5 entries.
     { id: "radar", label: "Radar", mobileLabel: "Radar", icon: <RadarIcon size={18} />, mobileHidden: true },
-    ...(isSuperAdmin ? [
-      { id: "tournaments", label: "Torneos", mobileLabel: "Torneos", icon: <Trophy size={18} /> },
-    ] : []),
+    // Every member can follow the group's championships (RLS already lets members read them);
+    // only admins manage them inside the page.
+    { id: "tournaments", label: "Torneos", mobileLabel: "Torneos", icon: <Trophy size={18} /> },
   ], [isSuperAdmin]);
 
 
@@ -2535,10 +2535,10 @@ export default function App() {
               matches: radarCandidates, onPrepareMatch: prepareRadarMatch, onOpenSettings: openRadarSettings,
             } : null} />
         )}
-        {page === "tournaments" && !isSuperAdmin && !isDemoMode && !rolesResolved && (
+        {page === "tournaments" && !isDemoMode && !rolesResolved && (
           <div className="empty-state compact" role="status" aria-live="polite" data-view="role-check">Verificando tus permisos…</div>
         )}
-        {page === "tournaments" && isSuperAdmin && (
+        {page === "tournaments" && (rolesResolved || isDemoMode) && (
           <TournamentPage activeGroupId={activeGroupId} profiles={profiles} ratingMap={ratingMap}
             isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} isDemoMode={isDemoMode} />
         )}
