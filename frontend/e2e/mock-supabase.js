@@ -65,7 +65,15 @@ export async function mockSupabase(context, db = createMockDb()) {
 
     const rpc = /^\/rest\/v1\/rpc\/(.+)$/.exec(url.pathname);
     if (rpc) {
+      const args = req.postDataJSON?.() ?? null;
+      db.rpcs = db.rpcs || [];
+      db.rpcs.push({ fn: rpc[1], args });
       if (rpc[1] === "notifications_unread_count") return json(0);
+      if (rpc[1] === "radar_set_group_settings") {
+        const row = { group_id: args.p_group_id, enabled: args.p_enabled, show_group_name: args.p_show_group_name };
+        db.radar_group_settings = [row];
+        return json(row);
+      }
       return json([]);
     }
 

@@ -3,6 +3,7 @@ import { CalendarDays, Crosshair, Inbox, MapPin, RefreshCw, Radar as RadarIcon, 
 import { api as defaultApi } from "../api.js";
 import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 import { Empty, Section, StatusChip } from "../components/finance/FinanceBlocks.jsx";
+import { RadarOrganizerCard, RadarWelcome } from "../components/radar/RadarIntro.jsx";
 import { POSITION_LABELS } from "../constants.js";
 import {
   LEVEL_OPTIONS, MAX_MESSAGE, RADAR_POSITIONS, canCancelSpot, dateWindow, isLateCancel, levelLabel,
@@ -221,7 +222,7 @@ function MyRequestCard({ item, radarApi, onChanged, variant }) {
   );
 }
 
-export default function RadarPage({ radarApi = defaultApi, initialTab = "near", hasGroup = true, onGoToGroups }) {
+export default function RadarPage({ radarApi = defaultApi, initialTab = "near", hasGroup = true, onGoToGroups, organizer = null }) {
   const { design } = useAppearance();
   const variant = design === "command" ? "command" : "editorial";
   const [tab, setTab] = useState(initialTab);
@@ -266,6 +267,9 @@ export default function RadarPage({ radarApi = defaultApi, initialTab = "near", 
     );
   }
 
+  const filtered = Boolean(coords || zone || level !== "any" || range !== "2w");
+  function clearFilters() { setCoords(null); setZone(""); setLevel("any"); setRange("2w"); }
+
   const split = useMemo(() => splitMyRequests(mine || []), [mine]);
   const pendingCount = split.active.filter((r) => r.status === "pending").length;
   const approvedCount = split.active.filter((r) => r.status === "approved").length;
@@ -288,6 +292,8 @@ export default function RadarPage({ radarApi = defaultApi, initialTab = "near", 
     <div className={`md-matches md-design-${variant} fx-page rd-page`} data-design={variant} data-view="radar">
       <div className={variant === "command" ? "mdc fx-shell" : "mde fx-shell"}>
         {header}
+        <RadarWelcome />
+        {organizer?.isAdmin && <RadarOrganizerCard radarApi={radarApi} {...organizer} />}
         {!hasGroup && (
           <p className="rd-banner">¿Tenés grupo propio? <button type="button" className="md-btn md-btn-ghost" onClick={onGoToGroups}>Crear o unirme a un grupo</button></p>
         )}
@@ -331,7 +337,18 @@ export default function RadarPage({ radarApi = defaultApi, initialTab = "near", 
             </div>
             {coords && <p className="rd-privacy">Usamos tu ubicación aproximada (≈1 km) solo para esta búsqueda. No se guarda.</p>}
             {items === null && <p className="fx-empty" role="status">Cargando…</p>}
-            {items && items.length === 0 && <Empty>No hay partidos con cupos en Radar para estos filtros.</Empty>}
+            {items && items.length === 0 && (filtered ? (
+              <div className="rd-empty" data-radar-empty="filtered">
+                <Empty>No hay partidos con cupos para estos filtros.</Empty>
+                <button type="button" className="md-btn md-btn-ghost" onClick={clearFilters}>Ver todas las zonas, niveles y los próximos 14 días</button>
+              </div>
+            ) : (
+              <div className="rd-empty" data-radar-empty="none">
+                <b>Todavía no hay partidos publicados en Radar</b>
+                <p>Radar recién empieza: cada organizador decide qué partidos abrir a jugadores de otros grupos. Cuando alguno se publique en tu zona, lo vas a ver acá.</p>
+                <p className="rd-privacy">Las respuestas a tus solicitudes te llegan en Avisos (la campana).</p>
+              </div>
+            ))}
             {items && items.length > 0 && (
               <ul className={`rd-list is-${variant}`}>
                 {items.map((it) => <ListingRow key={it.listing_id} item={it} variant={variant} onOpen={setOpenId} />)}

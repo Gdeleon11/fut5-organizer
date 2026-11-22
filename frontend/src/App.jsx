@@ -4,6 +4,7 @@ import { api } from "./api.js";
 import SectionHero from "./components/SectionHero.jsx";
 import { rolePageDecision } from "./routing/roleGate.js";
 import StartupState from "./components/StartupState.jsx";
+import { matchCapacity } from "./matchday/matchdayModel.js";
 import AdBanner from "./components/AdBanner.jsx";
 
 import PostMatchSurveyModal from "./components/PostMatchSurveyModal.jsx";
@@ -170,6 +171,7 @@ export default function App() {
   const [radarOutsiders, setRadarOutsiders] = useState([]);
   const [radarDemoApi, setRadarDemoApi] = useState(null);
   const [radarTab, setRadarTab] = useState("near");
+  const [groupsTab, setGroupsTab] = useState("groups");
 
   const [loading, setLoading] = useState(false);
   // True once the signed-in user's groups/roles have been loaded (or failed to load).
@@ -516,6 +518,14 @@ export default function App() {
     },
     [sortedMatches],
   );
+  // Upcoming matches an admin could open to Radar (free spots, not tag-restricted).
+  const radarCandidates = useMemo(() => upcomingMatches
+    .map((m) => {
+      const taken = attendances.filter((a) => a.match_id === m.id && ["confirmed", "checked_in"].includes(a.status)).length
+        + ((guests || {})[m.id] || []).length;
+      return { ...m, free: Math.max(0, matchCapacity(m) - taken) };
+    })
+    .filter((m) => m.status === "upcoming" && m.free > 0 && !(m.allowed_tags || []).length), [upcomingMatches, attendances, guests]);
   const pastMatches = useMemo(
     () => {
       const now = new Date();
@@ -767,6 +777,22 @@ export default function App() {
     }
   }
   function openMatch(matchId) { setSelectedMatchId(matchId); setPage("match"); }
+  // Radar page → a match's Radar panel (publishing itself still happens there, behind its checks).
+  function prepareRadarMatch(matchId) {
+    openMatch(matchId);
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => {
+        document.querySelector("[data-radar-panel]")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+    }
+  }
+  function openRadarSettings() {
+    setGroupsTab("settings");
+    goToPage("groups");
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => document.getElementById("radar-settings")?.scrollIntoView({ behavior: "smooth", block: "start" }), 160);
+    }
+  }
 
   async function onRadarApproved(result) {
     if (!result || result.status !== "approved") return;
@@ -2254,9 +2280,10 @@ export default function App() {
           signOut={signOut}
           bell={radarApi ? (
             <>
-              <button type="button" className={`md-icon-btn rd-top-radar${page === "radar" ? " is-active" : ""}`} aria-label="Radar"
+              <button type="button" className={`rd-top-radar${page === "radar" ? " is-active" : ""}`}
+                title="Radar: partidos con cupos cerca"
                 aria-current={page === "radar" ? "page" : undefined} onClick={() => { setRadarTab("near"); goToPage("radar"); }}>
-                <RadarIcon size={18} aria-hidden="true" />
+                <RadarIcon size={16} aria-hidden="true" /><span>Radar</span>
               </button>
               <NotificationBell radarApi={radarApi} onNavigate={openNotificationTarget} />
             </>
@@ -2442,7 +2469,7 @@ export default function App() {
           />
         )}
         {page === "groups" && (
-          <GroupsPage activeGroupId={activeGroupId} memberships={memberships}
+          <GroupsPage key={groupsTab} initialTab={groupsTab} activeGroupId={activeGroupId} memberships={memberships}
             isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} settings={settings} onUpdateSettings={updateSettings}
             radarSettings={isSuperAdmin && radarApi ? <RadarSettingsCard groupId={activeGroupId} radarApi={radarApi} /> : null}
             onCreateGroup={createGroup} onSwitchGroup={switchGroup}
@@ -2501,7 +2528,11 @@ export default function App() {
           />
         )}
         {page === "radar" && radarApi && (
-          <RadarPage key={radarTab} radarApi={radarApi} initialTab={radarTab} hasGroup />
+          <RadarPage key={radarTab} radarApi={radarApi} initialTab={radarTab} hasGroup
+            organizer={isAdmin ? {
+              isAdmin, isSuperAdmin, groupId: activeGroupId, groupName: activeGroup?.name || "",
+              matches: radarCandidates, onPrepareMatch: prepareRadarMatch, onOpenSettings: openRadarSettings,
+            } : null} />
         )}
         {page === "tournaments" && !isSuperAdmin && !isDemoMode && !rolesResolved && (
           <div className="empty-state compact" role="status" aria-live="polite" data-view="role-check">Verificando tus permisos…</div>

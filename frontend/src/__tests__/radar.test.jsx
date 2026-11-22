@@ -260,12 +260,29 @@ describe("Notifications and settings", () => {
     expect(onNavigate).toHaveBeenCalledWith({ page: "match", matchId: "m1" });
   });
 
-  it("super admin switches Radar on for the group", async () => {
+  it("super admin switches Radar on only after the privacy review", async () => {
     const r = fakeRadarApi({ getRadarGroupSettings: vi.fn().mockResolvedValue({ enabled: false, show_group_name: false }) });
     render(<RadarSettingsCard groupId="g1" radarApi={r} />);
     fireEvent.click(await screen.findByLabelText(/Permitir publicar partidos en Radar/));
+    expect(await screen.findByText("Antes de activar Radar")).toBeTruthy();
+    expect(screen.getByText(/La lista del grupo, nombres, teléfonos ni fotos/)).toBeTruthy();
+    expect(r.setRadarGroupSettings).not.toHaveBeenCalled();
+    const activate = screen.getByRole("button", { name: "Activar Radar" });
+    expect(activate.disabled).toBe(true);
+    fireEvent.click(screen.getByLabelText(/Revisé qué se comparte/));
+    fireEvent.click(activate);
     await waitFor(() => expect(r.setRadarGroupSettings).toHaveBeenCalledWith("g1", true, false));
     expect(await screen.findByText(/Radar activado/)).toBeTruthy();
+  });
+
+  it("cancelling the review leaves Radar off", async () => {
+    const r = fakeRadarApi({ getRadarGroupSettings: vi.fn().mockResolvedValue({ enabled: false, show_group_name: false }) });
+    render(<RadarSettingsCard groupId="g1" radarApi={r} />);
+    fireEvent.click(await screen.findByLabelText(/Permitir publicar partidos en Radar/));
+    fireEvent.click(await screen.findByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByText("Antes de activar Radar")).toBeNull();
+    expect(screen.getByLabelText(/Permitir publicar partidos en Radar/).checked).toBe(false);
+    expect(r.setRadarGroupSettings).not.toHaveBeenCalled();
   });
 });
 

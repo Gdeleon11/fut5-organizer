@@ -157,12 +157,13 @@ export default function GroupsPage({
   onSwitchGroup,
   onUpdateDescription,
   radarSettings = null,
+  initialTab = "groups",
 }) {
   const { design } = useAppearance();
   const variant = design === "command" ? "command" : "editorial";
   const [name, setName] = useState("");
   const [formError, setFormError] = useState("");
-  const [tab, setTab] = useState("groups");
+  const [tab, setTab] = useState(initialTab === "settings" && !isSuperAdmin ? "groups" : initialTab);
   const activeMembership =
     memberships.find((m) => m.group_id === activeGroupId) ||
     memberships[0] ||
