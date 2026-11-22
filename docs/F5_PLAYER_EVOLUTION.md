@@ -65,7 +65,8 @@ current `enrichPlayers` keeps a single `strength` input, so OpenSkill's μ could
 ## Before Production (blocking)
 
 1. Apply `supabase/migrations/20261123100000_player_evolution.sql` to Production (additive + two tightened policies),
-   with explicit approval. The front end degrades safely without it (Player Builder and Postpartido stay hidden), but
-   **team generation and the survey need it** for the new behaviour.
+   with explicit approval, **in the same release as the front end**. Without it the app does not break (Player Builder,
+   Postpartido and the survey hide themselves; balanced teams still work from ratings and stats), but the old
+   "Cargar estadísticas" editor is gone, so there would be no way to record stats until the migration is applied.
 2. Decide the MVP quorum rule (proposed: max(3, half the lineup) and a single leader).
 3. One-admin groups: an admin's own goals stay pending until a second admin exists — confirm this is acceptable.
