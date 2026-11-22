@@ -1,4 +1,4 @@
-# F5 Manager — logo proposals (not in use)
+# F5 Manager — logo proposals (Monogram selected)
 
 Three vector directions for review. **Selected: F5 Monogram (2026-11-22)** — applied to the app mark, favicon, PWA icons and share image (`frontend/public/brand/f5-monogram.svg`). Pulse and Club stay here as reference only.
 
