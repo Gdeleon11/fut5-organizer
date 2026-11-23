@@ -70,3 +70,43 @@ current `enrichPlayers` keeps a single `strength` input, so OpenSkill's μ could
    "Cargar estadísticas" editor is gone, so there would be no way to record stats until the migration is applied.
 2. Decide the MVP quorum rule (proposed: max(3, half the lineup) and a single leader).
 3. One-admin groups: an admin's own goals stay pending until a second admin exists — confirm this is acceptable.
+
+## Single admin (evaluated 2026-11-23 — proposal, not implemented)
+
+Reproduced on Staging: when the only admin plays, their own goals/assists stay **provisional** forever — they cannot
+confirm them, no player can, and a correction to their own data cannot be accepted by them. The match can still be
+closed; their data simply never becomes official. Nothing leaks: the gap is "unverified", never "self-verified".
+
+**Recommended minimal fix — "validador del partido"** (one per match):
+- The admin may designate **one participant of that match** (not themselves) as validator, only when the group has
+  no other active admin who played or can validate.
+- The validator can confirm/reject **only the admin's own provisional events of that match** and resolve corrections
+  about those events. Nothing else: no other players' data, no closing, no MVP, no roles, no other matches.
+- Visible to everyone in Postpartido ("Validado por X, designado por el admin") and written to the history.
+- Revocable until used; ends when the postmatch is closed. A validator can never validate their own data.
+- Schema scope: one table `match_validators (match_id PK, validator_id, designated_by, created_at, revoked_at)`,
+  one RPC to designate/revoke, and one extra condition in `postmatch_decide` / `postmatch_resolve_correction`.
+  No change to roles, group permissions or RLS of existing tables.
+- Residual risk: the admin picks a friendly validator. Mitigated by transparency (history, visible label) and the
+  one-validator-per-match limit.
+
+Alternatives considered: (b) peer ratification — the admin's event confirms when 2 other participants agree (no
+designation, more friction, harder to explain); (c) keep as is — admin's own stats stay unverified.
+
+## MVP participation (evaluated 2026-11-23)
+
+Quorum = max(3, half the roster) + one winner, tested with rosters of 4, 6, 10, 14 and 18 and 1 → 50% turnout:
+below the quorum there is never an official MVP and nothing is written to the stats that feed balance/ratings.
+Small rosters are strict (4 players → 3 votes = 75%); large rosters need half (18 → 9).
+
+## Protected Preview validation (2026-11-23)
+
+- Preview: `https://fut5-organizer-qskbbu3la-guillermo-de-leons-projects.vercel.app` — deployment
+  `dpl_ZPJPMExwExmzxVJ94aVH8PxAyTy5`, commit `edae0aa`, Vercel Authentication on (302 to login without a token),
+  Supabase Staging only (no Production ref, no demo/mock code, no secrets in the bundle).
+- Staging rules suite 40/40; special cases (single admin, MVP by roster size) 10/10.
+- Browser QA on the Preview with synthetic accounts: 46/47, plus a targeted re-check 5/5 for the one failed step
+  (the script read Gato's card before its data had loaded; the card itself was correct). Covered A, B, C as admin and
+  player, historical stats unchanged, and the full matrix 2 designs × 4 palettes × desktop/mobile (16/16, no overflow,
+  no JS/console/HTTP errors, no Production requests).
+- Radar: 0 of 33 Radar functions and no Radar screen read stats, styles, ratings, MVP votes or postmatch data.
