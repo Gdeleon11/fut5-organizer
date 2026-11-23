@@ -71,19 +71,19 @@ current `enrichPlayers` keeps a single `strength` input, so OpenSkill's μ could
 2. Decide the MVP quorum rule (proposed: max(3, half the lineup) and a single leader).
 3. One-admin groups: an admin's own goals stay pending until a second admin exists — confirm this is acceptable.
 
-## Single admin (evaluated 2026-11-23 — proposal, not implemented)
+## Single admin — "validador del partido" (implemented on Staging 2026-11-23)
 
 Reproduced on Staging: when the only admin plays, their own goals/assists stay **provisional** forever — they cannot
 confirm them, no player can, and a correction to their own data cannot be accepted by them. The match can still be
 closed; their data simply never becomes official. Nothing leaks: the gap is "unverified", never "self-verified".
 
-**Recommended minimal fix — "validador del partido"** (one per match):
+**Implemented — migration `20261123120000_postmatch_match_validator.sql`** (one validator per match):
 - The admin may designate **one participant of that match** (not themselves) as validator, only when the group has
   no other active admin who played or can validate.
 - The validator can confirm/reject **only the admin's own provisional events of that match** and resolve corrections
   about those events. Nothing else: no other players' data, no closing, no MVP, no roles, no other matches.
 - Visible to everyone in Postpartido ("Validado por X, designado por el admin") and written to the history.
-- Revocable until used; ends when the postmatch is closed. A validator can never validate their own data.
+- Revocable only while unused (no swapping after a rejection); ends when the postmatch is closed. A validator can never validate their own data.
 - Schema scope: one table `match_validators (match_id PK, validator_id, designated_by, created_at, revoked_at)`,
   one RPC to designate/revoke, and one extra condition in `postmatch_decide` / `postmatch_resolve_correction`.
   No change to roles, group permissions or RLS of existing tables.
@@ -110,3 +110,10 @@ Small rosters are strict (4 players → 3 votes = 75%); large rosters need half 
   player, historical stats unchanged, and the full matrix 2 designs × 4 palettes × desktop/mobile (16/16, no overflow,
   no JS/console/HTTP errors, no Production requests).
 - Radar: 0 of 33 Radar functions and no Radar screen read stats, styles, ratings, MVP votes or postmatch data.
+
+Validation of the validator (Staging): rules suite 54/54 (14 new checks V1–V14: only a sole admin who played may
+designate; not themselves, not a non-participant, not by a player; groups with another admin cannot use it; the
+validator decides only the admin's events and corrections; another player or a revoked validator cannot; rights do not
+carry to another match; used → no revoke/swap; closing ends the role; nobody writes `match_validators` directly).
+Browser QA 13/13 (sole admin designates on desktop; validator confirms on the phone; history; no errors).
+Vitest 191/191, Playwright 125 + 1 skipped.

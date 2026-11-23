@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ClipboardCheck, Crown, History, MessageSquareWarning, Minus, Plus, X } from "lucide-react";
+import { Check, ClipboardCheck, Crown, History, MessageSquareWarning, Minus, Plus, UserCheck, X } from "lucide-react";
 import { api as defaultApi } from "../../api.js";
 import { StatusChip } from "../finance/FinanceBlocks.jsx";
-import { KINDS, STATUS, decidable, historyLine, kindLabel, mvpView, rows } from "../../postmatch/postmatchModel.js";
+import { KINDS, STATUS, canResolve, decidable, historyLine, kindLabel, mvpView, needsValidator, rows } from "../../postmatch/postmatchModel.js";
 import { displayName } from "../../utils.js";
 
 function Stepper({ label, value, onChange, max = 20 }) {
@@ -120,7 +120,9 @@ export default function PostmatchPanel({ match, me, isAdmin, profileById, varian
   const amIn = participants.includes(meId);
   const closed = Boolean(summary?.closed);
   const list = useMemo(() => rows(summary, meId), [summary, meId]);
-  const toDecide = useMemo(() => decidable(summary, meId), [summary, meId]);
+  const toDecide = useMemo(() => decidable(summary, meId, isAdmin), [summary, meId, isAdmin]);
+  const validator = summary?.validator || null;
+  const [pick, setPick] = useState("");
   const mvp = mvpView(summary);
   const eventOf = (id, kind) => (summary?.events || []).find((e) => e.subject_id === id && e.kind === kind);
   const openCorrections = (summary?.corrections || []).filter((c) => c.status === "open");
@@ -189,9 +191,36 @@ export default function PostmatchPanel({ match, me, isAdmin, profileById, varian
         ))}
       </ul>
 
-      {isAdmin && toDecide.length > 0 && (
+      {(validator || needsValidator(summary, meId)) && (
+        <div className={`pm-validator${needsValidator(summary, meId) ? " is-needed" : ""}`} aria-label="Validador del partido" data-validator={validator ? nameOf(validator.validator_id) : ""}>
+          <h3><UserCheck size={16} aria-hidden="true" /> Validador del partido</h3>
+          {validator ? (
+            <>
+              <p><b>{nameOf(validator.validator_id)}</b> valida los datos de {nameOf(validator.designated_by)} en este partido{validator.used ? " (ya revisó datos)" : ""}. Solo puede validar esos datos, nada más.</p>
+              {summary.can_designate && !validator.used && (
+                <button type="button" className="md-btn md-btn-ghost fx-btn-sm" disabled={busyId === "validator"}
+                  onClick={() => run("validator", () => postmatchApi.postmatchRevokeValidator(match.id), "Validador revocado.")}>Revocar</button>
+              )}
+            </>
+          ) : (
+            <>
+              <p>Sos el único admin y jugaste: tus datos no pueden quedar validados por vos. Elegí a un compañero de este partido para validarlos. Solo va a poder validar tus datos de este partido, y queda registrado en el historial.</p>
+              <div className="pm-actions">
+                <select aria-label="Elegí al validador" value={pick} onChange={(e) => setPick(e.target.value)}>
+                  <option value="">Elegí un compañero…</option>
+                  {participants.filter((id) => id !== meId).map((id) => <option key={id} value={id}>{nameOf(id)}</option>)}
+                </select>
+                <button type="button" className="md-btn md-btn-accent fx-btn-sm" disabled={!pick || busyId === "validator"}
+                  onClick={() => run("validator", () => postmatchApi.postmatchSetValidator(match.id, pick), "Validador designado.").then(() => setPick(""))}>Designar</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {toDecide.length > 0 && (
         <div className="pm-decide" aria-label="Datos para validar">
-          <h3>Para validar</h3>
+          <h3>{isAdmin ? "Para validar" : `Datos de ${nameOf(validator?.designated_by)} para validar`}</h3>
           <ul>
             {toDecide.map((e) => (
               <li key={e.id}>
@@ -207,7 +236,7 @@ export default function PostmatchPanel({ match, me, isAdmin, profileById, varian
           </ul>
         </div>
       )}
-      {isAdmin && (summary.events || []).some((e) => e.status === "provisional" && e.subject_id === meId) && (
+      {isAdmin && !summary.can_designate && (summary.events || []).some((e) => e.status === "provisional" && e.subject_id === meId) && (
         <p className="fx-hint">Tus propios datos los tiene que validar otro admin.</p>
       )}
 
@@ -221,7 +250,7 @@ export default function PostmatchPanel({ match, me, isAdmin, profileById, varian
               return (
                 <li key={c.id}>
                   <span>{nameOf(c.requested_by)}: “{c.message}”{ev ? ` · ${nameOf(ev.subject_id)} ${ev.quantity} → ${c.proposed_quantity ?? "?"} ${kindLabel(ev.kind)}` : ""}</span>
-                  {isAdmin && (
+                  {canResolve(summary, c, meId, isAdmin) && (
                     <span className="pm-actions">
                       <button type="button" className="md-btn md-btn-accent fx-btn-sm" disabled={own || busyId === c.id} title={own ? "Cambia tus propios datos: la resuelve otro admin." : undefined}
                         onClick={() => run(c.id, () => postmatchApi.postmatchResolveCorrection(c.id, true, null), "Corrección aplicada.")}>Aceptar</button>

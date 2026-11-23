@@ -1,7 +1,8 @@
 # F5 Player Evolution — coordinated Production release plan (DB + front end)
 
 Status: **plan only — not executed.** Requires a new explicit approval. Production project: `iijrkeshjpjmxdsclnmo`.
-Never `supabase db push` / `--include-all`. One migration: `supabase/migrations/20261123100000_player_evolution.sql`.
+Never `supabase db push` / `--include-all`. Two migrations, in this order:
+`20261123100000_player_evolution.sql`, then `20261123120000_postmatch_match_validator.sql` (depends on the first).
 
 ## Why DB and front end must ship together
 
@@ -14,9 +15,9 @@ Never `supabase db push` / `--include-all`. One migration: `supabase/migrations/
 
 ## 0. Go / no-go (read-only, Production)
 
-1. `supabase migration list --linked` → only `20261123100000` pending; nothing else pending or unknown.
+1. `supabase migration list --linked` → only `20261123100000` and `20261123120000` pending; nothing else pending or unknown.
 2. No name collisions: none of `player_styles, match_events, match_corrections, match_event_history, match_mvp_votes,
-   match_postmatch`, no `postmatch_*` / `pe_*` functions, no `match_player_stats.source` column (all checked 0 on 2026-11-23).
+   match_postmatch, match_validators`, no `postmatch_*` / `pe_*` functions, no `match_player_stats.source` column (all checked 0 on 2026-11-23).
 3. Dependencies exist: `is_group_member(uuid)`, `is_group_admin(uuid)`, `shares_group_with(uuid)`, tables
    `teams`, `team_members(profile_id)`, `attendances(checked_in)`, `matches(start_time)`, `player_ratings`.
 4. Snapshots saved locally (not in git):
@@ -30,13 +31,17 @@ Never `supabase db push` / `--include-all`. One migration: `supabase/migrations/
 1. `supabase db query --linked -f supabase/migrations/20261123100000_player_evolution.sql`
    (single transaction; on any error nothing is applied → stop, no front-end deploy).
 2. `supabase migration repair --linked --status applied 20261123100000`.
-3. `supabase db push --linked --dry-run` → "Remote database is up to date" (dry run only).
+3. `supabase db query --linked -f supabase/migrations/20261123120000_postmatch_match_validator.sql`, then
+   `supabase migration repair --linked --status applied 20261123120000`. If this second one fails, the first is still
+   valid on its own (single-admin groups simply keep their own data pending) — stop and report before the front end.
+4. `supabase db push --linked --dry-run` → "Remote database is up to date" (dry run only).
 
 ### Post-DB checks (read-only)
 
-- 6 new tables exist with RLS enabled; `anon` has no grants; `authenticated` has SELECT only on the postmatch tables and
+- 7 new tables (incl. `match_validators`) exist with RLS enabled; `anon` has no grants; `authenticated` has SELECT only on the postmatch tables and
   SELECT/INSERT/UPDATE on `player_styles` (own row only by policy).
-- 7 `postmatch_*` functions executable by `authenticated`, not by `anon`; 6 `pe_*` helpers not executable by clients.
+- 9 `postmatch_*` functions (incl. `postmatch_set_validator`, `postmatch_revoke_validator`) executable by `authenticated`,
+  not by `anon`; 8 `pe_*` helpers not executable by clients; history action CHECK includes `validator_designated/revoked`.
 - `match_player_stats` policies = `match_player_stats_select_member` + new `match_player_stats_manage_admin`
   (`... AND player_id IS DISTINCT FROM auth.uid()`); `manage_own` gone.
 - Policy fingerprint of every **other** table unchanged.
@@ -79,4 +84,4 @@ COMMIT;
 ## 5. Open decisions before release
 
 1. MVP quorum stays at max(3, half the roster) + single winner (approved provisionally). Note: a 4-player roster needs 3 votes (75%).
-2. Single-admin groups: choose the validation option (see `F5_PLAYER_EVOLUTION.md` → "Single admin").
+2. Single-admin groups: "validador del partido" chosen and implemented (Staging); ships with the second migration.

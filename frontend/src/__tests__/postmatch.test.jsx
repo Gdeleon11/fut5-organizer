@@ -17,6 +17,8 @@ function fake(summary) {
     postmatchClose: vi.fn().mockResolvedValue({}),
     postmatchRequestCorrection: vi.fn().mockResolvedValue({}),
     postmatchResolveCorrection: vi.fn().mockResolvedValue({}),
+    postmatchSetValidator: vi.fn().mockResolvedValue({}),
+    postmatchRevokeValidator: vi.fn().mockResolvedValue({}),
   };
 }
 const base = (over = {}) => ({
@@ -88,6 +90,52 @@ describe("PostmatchPanel", () => {
   });
 });
 
+describe("match validator (single-admin groups)", () => {
+  it("the sole admin with pending own data is asked to designate a teammate", async () => {
+    const api = fake(base({ can_designate: true, events: [{ id: "e1", subject_id: "me", kind: "goal", quantity: 2, status: "provisional" }] }));
+    render(<PostmatchPanel match={match} me={{ id: "me" }} isAdmin profileById={profileById} postmatchApi={api} />);
+    const box = await screen.findByLabelText("Validador del partido");
+    expect(within(box).getByText(/Sos el único admin y jugaste/)).toBeTruthy();
+    const select = within(box).getByLabelText("Elegí al validador");
+    expect(within(select).queryByRole("option", { name: "Yo" })).toBeNull();
+    fireEvent.change(select, { target: { value: "p3" } });
+    fireEvent.click(within(box).getByRole("button", { name: "Designar" }));
+    await waitFor(() => expect(api.postmatchSetValidator).toHaveBeenCalledWith("m1", "p3"));
+    expect(screen.queryByText(/Tus propios datos los tiene que validar otro admin/)).toBeNull();
+  });
+
+  it("the validator sees only the admin's data to validate, and corrections about it", async () => {
+    const api = fake(base({
+      i_am_validator: true, validator: { validator_id: "me", designated_by: "p2", used: false },
+      events: [
+        { id: "a", subject_id: "p2", kind: "goal", quantity: 2, status: "provisional" },
+        { id: "b", subject_id: "p3", kind: "goal", quantity: 1, status: "provisional" },
+      ],
+      corrections: [
+        { id: "c1", event_id: "a", requested_by: "p4", message: "Fue 1", proposed_quantity: 1, status: "open" },
+        { id: "c2", event_id: "b", requested_by: "p4", message: "Fueron 2", proposed_quantity: 2, status: "open" },
+      ],
+    }));
+    render(<PostmatchPanel match={match} me={{ id: "me" }} isAdmin={false} profileById={profileById} postmatchApi={api} />);
+    const box = await screen.findByLabelText("Datos para validar");
+    expect(within(box).getByRole("heading").textContent).toMatch(/Datos de Dos para validar/);
+    expect(within(box).getAllByRole("listitem")).toHaveLength(1);
+    fireEvent.click(within(box).getByRole("button", { name: /Confirmar goles de Dos/ }));
+    await waitFor(() => expect(api.postmatchDecide).toHaveBeenCalledWith("a", true));
+    const corr = screen.getByLabelText("Correcciones");
+    expect(within(corr).getAllByRole("button", { name: "Aceptar" })).toHaveLength(1);
+    expect(screen.getByLabelText("Validador del partido").dataset.validator).toBe("Yo");
+  });
+
+  it("a used validator cannot be revoked; everyone sees who validates", async () => {
+    const api = fake(base({ can_designate: true, validator: { validator_id: "p3", designated_by: "me", used: true } }));
+    render(<PostmatchPanel match={match} me={{ id: "me" }} isAdmin profileById={profileById} postmatchApi={api} />);
+    const box = await screen.findByLabelText("Validador del partido");
+    expect(box.textContent).toMatch(/Tres valida los datos de Yo .*ya revisó datos/);
+    expect(within(box).queryByRole("button", { name: "Revocar" })).toBeNull();
+  });
+});
+
 describe("postmatch model", () => {
   it("closed without enough participation or with a tie is explained, never declared", () => {
     expect(mvpView({ closed: { mvp_profile_id: null, voters: 1, participants: 6 } })).toMatchObject({ state: "none", reason: "participation" });
@@ -98,5 +146,7 @@ describe("postmatch model", () => {
     const name = (id) => profileById.get(id)?.nickname;
     expect(historyLine({ action: "reported", actor_id: "me", detail: { kind: "goal", quantity: 2, subject_id: "me" } }, name)).toBe("Yo registró 2 goles · Yo");
     expect(historyLine({ action: "correction_accepted", actor_id: "p2", detail: { before: { quantity: 3 }, after: { quantity: 2 } } }, name)).toBe("Dos aceptó una corrección (3 → 2)");
+    expect(historyLine({ action: "validator_designated", actor_id: "me", detail: { subject_id: "p3" } }, name)).toBe("Yo designó como validador del partido a Tres");
+    expect(historyLine({ action: "confirmed", actor_id: "p3", detail: { kind: "goal", quantity: 2, subject_id: "me", as_validator: true } }, name)).toBe("Tres confirmó 2 goles · Yo (como validador)");
   });
 });

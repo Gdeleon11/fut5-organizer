@@ -26,9 +26,28 @@ export function rows(summary, meId) {
   return list.sort((a, b) => (a.id === meId ? -1 : b.id === meId ? 1 : 0));
 }
 
-/** Provisional events an admin may decide (never their own). */
-export function decidable(summary, meId) {
-  return (summary?.events || []).filter((e) => e.status === "provisional" && e.subject_id !== meId);
+/** Provisional events the caller may decide: admins → anyone but themselves; the match validator → only
+ * the designating admin's events. */
+export function decidable(summary, meId, isAdmin = true) {
+  const events = (summary?.events || []).filter((e) => e.status === "provisional" && e.subject_id !== meId);
+  if (isAdmin) return events;
+  if (summary?.i_am_validator && summary.validator) return events.filter((e) => e.subject_id === summary.validator.designated_by);
+  return [];
+}
+
+/** Whether the caller may resolve a correction (admin, or the validator for the designating admin's events). */
+export function canResolve(summary, correction, meId, isAdmin) {
+  const ev = (summary?.events || []).find((e) => e.id === correction.event_id);
+  if (isAdmin) return true;
+  return Boolean(summary?.i_am_validator && ev && summary.validator && ev.subject_id === summary.validator.designated_by && ev.subject_id !== meId);
+}
+
+/** The sole admin who played has own data waiting and no validator yet. */
+export function needsValidator(summary, meId) {
+  if (!summary?.can_designate || summary.validator) return false;
+  const own = (summary.events || []).some((e) => e.subject_id === meId && e.status === "provisional");
+  const ownCorr = (summary.corrections || []).some((c) => c.status === "open" && (summary.events || []).find((e) => e.id === c.event_id)?.subject_id === meId);
+  return own || ownCorr;
 }
 
 export function mvpView(summary) {
@@ -46,15 +65,18 @@ const ACTIONS = {
   reported: "registró", updated: "cambió", confirmed: "confirmó", rejected: "rechazó",
   correction_requested: "pidió una corrección", correction_accepted: "aceptó una corrección",
   correction_dismissed: "descartó una corrección", mvp_closed: "cerró el postpartido",
+  validator_designated: "designó como validador del partido a", validator_revoked: "revocó como validador a",
 };
 
 /** Human line for a history entry. */
 export function historyLine(h, nameOf) {
   const who = nameOf(h.actor_id) || "Alguien";
   const d = h.detail || {};
-  const subject = d.subject_id ? ` · ${nameOf(d.subject_id)}` : "";
+  const validatorAction = h.action === "validator_designated" || h.action === "validator_revoked";
+  const subject = d.subject_id ? (validatorAction ? ` ${nameOf(d.subject_id)}` : ` · ${nameOf(d.subject_id)}`) : "";
+  const asValidator = d.as_validator ? " (como validador)" : "";
   const what = d.kind ? ` ${d.quantity ?? ""} ${kindLabel(d.kind, d.quantity)}`.replace(/\s+/g, " ") : "";
   const change = d.before && d.after ? ` (${d.before.quantity} → ${d.after.quantity})` : "";
   const msg = d.message ? `: “${d.message}”` : "";
-  return `${who} ${ACTIONS[h.action] || h.action}${what}${subject}${change}${msg}`;
+  return `${who} ${ACTIONS[h.action] || h.action}${what}${subject}${change}${msg}${asValidator}`;
 }

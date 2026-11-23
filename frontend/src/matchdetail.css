@@ -422,3 +422,9 @@ html[data-f5-design="editorial"] .md-create h2 { font: 600 clamp(30px, 3vw, 42px
 .mdd-team li button.mdd-pin { flex: none; display: grid; place-items: center; inline-size: 30px; block-size: 30px; min-height: 0; padding: 0; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--md-text-3); cursor: pointer; }
 .mdd-team li button.mdd-pin:hover:not(:disabled) { color: var(--md-text); background: color-mix(in oklab, var(--md-text) 6%, transparent); transform: none; }
 .mdd-team li button.mdd-pin.is-on { color: var(--md-accent); border-color: rgba(var(--md-accent-rgb), 0.5); background: rgba(var(--md-accent-rgb), 0.1); }
+.pm-validator { display: grid; gap: 8px; padding: 12px; border-radius: 12px; border: 1px solid var(--md-line-2); background: var(--md-surface); }
+.pm-validator.is-needed { border-color: color-mix(in oklab, var(--md-warn) 55%, transparent); background: color-mix(in oklab, var(--md-warn) 7%, transparent); }
+.pm-validator h3 { display: flex; align-items: center; gap: 6px; margin: 0; font: 600 14px var(--md-ui); letter-spacing: 0.1em; text-transform: uppercase; color: var(--md-text-2); }
+.pm-validator p { margin: 0; font-size: 14px; color: var(--md-text-2); }
+.pm-validator b { color: var(--md-text); }
+.pm-validator select { min-height: 36px; }

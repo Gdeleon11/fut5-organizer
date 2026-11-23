@@ -2096,6 +2096,12 @@ export const api = {
   async postmatchVoteMvp(matchId, votedId) {
     return readOne(requireSupabase().rpc("postmatch_vote_mvp", { p_match_id: matchId, p_voted_id: votedId }));
   },
+  async postmatchSetValidator(matchId, validatorId) {
+    return readOne(requireSupabase().rpc("postmatch_set_validator", { p_match_id: matchId, p_validator_id: validatorId }));
+  },
+  async postmatchRevokeValidator(matchId) {
+    return readOne(requireSupabase().rpc("postmatch_revoke_validator", { p_match_id: matchId }));
+  },
   async postmatchClose(matchId) {
     return readOne(requireSupabase().rpc("postmatch_close", { p_match_id: matchId }));
   },
