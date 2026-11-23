@@ -85,3 +85,22 @@ COMMIT;
 
 1. MVP quorum stays at max(3, half the roster) + single winner (approved provisionally). Note: a 4-player roster needs 3 votes (75%).
 2. Single-admin groups: "validador del partido" chosen and implemented (Staging); ships with the second migration.
+
+## Release log — 2026-11-23 (executed)
+
+- Pre-checks: master `e9e32b0` → fast-forward to `edd4c4c`; only the two migrations pending; no name conflicts;
+  dependencies present; backups saved locally (policy fingerprint `62dcdcf3…`/96, all 674 `match_player_stats` rows).
+- Final tests on `edd4c4c`: Vitest 191/191, build OK, Playwright 125 + 1 skipped, Staging rules 54/54, async FIFA-card
+  check 5/5 (style shows "Cargando…" then loads).
+- `20261123100000` applied with `db query -f` (file md5 identical to the commit) and recorded; verified: 6 tables RLS on,
+  anon none, 7 client / 6 internal functions, `match_player_stats` = select_member + manage_admin (not own row),
+  other 93 policies unchanged, 674 rows identical (md5 `db8b0afa…`), all `source = legacy`, new tables empty.
+- `20261123120000` applied and recorded; `db push --dry-run` → up to date. 18 functions and 11 policies byte-identical to
+  Staging; `match_validators` RLS on, anon none, empty; 9 client / 8 internal functions.
+- Note: `authenticated` has Supabase's default table privileges on the new tables (same as every existing table and as
+  Staging); access is governed by RLS (player_styles: read group mates, insert/update own row, no delete).
+- Front end: master pushed `e9e32b0..edd4c4c`; deployment `fut5-organizer-khmjaprp5` (`dpl_B1yQvW1yEhXH4XieuRvfSKki5sGM`)
+  Ready on f5manager.lat; bundle: Production ref only, no Staging/demo/mock/synthetic/secret strings.
+  Rollback target kept: `fut5-organizer-n2cnxlcsn` (`e9e32b0`).
+- Post checks: public smoke 32/32; anon 401 on the 7 new tables and on postmatch/pe functions; Radar pilot unchanged.
+- Pending: signed-in checks in Production (no authorized session used in this release).
