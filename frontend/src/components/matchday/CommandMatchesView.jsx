@@ -37,6 +37,7 @@ export default function CommandMatchesView({
   upcomingCount,
   playedCount,
   onOpenPlayer,
+  onboarding = null,
 }) {
   const { featured, agenda, lastPlayed } = model;
 
@@ -55,6 +56,7 @@ export default function CommandMatchesView({
       </div>
 
       {createForm}
+      {onboarding}
 
       {featured ? (
         <CommandArena entry={featured} actions={actions} onOpenPlayer={onOpenPlayer} />

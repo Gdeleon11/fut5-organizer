@@ -30,6 +30,7 @@ export default function PlayersPage({
   matchStats = [],
   onUpdateRole, // Promocionar rol de usuario
   onNotice,
+  onOpenPostmatch,
 }) {
   const { design } = useAppearance();
   const variant = design === "command" ? "command" : "editorial";
@@ -105,29 +106,6 @@ export default function PlayersPage({
       setAssists(0);
       setCleanSheet(false);
       setMvp(false);
-    }
-  };
-
-  // Submit self stats
-  const handleSaveSelfStats = async (e) => {
-    e.preventDefault();
-    if (!selectedMatchId) return;
-    setSavingStats(true);
-    try {
-      const match = matches.find((m) => m.id === selectedMatchId);
-      const groupId = match ? match.group_id : activeGroupId;
-      await api.saveSinglePlayerMatchStats(selectedMatchId, groupId, currentProfileId, {
-        goals,
-        assists,
-        clean_sheet: cleanSheet,
-        mvp,
-      }, currentProfileId);
-      alert("Estadísticas reportadas con éxito.");
-      onNotice?.("Tus estadísticas han sido actualizadas.");
-    } catch (err) {
-      alert("Error al guardar estadísticas: " + err.message);
-    } finally {
-      setSavingStats(false);
     }
   };
 
@@ -335,28 +313,17 @@ export default function PlayersPage({
             {finishedMatchesForUser.length === 0 ? (
               <p className="pf-empty">No tienes partidos finalizados recientes donde hayas confirmado asistencia.</p>
             ) : (
-              <form onSubmit={handleSaveSelfStats} className="form-grid md-form pl-form">
-                <label>
-                  Partido
-                  <select value={selectedMatchId} onChange={(e) => handleMatchSelect(e.target.value)} required>
-                    <option value="">Seleccionar partido</option>
-                    {finishedMatchesForUser.map((match) => (
-                      <option key={match.id} value={match.id}>{match.title || "Chamuscón"} ({new Date(match.match_date + "T12:00:00").toLocaleDateString("es-GT")})</option>
-                    ))}
-                  </select>
-                </label>
-                {selectedMatchId && (
-                  <>
-                    <label>Goles<input type="number" min="0" value={goals} onChange={(e) => setGoals(Math.max(0, parseInt(e.target.value) || 0))} /></label>
-                    <label>Asistencias<input type="number" min="0" value={assists} onChange={(e) => setAssists(Math.max(0, parseInt(e.target.value) || 0))} /></label>
-                    <div className="pl-checks">
-                      <label className={`mdd-toggle${cleanSheet ? " is-on" : ""}`}><input type="checkbox" checked={cleanSheet} onChange={(e) => setCleanSheet(e.target.checked)} />Valla invicta</label>
-                      <label className={`mdd-toggle${mvp ? " is-on" : ""}`}><input type="checkbox" checked={mvp} onChange={(e) => setMvp(e.target.checked)} />Fui el MVP</label>
-                    </div>
-                    <div className="md-form-actions"><button type="submit" className="md-btn md-btn-accent" disabled={savingStats}>{savingStats ? "Guardando…" : "Guardar estadísticas"}</button></div>
-                  </>
-                )}
-              </form>
+              <>
+                <p className="fx-hint">Tus goles, asistencias y el voto de MVP se cargan en el Postpartido de cada partido; un admin los valida.</p>
+                <ul className="pv-history">
+                  {finishedMatchesForUser.map((match) => (
+                    <li key={match.id}>
+                      <span>{match.title || "Chamuscón"} · {new Date(match.match_date + "T12:00:00").toLocaleDateString("es-GT", { weekday: "short", day: "numeric", month: "short" })}</span>
+                      <button type="button" className="md-btn md-btn-ghost fx-btn-sm" onClick={() => onOpenPostmatch?.(match.id)}>Ir al postpartido</button>
+                    </li>
+                  ))}
+                </ul>
+              </>
             )}
           </section>
         )}

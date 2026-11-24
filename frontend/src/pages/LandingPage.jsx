@@ -121,7 +121,7 @@ export default function LandingPage({ onLogin, onNavigate }) {
         <div style={{ display: "flex", justifyContent: "center", gap: "1rem", flexWrap: "wrap", marginBottom: "3rem" }}>
           <button
             type="button"
-            onClick={onLogin}
+            onClick={() => onLogin?.("signup")}
             style={{
               padding: "1rem 2.25rem",
               borderRadius: "12px",
@@ -135,7 +135,23 @@ export default function LandingPage({ onLogin, onNavigate }) {
               transition: "transform 0.2s ease"
             }}
           >
-            Entrar a la App / Crear Grupo
+            Crear mi cuenta gratis
+          </button>
+          <button
+            type="button"
+            onClick={() => onLogin?.("login")}
+            style={{
+              padding: "1rem 2rem",
+              borderRadius: "12px",
+              background: "transparent",
+              color: "var(--text, #ffffff)",
+              fontWeight: "700",
+              fontSize: "1.15rem",
+              border: "1px solid var(--border, rgba(255, 255, 255, 0.25))",
+              cursor: "pointer"
+            }}
+          >
+            Ya tengo cuenta
           </button>
 
           <a
@@ -167,16 +183,16 @@ export default function LandingPage({ onLogin, onNavigate }) {
           border: "1px solid var(--border, rgba(255, 255, 255, 0.1))"
         }}>
           <div>
-            <div style={{ fontSize: "2rem", fontWeight: "900", color: "var(--primary, #10b981)" }}>+10,000</div>
-            <div style={{ fontSize: "0.9rem", color: "var(--text-muted, #94a3b8)", marginTop: "0.25rem" }}>Partidos Organizados</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "var(--primary, #10b981)" }}>Gratis</div>
+            <div style={{ fontSize: "0.9rem", color: "var(--text-muted, #94a3b8)", marginTop: "0.25rem" }}>Creá tu grupo y tu primer partido en minutos</div>
           </div>
           <div>
-            <div style={{ fontSize: "2rem", fontWeight: "900", color: "#3b82f6" }}>99.4%</div>
-            <div style={{ fontSize: "0.9rem", color: "var(--text-muted, #94a3b8)", marginTop: "0.25rem" }}>Precisión en Balance IA</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "#3b82f6" }}>Por WhatsApp</div>
+            <div style={{ fontSize: "0.9rem", color: "var(--text-muted, #94a3b8)", marginTop: "0.25rem" }}>Invitá a tus amigos con un enlace</div>
           </div>
           <div>
-            <div style={{ fontSize: "2rem", fontWeight: "900", color: "#f59e0b" }}>100%</div>
-            <div style={{ fontSize: "0.9rem", color: "var(--text-muted, #94a3b8)", marginTop: "0.25rem" }}>Transparencia Financiera</div>
+            <div style={{ fontSize: "1.5rem", fontWeight: "900", color: "#f59e0b" }}>Equipos parejos</div>
+            <div style={{ fontSize: "0.9rem", color: "var(--text-muted, #94a3b8)", marginTop: "0.25rem" }}>Con una explicación clara de cómo se armaron</div>
           </div>
         </div>
       </section>

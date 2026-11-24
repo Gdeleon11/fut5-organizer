@@ -71,7 +71,9 @@ function TournamentForm({ onSave, onCancel }) {
       </label>
       <label>Primer partido
         <input type="date" value={form.start_date} onChange={(e) => update({ start_date: e.target.value })} />
-        <small className="fx-hint">{day ? `Se juega los ${WEEKDAY_ES[day]}, una fecha por semana.` : "Después se juega cada semana el mismo día."}</small>
+        <small className="fx-hint" data-first-date>{day
+          ? `Primer partido: ${new Date(`${form.start_date}T12:00:00`).toLocaleDateString("es-GT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}. Se juega los ${WEEKDAY_ES[day]}, una fecha por semana.`
+          : "Después se juega cada semana el mismo día."}</small>
       </label>
       <label>Hora
         <input type="time" value={form.match_time} onChange={(e) => update({ match_time: e.target.value })} />

@@ -44,6 +44,7 @@ export default function MatchesPage({
   skills = [],
   matchStats = [],
   rosterProfiles = null, // group members + accepted Radar players ("Apodo · Radar") for the pitch
+  onboarding = null, // first-steps cards (invite / pending activations / optional style)
 }) {
   const fifa = useFifaModal();
   const { design: preferredDesign } = useAppearance();
@@ -169,6 +170,7 @@ export default function MatchesPage({
     deletion,
     actions,
     onOpenMatch,
+    onboarding,
   };
 
   return (

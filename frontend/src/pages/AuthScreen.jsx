@@ -1,9 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { hasSupabaseConfig, supabase } from "../supabaseClient.js";
+import { api } from "../api.js";
+import { authErrorMessage, invitedGroupId } from "../authMessages.js";
 import { classNames } from "../utils.js";
 
+function initialMode() {
+  if (typeof window === "undefined") return "login";
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("modo") === "registro" || invitedGroupId()) return "signup";
+  return "login";
+}
+
 export default function AuthScreen({ onMockLogin }) {
-  const [mode, setMode] = useState("login");
+  const [mode, setMode] = useState(initialMode); // "login" | "signup" | "reset"
+  const [invite, setInvite] = useState(null); // { name } | { invalid: true }
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState("");
@@ -11,6 +21,40 @@ export default function AuthScreen({ onMockLogin }) {
   const [submitting, setSubmitting] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
   const isSignup = mode === "signup";
+  const isReset = mode === "reset";
+
+  // Invitation links (?group=…): say which group invited you before you create the account.
+  useEffect(() => {
+    const groupId = invitedGroupId();
+    if (!groupId || !hasSupabaseConfig) return;
+    api.searchGroups(groupId)
+      .then((rows) => {
+        const g = (rows || []).find((r) => r.id === groupId);
+        setInvite(g ? { name: g.name || "una chamusca" } : { invalid: true });
+      })
+      // Signed-out visitors cannot look the group up (the search requires a session): show the
+      // invitation without the name; an invalid link is explained right after signing in.
+      .catch(() => setInvite({ generic: true }));
+  }, []);
+
+  async function requestReset(event) {
+    event.preventDefault();
+    setNotice(""); setError("");
+    if (!email.trim()) { setError("Escribí el email de tu cuenta."); return; }
+    setSubmitting(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/login`,
+      });
+      if (resetError) throw resetError;
+      // Same message whether or not the email has an account (no account discovery).
+      setNotice("Si ese email tiene una cuenta, te enviamos un enlace para crear una contraseña nueva. Revisá tu correo (y la carpeta de spam).");
+    } catch (authError) {
+      setError(authErrorMessage(authError));
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   function currentRedirectUrl() {
     if (typeof window === "undefined") return undefined;
@@ -37,7 +81,7 @@ export default function AuthScreen({ onMockLogin }) {
 
       if (googleError) throw googleError;
     } catch (authError) {
-      setError(authError.message);
+      setError(authErrorMessage(authError));
       setSubmitting(false);
     }
   }
@@ -62,7 +106,7 @@ export default function AuthScreen({ onMockLogin }) {
 
       setNotice("Email de confirmación reenviado. Revisá tu correo.");
     } catch (authError) {
-      setError(authError.message);
+      setError(authErrorMessage(authError));
     } finally {
       setResendingEmail(false);
     }
@@ -124,7 +168,7 @@ export default function AuthScreen({ onMockLogin }) {
         }
       }
     } catch (authError) {
-      setError(authError.message);
+      setError(authErrorMessage(authError));
     } finally {
       setSubmitting(false);
     }
@@ -136,8 +180,24 @@ export default function AuthScreen({ onMockLogin }) {
         <img className="auth-brand-mark" src="/brand/f5-club.svg" alt="F5Manager" />
         <div>
           <p className="eyebrow">f5manager</p>
-          <h1>{import.meta.env.DEV && !hasSupabaseConfig ? "Modo Demo Sandbox" : isSignup ? "Crear cuenta" : "Entrar"}</h1>
+          <h1>{import.meta.env.DEV && !hasSupabaseConfig ? "Modo Demo Sandbox" : isReset ? "Recuperar acceso" : isSignup ? "Crear cuenta" : "Entrar"}</h1>
+          {isSignup && !invite && <p className="muted auth-lede">Gratis. Organizá partidos, confirmaciones y equipos con tu grupo, desde el teléfono.</p>}
         </div>
+        {invite?.name && (
+          <div className="alert success auth-invite" role="status">
+            Te invitaron a <b>«{invite.name}»</b>. Creá tu cuenta (o entrá si ya tenés una) y quedás dentro del grupo; el organizador te activa para jugar.
+          </div>
+        )}
+        {invite?.generic && (
+          <div className="alert success auth-invite" role="status">
+            Te invitaron a un grupo de F5 Manager. Creá tu cuenta (o entrá si ya tenés una) y quedás dentro del grupo; el organizador te activa para jugar.
+          </div>
+        )}
+        {invite?.invalid && (
+          <div className="alert error auth-invite" role="alert">
+            Este enlace de invitación no es válido o el grupo ya no existe. Pedile al organizador un enlace nuevo. Igual podés crear tu cuenta.
+          </div>
+        )}
 
         {!hasSupabaseConfig ? (
           <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -160,7 +220,7 @@ export default function AuthScreen({ onMockLogin }) {
           </div>
         ) : (
           <>
-            <div className="segmented-control">
+            {!isReset && <div className="segmented-control">
               <button
                 className={classNames(!isSignup && "is-active")}
                 type="button"
@@ -175,19 +235,19 @@ export default function AuthScreen({ onMockLogin }) {
               >
                 Registrarme
               </button>
-            </div>
+            </div>}
 
-            {error && <div className="alert error">{error}</div>}
-            {notice && <div className="alert success">{notice}</div>}
+            {error && <div className="alert error" role="alert">{error}</div>}
+            {notice && <div className="alert success" role="status">{notice}</div>}
 
-            <button
+            {!isReset && <button
               className="google-button"
               disabled={submitting}
               type="button"
               onClick={signInWithGoogle}
             >
               Continuar con Google
-            </button>
+            </button>}
 
             {mode === "login" && (
               <button
@@ -200,10 +260,21 @@ export default function AuthScreen({ onMockLogin }) {
               </button>
             )}
 
-            <div className="auth-divider">
+            {!isReset && <div className="auth-divider">
               <span>o usá email</span>
-            </div>
+            </div>}
 
+            {isReset ? (
+              <form className="form-grid auth-form" onSubmit={requestReset}>
+                <p className="muted">Te mandamos un enlace a tu correo para crear una contraseña nueva.</p>
+                <label>
+                  Email
+                  <input autoComplete="email" inputMode="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+                </label>
+                <button disabled={submitting} type="submit">{submitting ? "Enviando..." : "Enviarme el enlace"}</button>
+                <button type="button" className="secondary-button" onClick={() => { setMode("login"); setNotice(""); setError(""); }}>Volver a entrar</button>
+              </form>
+            ) : (
             <form className="form-grid auth-form" onSubmit={submit}>
               <label>
                 Email
@@ -225,9 +296,15 @@ export default function AuthScreen({ onMockLogin }) {
                 />
               </label>
               <button disabled={submitting} type="submit">
-                {submitting ? "Procesando..." : isSignup ? "Registrarme" : "Entrar"}
+                {submitting ? "Procesando..." : isSignup ? "Crear mi cuenta" : "Entrar"}
               </button>
+              {!isSignup && (
+                <button type="button" className="auth-link" onClick={() => { setMode("reset"); setNotice(""); setError(""); }}>
+                  ¿Olvidaste tu contraseña?
+                </button>
+              )}
             </form>
+            )}
 
             {import.meta.env.DEV && onMockLogin && (
               <div style={{ marginTop: "2rem", textAlign: "center", borderTop: "1px solid var(--border)", paddingTop: "1.5rem" }}>

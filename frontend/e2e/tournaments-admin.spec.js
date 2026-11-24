@@ -32,6 +32,11 @@ for (const design of ["editorial", "command"]) {
       await tab(page, "Llaves");
       await expect(page.locator(".tn-col h3")).toHaveText(["Semifinales", "Final"]);
       await expect(page.locator(".tn-slot.is-win")).toHaveCount(2);
+      // The final is fully inside the screen (phones stack rounds vertically instead of cutting it off).
+      const finalBox = await page.locator(".tn-col").last().boundingBox();
+      const vw = page.viewportSize().width;
+      expect(finalBox.x).toBeGreaterThanOrEqual(0);
+      expect(finalBox.x + finalBox.width).toBeLessThanOrEqual(vw + 1);
       await tab(page, "Equipos");
       await expect(page.locator(".tn-team-card")).toHaveCount(4);
       await page.locator(".tn-back").click();

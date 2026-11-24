@@ -257,3 +257,9 @@
   .tn-champion b { font-size: 28px; }
   .tn-tabs { overflow-x: auto; flex-wrap: nowrap; }
 }
+
+/* Championships on phones: knockout rounds stack vertically so the final is never cut off. */
+@media (max-width: 719px) {
+  .tn-bracket { grid-auto-flow: row; grid-auto-columns: auto; grid-template-columns: minmax(0, 1fr); gap: 18px; overflow-x: visible; }
+  .tn-col + .tn-col .tn-tie::before { display: none; }
+}

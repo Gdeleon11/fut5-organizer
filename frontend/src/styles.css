@@ -6952,3 +6952,9 @@ small, .muted {
 .su-steps li.is-current { color: var(--text-primary); border-color: var(--accent); font-weight: 600; }
 .su-actions, .su-slow { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; align-items: center; }
 .su-slow { flex-direction: column; }
+
+/* Sign-in: value line, invitation context, password recovery link */
+.auth-lede { margin: 0.35rem 0 0; font-size: 0.95rem; }
+.auth-invite { margin: 0; }
+.auth-link { background: none; border: 0; padding: 0.25rem 0; color: var(--accent); text-decoration: underline; font-size: 0.9rem; cursor: pointer; justify-self: center; text-transform: none; letter-spacing: normal; }
+.auth-link:hover:not(:disabled) { background: none; transform: none; }

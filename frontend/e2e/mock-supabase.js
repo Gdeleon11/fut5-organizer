@@ -61,6 +61,10 @@ export async function mockSupabase(context, db = createMockDb()) {
     const url = new URL(req.url());
     const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 
+    if (url.pathname.startsWith("/auth/v1/token") && db.authError) {
+      return json({ error: "invalid_grant", error_description: db.authError, msg: db.authError, code: 400 }, 400);
+    }
+    if (url.pathname.startsWith("/auth/v1/recover")) { db.recoverRequests = (db.recoverRequests || 0) + 1; return json({}); }
     if (url.pathname.startsWith("/auth/v1/token")) {
       return json({ access_token: jwt(db.user.id), token_type: "bearer", expires_in: 3600, expires_at: Math.floor(Date.now() / 1000) + 3600, refresh_token: "mock-refresh", user: { ...db.user, aud: "authenticated", role: "authenticated" } });
     }
@@ -74,6 +78,8 @@ export async function mockSupabase(context, db = createMockDb()) {
       db.rpcs = db.rpcs || [];
       db.rpcs.push({ fn: rpc[1], args });
       if (rpc[1] === "notifications_unread_count") return json(0);
+      if (rpc[1] === "search_groups_public" && db.publicGroupsError) return json({ message: "Autenticación requerida.", code: "P0001" }, 400);
+      if (rpc[1] === "search_groups_public") return json((db.publicGroups || []).filter((g) => g.id === args?.p_query || g.name.toLowerCase().includes(String(args?.p_query || "").toLowerCase())));
       if (rpc[1] === "postmatch_summary" && db.postmatchSummary) return json(db.postmatchSummary);
       if (rpc[1] === "radar_set_group_settings") {
         const row = { group_id: args.p_group_id, enabled: args.p_enabled, show_group_name: args.p_show_group_name };

@@ -4,6 +4,7 @@ import { api } from "./api.js";
 import SectionHero from "./components/SectionHero.jsx";
 import { rolePageDecision } from "./routing/roleGate.js";
 import StartupState from "./components/StartupState.jsx";
+import NewPasswordScreen from "./components/NewPasswordScreen.jsx";
 import { matchCapacity } from "./matchday/matchdayModel.js";
 import AdBanner from "./components/AdBanner.jsx";
 
@@ -41,7 +42,8 @@ import { PrivacyPage, TermsPage, ContactPage } from "./pages/LegalPages.jsx";
 import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
 import { activeReservationStatus, canUseReservationAssistant } from "./reservationAssistant.js";
 import { canAccessMatch, collectGroupTags } from "./tags.js";
-import { classNames, displayName, formatMatchDate, profileComplete, roleLabel } from "./utils.js";
+import { appShareUrl, classNames, displayName, formatMatchDate, groupInvitationText, profileComplete, roleLabel } from "./utils.js";
+import OnboardingCards from "./components/matchday/OnboardingCards.jsx";
 import { AppHeader, AppSidebar, MobileBottomNav, DevRoleBanner } from "./components/shell/index.js";
 import { AppearanceScope, useAppearance } from "./appearance/AppearanceProvider.jsx";
 
@@ -137,6 +139,8 @@ function urlForPage(page, matchId, groupId) {
 export default function App() {
   const initialRoute = routeFromLocation();
   const [sessionReady, setSessionReady] = useState(!hasSupabaseConfig);
+  // Opened the "recover password" email link: ask for a new password before anything else.
+  const [recoveringPassword, setRecoveringPassword] = useState(false);
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [memberships, setMemberships] = useState([]);
@@ -174,6 +178,10 @@ export default function App() {
   const [groupsTab, setGroupsTab] = useState("groups");
   // Self-declared player styles (Player Builder); empty where the table does not exist yet.
   const [playerStyles, setPlayerStyles] = useState(new Map());
+  const [stylesAvailable, setStylesAvailable] = useState(false);
+  const [styleTipHidden, setStyleTipHidden] = useState(() => {
+    try { return localStorage.getItem("f5_style_tip_hidden") === "1"; } catch { return false; }
+  });
 
   const [loading, setLoading] = useState(false);
   // True once the signed-in user's groups/roles have been loaded (or failed to load).
@@ -621,9 +629,12 @@ export default function App() {
       setSession(data.session);
       setSessionReady(true);
     }).catch(() => { if (mounted) setSessionReady(true); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      if (!s) resetState();
+      if (event === "PASSWORD_RECOVERY") setRecoveringPassword(true);
+      // Only an explicit sign-out resets the app; a visitor without a session keeps the page
+      // they opened (the landing page at "/" used to be replaced by the login screen).
+      if (event === "SIGNED_OUT") resetState();
     });
     return () => { mounted = false; subscription.unsubscribe(); };
   }, []);
@@ -850,11 +861,11 @@ export default function App() {
       try {
         await api.joinGroup(sharedGroupId, currentProfile.id);
         rows = await api.listMyGroups(currentProfile.id);
-        setNotice("Solicitud enviada. Un admin del grupo debe activarte para jugar.");
+        const joined = rows.find((m) => m.group_id === sharedGroupId)?.groups?.name;
+        setNotice(`Te uniste a «${joined || "la chamusca"}». El organizador tiene que activarte para que puedas confirmar partidos.`);
       } catch (joinError) {
-        console.error("Error joining group:", joinError);
-        // If join fails, continue without joining - user can try again later
-        setNotice("No se pudo unir al grupo automáticamente. Intentá de nuevo desde la pestaña Grupos.");
+        console.warn("Invitation link could not be used:", joinError?.message);
+        setError("Ese enlace de invitación no es válido o el grupo ya no existe. Pedile al organizador un enlace nuevo, o creá tu propia chamusca.");
       }
     }
     setMemberships(rows);
@@ -898,8 +909,8 @@ export default function App() {
     ]);
     setRadarOutsiders(radarRows || []);
     api.listPlayerStyles((profileRows || []).map((p) => p.id))
-      .then((rows) => setPlayerStyles(new Map((rows || []).map((r) => [r.profile_id, r]))))
-      .catch(() => setPlayerStyles(new Map()));
+      .then((rows) => { setPlayerStyles(new Map((rows || []).map((r) => [r.profile_id, r]))); setStylesAvailable(true); })
+      .catch(() => { setPlayerStyles(new Map()); setStylesAvailable(false); });
     let voteRows = [];
     try { voteRows = await api.getPlayerVotes(groupId); } catch (e) { console.warn("Votes not available:", e.message); }
     const teamsMap = await api.listAllTeams(matchRows);
@@ -2154,6 +2165,14 @@ export default function App() {
 
   // Render guards
   if (!sessionReady && !isDemoMode) return <StartupState phase="session" />;
+  if (recoveringPassword && session && !isDemoMode) {
+    return <NewPasswordScreen onDone={() => {
+      setRecoveringPassword(false);
+      setNotice("Listo: tu contraseña nueva quedó guardada.");
+      window.history.replaceState({}, "", "/partidos");
+      setPage("matches");
+    }} />;
+  }
 
   // Render proof upload page (requires auth, so we prompt login first if no session)
   if (proofToken && !session && !isDemoMode) {
@@ -2200,10 +2219,10 @@ export default function App() {
       return (
         <>
           <LandingPage 
-            onLogin={() => { 
-              setPage("auth"); 
-              window.history.pushState({}, "", "/login"); 
-            }} 
+            onLogin={(mode) => {
+              setPage("auth");
+              window.history.pushState({}, "", mode === "signup" ? "/login?modo=registro" : "/login");
+            }}
             onNavigate={handlePublicNavigate}
           />
           <AdBanner sticky={true} pageContext="landing" />
@@ -2395,6 +2414,22 @@ export default function App() {
               skills={skills}
               matchStats={matchStats}
               rosterProfiles={matchProfiles}
+              onboarding={isDemoMode ? null : (
+                <OnboardingCards
+                  pending={isAdmin ? {
+                    members: profiles.filter((p) => p && !p.membership_is_active && p.membership_role !== "radar"),
+                    onActivate: (id) => updateGroupMember(id, { is_active: true }),
+                  } : null}
+                  invite={isAdmin && activeGroup && profiles.filter((p) => p?.membership_is_active).length < 4 ? {
+                    text: groupInvitationText(activeGroup),
+                    link: appShareUrl(null, activeGroup.id),
+                  } : null}
+                  styleTip={stylesAvailable && !styleTipHidden && currentPlayer?.id && !playerStyles.has(currentPlayer.id) ? {
+                    onOpen: () => goToPage("profile", "pb-title"),
+                    onDismiss: () => { try { localStorage.setItem("f5_style_tip_hidden", "1"); } catch { /* ignore */ } setStyleTipHidden(true); },
+                  } : null}
+                />
+              )}
             />
           )
         )}
@@ -2521,6 +2556,10 @@ export default function App() {
         )}
         {page === "players" && (
           <PlayersPage
+            onOpenPostmatch={(id) => {
+              openMatch(id);
+              window.setTimeout(() => document.getElementById("postpartido")?.scrollIntoView({ behavior: "smooth", block: "start" }), 400);
+            }}
             activeGroupId={activeGroupId}
             attendances={attendances}
             fines={fines}

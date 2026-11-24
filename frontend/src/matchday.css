@@ -849,3 +849,18 @@ button.mdc-tok:hover:not(:disabled) { transform: scale(1.07); }
 button.mdc-tok:disabled { cursor: default; opacity: 1; }
 button.mdc-tok:focus-visible { outline: 3px solid var(--md-accent); outline-offset: 3px; }
 .mdc-tok small { z-index: 1; }
+
+/* ---------- First steps on Partidos (invite, pending activations, optional style) ---------- */
+.ob-cards { display: grid; gap: 12px; margin-block: 8px 18px; }
+.ob-card { position: relative; display: grid; gap: 8px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--md-line-2); background: var(--md-surface); }
+.mdc .ob-card { border-radius: 18px; background: var(--md-surface-2); }
+.ob-card h2 { display: flex; align-items: center; gap: 8px; margin: 0; font: 600 17px var(--md-ui); color: var(--md-text); padding-inline-end: 28px; }
+.ob-card h2 svg { color: var(--md-accent); flex: none; }
+.ob-card p { margin: 0; font-size: 14px; color: var(--md-text-2); }
+.ob-card.is-pending { border-color: color-mix(in oklab, var(--md-warn) 55%, transparent); background: color-mix(in oklab, var(--md-warn) 7%, var(--md-surface)); }
+.ob-card ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ob-card li { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ob-card li span { font-weight: 600; color: var(--md-text); min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ob-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ob-actions a.md-btn { text-decoration: none; }
+.ob-close { position: absolute; inset-block-start: 8px; inset-inline-end: 8px; }

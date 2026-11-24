@@ -26,6 +26,7 @@ export default function EditorialMatchesView({
   deletion,
   actions,
   onOpenMatch,
+  onboarding = null,
 }) {
   const { featured, agenda, lastPlayed } = model;
 
@@ -37,6 +38,7 @@ export default function EditorialMatchesView({
       </div>
 
       {createForm}
+      {onboarding}
 
       {featured ? (
         <EditorialHero entry={featured} actions={actions} />
