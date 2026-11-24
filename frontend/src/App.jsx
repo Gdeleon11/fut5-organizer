@@ -481,7 +481,9 @@ export default function App() {
       ), [matches, currentPlayer, isAdmin]
   );
   
-  // Modal encuestas post partido
+  // Modal encuestas post partido. Surveys closed or finished in this session are tracked in state too,
+  // so closing with X does not reopen the modal (localStorage alone is not re-read by the memo).
+  const [dismissedSurveys, setDismissedSurveys] = useState(() => new Set());
   const pendingSurveyMatch = useMemo(() => {
     if (!profile) return null;
     const now = new Date();
@@ -491,6 +493,7 @@ export default function App() {
       if (m.status !== "closed" && new Date(`${m.match_date}T${m.start_time || "19:00"}`) >= now) return false;
       // Only recent matches (last 7 days) and never twice.
       if (now - new Date(`${m.match_date}T${m.start_time || "19:00"}`) > 7 * 864e5) return false;
+      if (dismissedSurveys.has(m.id)) return false;
       if (localStorage.getItem(`survey_done_${m.id}`)) return false;
       const attended = attendances.some(a => a.match_id === m.id && a.profile_id === profile.id && ["confirmed", "checked_in"].includes(a.status));
       if (!attended) return false;
@@ -502,8 +505,12 @@ export default function App() {
     
     // Pick the most recent one
     return surveyMatches.sort((a, b) => new Date(`${b.match_date}T${b.start_time || "19:00"}`) - new Date(`${a.match_date}T${a.start_time || "19:00"}`))[0] || null;
-  }, [matches, attendances, matchStats, profile]);
+  }, [matches, attendances, matchStats, profile, dismissedSurveys]);
   const [activeSurveyMatch, setActiveSurveyMatch] = useState(null);
+  function dismissSurvey(matchId, key) {
+    try { localStorage.setItem(`${key}_${matchId}`, "1"); } catch { /* private mode: the session state still closes it */ }
+    setDismissedSurveys((c) => new Set(c).add(matchId));
+  }
   
   // Show modal automatically if pendingSurveyMatch changes to a non-null value, keeping it open even after stats refresh
   useEffect(() => {
@@ -2624,10 +2631,10 @@ export default function App() {
           profile={profile}
           profiles={matchProfiles}
           onClose={() => {
-            localStorage.setItem(`skipped_survey_${activeSurveyMatch.id}`, 'true');
+            dismissSurvey(activeSurveyMatch.id, "skipped_survey");
             setActiveSurveyMatch(null);
           }}
-          onDone={() => { localStorage.setItem(`survey_done_${activeSurveyMatch.id}`, "1"); reloadMatchStats(); }}
+          onDone={() => { dismissSurvey(activeSurveyMatch.id, "survey_done"); reloadMatchStats(); }}
           onNotice={setNotice}
         />
       )}
