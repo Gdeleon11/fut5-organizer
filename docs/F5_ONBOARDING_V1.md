@@ -57,3 +57,18 @@ Radar: the journey doesn't require it or publish anything. The no-group screen k
 
 - Showing the group name to a signed-out invitee needs a public RPC limited to name-by-id. That is a migration, so it isn't in this V1.
 - The Staging and Production redirect URLs must allow `/login` so the recovery email returns to the app. Check this in Supabase Auth before Production.
+
+## Release log — Production (25/11/2026)
+
+- Approved by the owner («Yes, production»).
+- master fast-forwarded `14d68a9 → d04a124`.
+- Vercel deploy `o17zgnihd` (production, READY, commit d04a124).
+- No migrations, no RLS changes and no data written.
+- Read-only smoke test on f5manager.lat (phone), 7/7:
+  - landing at `/` with «Crear mi cuenta gratis», without the invented metrics;
+  - the CTA opens sign-up;
+  - «¿Olvidaste tu contraseña?» is present;
+  - the invitation banner shows;
+  - no overflow and no exceptions.
+- The bundle references only the Production project.
+- Rollback: promote the previous deploy `jo8v4rsxg` (commit 14d68a9) in Vercel.
