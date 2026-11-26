@@ -15,6 +15,10 @@ const STORAGE_SQL = fs.readFileSync(
   path.join(MIGRATIONS_DIR, "20261119105000_harden_storage_buckets.sql"),
   "utf8",
 );
+const PENDING_FIX_SQL = fs.readFileSync(
+  path.join(MIGRATIONS_DIR, "20261126170000_require_active_membership_rls.sql"),
+  "utf8",
+);
 
 const ALL_30_TABLES = [
   "profiles", "groups", "group_members", "group_tags", "settings",
@@ -156,5 +160,79 @@ describe("Block C — Multi-Group & Anon Access Policy Matrix Simulation", () =>
     expect(
       canUpdatePayment("U_B_ADMIN", oldPayment, { ...oldPayment, status: "paid", proof_status: "approved" }),
     ).toBe(false);
+  });
+});
+
+describe("Pending-Member RLS Privacy Fix (20261126170000_require_active_membership_rls.sql)", () => {
+  it("wraps the fix in BEGIN/COMMIT, sets search_path=public, and requires is_active=true", () => {
+    const clean = stripSqlComments(PENDING_FIX_SQL);
+    expect(clean).toMatch(/\bBEGIN;/);
+    expect(clean).toMatch(/\bCOMMIT;/);
+    expect(clean).not.toMatch(/USING\s*\(\s*true\s*\)/i);
+
+    const definerMatches = clean.match(/SECURITY DEFINER[\s\S]{0,80}/gi) || [];
+    expect(definerMatches.length).toBe(3);
+    for (const snippet of definerMatches) {
+      expect(snippet).toMatch(/SET search_path\s*=\s*public/i);
+    }
+
+    // is_group_member MUST enforce gm.is_active = true
+    const igm = clean.match(/CREATE OR REPLACE FUNCTION public\.is_group_member[\s\S]*?\$\$;/i)?.[0] || "";
+    expect(igm).toMatch(/gm\.is_active\s*=\s*true/i);
+
+    // shares_group_with MUST enforce gm_self.is_active = true and restrict pending target to admins
+    const sgw = clean.match(/CREATE OR REPLACE FUNCTION public\.shares_group_with[\s\S]*?\$\$;/i)?.[0] || "";
+    expect(sgw).toMatch(/gm_self\.is_active\s*=\s*true/i);
+    expect(sgw).toMatch(/gm_other\.is_active\s*=\s*true/i);
+    expect(sgw).toMatch(/gm_self\.role\s+IN\s*\('admin',\s*'super_admin'\)/i);
+
+    // groups_select_member_or_owner uses narrow has_group_membership so pending join flow still works
+    expect(clean).toContain("groups_select_member_or_owner");
+    expect(clean).toContain("public.has_group_membership(id)");
+    expect(clean).toContain("REVOKE ALL ON FUNCTION public.has_group_membership(uuid) FROM PUBLIC;");
+  });
+
+  it("blocks pending members from private group reads while preserving own request and admin activation", () => {
+    const rows = [
+      { group_id: "G1", profile_id: "U_ADMIN", role: "super_admin", is_active: true },
+      { group_id: "G1", profile_id: "U_ACTIVE", role: "player", is_active: true },
+      { group_id: "G1", profile_id: "U_PENDING", role: "player", is_active: false },
+      { group_id: "G2", profile_id: "U_OUTSIDER", role: "player", is_active: true },
+    ];
+
+    const hasMembership = (uid, gid) => rows.some((r) => r.profile_id === uid && r.group_id === gid);
+    const isActiveMember = (uid, gid) => rows.some((r) => r.profile_id === uid && r.group_id === gid && r.is_active);
+    const sharesGroupWith = (uid, targetId) =>
+      rows.some(
+        (self) =>
+          self.profile_id === uid &&
+          self.is_active &&
+          rows.some(
+            (other) =>
+              other.group_id === self.group_id &&
+              other.profile_id === targetId &&
+              (other.is_active || ["admin", "super_admin"].includes(self.role)),
+          ),
+      );
+
+    // Pending member: sees own request + basic group, ZERO private group tables or other profiles
+    expect(hasMembership("U_PENDING", "G1")).toBe(true);
+    expect(isActiveMember("U_PENDING", "G1")).toBe(false);
+    expect(sharesGroupWith("U_PENDING", "U_ADMIN")).toBe(false);
+    expect(sharesGroupWith("U_PENDING", "U_ACTIVE")).toBe(false);
+
+    // Admin: sees group data + pending joiner profile for activation
+    expect(isActiveMember("U_ADMIN", "G1")).toBe(true);
+    expect(sharesGroupWith("U_ADMIN", "U_PENDING")).toBe(true);
+
+    // Active player: sees active teammates, NOT pending unapproved profile, NOT other group
+    expect(isActiveMember("U_ACTIVE", "G1")).toBe(true);
+    expect(sharesGroupWith("U_ACTIVE", "U_ADMIN")).toBe(true);
+    expect(sharesGroupWith("U_ACTIVE", "U_PENDING")).toBe(false);
+    expect(sharesGroupWith("U_ACTIVE", "U_OUTSIDER")).toBe(false);
+
+    // Outsider: 0 access to G1
+    expect(hasMembership("U_OUTSIDER", "G1")).toBe(false);
+    expect(isActiveMember("U_OUTSIDER", "G1")).toBe(false);
   });
 });
