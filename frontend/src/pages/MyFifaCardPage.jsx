@@ -10,6 +10,9 @@ import { attendanceLabel, formatMatchDate } from "../utils.js";
 import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 import { DESIGNS, PALETTES } from "../appearance/appearance.js";
 import { PlayerLayers } from "../components/profile/PlayerBuilder.jsx";
+import { verifiedRecord } from "../players/playerStyle.js";
+import { FifaShareModal } from "../components/share/MatchShareModals.jsx";
+import { ShareTriggerButton } from "../components/share/ShareSheetModal.jsx";
 
 const SPANISH_POSITION_OPTIONS = [
   { id: "Flexible", label: "Flexible" },
@@ -57,6 +60,8 @@ export default function MyFifaCardPage({
   // Admin nomination panel states
   const [nomineeId, setNomineeId] = useState("");
   const [nomineeRole, setNomineeRole] = useState("admin");
+  const [shareOpen, setShareOpen] = useState(false);
+  const [layerData, setLayerData] = useState({ style: null, record: null, earned: null });
 
   // Sync state with profile updates
   useEffect(() => {
@@ -176,13 +181,21 @@ export default function MyFifaCardPage({
   const previewProfile = { ...profile, avatar_url: avatarPreview, full_name: fullName, nickname };
   const isCommand = variant === "command";
 
+  const fallbackRecord = useMemo(
+    () => verifiedRecord({ profileId: profile?.id, matches, attendances, stats: matchStats, rating: ratingMap?.get?.(profile?.id) }),
+    [profile?.id, matches, attendances, matchStats, ratingMap],
+  );
+
   const cardBlock = (
     <div className="mf-card">
       <FifaCard profile={previewProfile} ratingObj={ratingMap.get(profile?.id)} playerSkills={Array.from(playerSkillsSet)} matchStats={matchStats} />
-      <label className="md-btn md-btn-ghost mf-photo">
-        <Camera size={16} aria-hidden="true" /> {avatarFile ? "Foto lista para guardar" : "Cambiar foto"}
-        <input type="file" accept="image/*" onChange={handleAvatarChange} className="sr-only" />
-      </label>
+      <div className="f5s-trigger-row">
+        <ShareTriggerButton label="Compartir mi tarjeta" variant="accent" onClick={() => setShareOpen(true)} testId="fifa-share-btn" />
+        <label className="md-btn md-btn-ghost mf-photo">
+          <Camera size={16} aria-hidden="true" /> {avatarFile ? "Foto lista para guardar" : "Cambiar foto"}
+          <input type="file" accept="image/*" onChange={handleAvatarChange} className="sr-only" />
+        </label>
+      </div>
     </div>
   );
 
@@ -194,6 +207,7 @@ export default function MyFifaCardPage({
       matches={matches}
       attendances={attendances}
       matchStats={matchStats}
+      onLayerData={setLayerData}
       onSavePosition={onSavePosition || ((preferred_position) => onSaveProfile({
         full_name: profile.full_name, nickname: profile.nickname || null, phone: profile.phone || "555-5555", preferred_position,
       }, null))}
@@ -350,6 +364,14 @@ export default function MyFifaCardPage({
           </div>
         </div>
       )}
+      <FifaShareModal
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        profile={previewProfile}
+        style={layerData.style}
+        record={layerData.record || fallbackRecord}
+        earnedAchievements={layerData.earned}
+      />
     </div>
   );
 }

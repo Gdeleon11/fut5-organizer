@@ -31,8 +31,7 @@ import WeatherWidget from "../WeatherWidget.jsx";
 import SelfStatsCard from "../SelfStatsCard.jsx";
 import PostMatchSummaryCard from "../PostMatchSummaryCard.jsx";
 import ExportCard from "../ExportCard.jsx";
-import SocialShareCard from "../SocialShareCard.jsx";
-import TeamShareCard from "../TeamShareCard.jsx";
+import { ShareTriggerButton } from "../share/ShareSheetModal.jsx";
 import CopyReservationTextButton from "../CopyReservationTextButton.jsx";
 import StarRatingControl from "../StarRatingControl.jsx";
 import { attendanceLabel, displayName, matchInvitationText, teamAnnouncementText, teamNotificationText } from "../../utils.js";
@@ -244,7 +243,7 @@ function BalanceBox({ balance, isAdmin }) {
   );
 }
 
-export function TeamsSection({ vm, variant, isAdmin, onOpenPlayer, balance = null }) {
+export function TeamsSection({ vm, variant, isAdmin, onOpenPlayer, balance = null, onShareTeams = null }) {
   const has = vm.teams.length > 0;
   return (
     <section className={`mdd-section mdd-teams is-${variant}`} aria-labelledby="mdd-teams-title" id="equipos">
@@ -253,6 +252,7 @@ export function TeamsSection({ vm, variant, isAdmin, onOpenPlayer, balance = nul
         title="Equipos"
         icon={variant === "command" ? Shield : null}
         meta={has ? `${vm.teams.length} equipos` : "Pendientes"}
+        action={has && onShareTeams ? <ShareTriggerButton label="Compartir equipos" onClick={onShareTeams} testId="teams-share-btn" /> : null}
       />
       {!has ? (
         <p className="mdd-empty">Los equipos aparecerán cuando el organizador los genere.</p>
@@ -294,9 +294,7 @@ export function TeamsSection({ vm, variant, isAdmin, onOpenPlayer, balance = nul
                 Compartir equipos <ChevronDown size={16} aria-hidden="true" />
               </summary>
               <div className="mdd-share-grid">
-                <ExportCard label="Equipos para WhatsApp" text={teamAnnouncementText(vm.match, vm.rawTeams)} />
                 <ExportCard label="Notificar equipos a jugadores" text={teamNotificationText(vm.match, vm.rawTeams)} />
-                <TeamShareCard match={vm.match} teams={vm.rawTeams} />
               </div>
             </details>
           )}
@@ -342,11 +340,17 @@ export function VenueSection({ vm, variant }) {
 }
 
 /* ---------- Post-match summary ---------- */
-export function SummarySection({ vm, variant, profile, matchStats, currentMatchStats, didParticipate }) {
+export function SummarySection({ vm, variant, profile, matchStats, currentMatchStats, didParticipate, onShareResult = null }) {
   if (!vm.isClosed) return null;
   return (
     <section className={`mdd-section mdd-summary is-${variant}`} aria-labelledby="mdd-summary-title" id="resumen">
-      <DetailHeading id="mdd-summary-title" title="Resultado y estadísticas" icon={variant === "command" ? Trophy : null} meta={vm.hasStats ? "Registradas" : "Sin registrar"} />
+      <DetailHeading
+        id="mdd-summary-title"
+        title="Resultado y estadísticas"
+        icon={variant === "command" ? Trophy : null}
+        meta={vm.hasStats ? "Registradas" : "Sin registrar"}
+        action={onShareResult ? <ShareTriggerButton label="Compartir resultado" onClick={onShareResult} testId="result-share-btn" /> : null}
+      />
       <div className="mdd-scoreline">
         <div><b>{vm.confirmedCount}</b><small>Jugaron</small></div>
         <div><b>{vm.totals.goals}</b><small>Goles</small></div>
@@ -499,6 +503,7 @@ export function AdminTools({
   onDeleteGuest,
   onUpdateGuestRating,
   onDeleteMatch,
+  onOpenInvite = null,
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [guestName, setGuestName] = useState("");
@@ -618,10 +623,14 @@ export function AdminTools({
       </AdminGroup>
 
       <AdminGroup title="Invitación y reserva" icon={Link2}>
+        {onOpenInvite && (
+          <div className="f5s-trigger-row">
+            <ShareTriggerButton label="Compartir convocatoria (PNG)" variant="accent" onClick={onOpenInvite} testId="admin-invite-share-btn" />
+          </div>
+        )}
         {match.requires_reservation && <CopyReservationTextButton match={match} attendances={attendances} profiles={profiles} />}
         <div className="mdd-share-grid">
           <ExportCard label="Invitación para WhatsApp" text={matchInvitationText(match, vm.confirmedCount)} />
-          <SocialShareCard match={match} confirmedCount={vm.confirmedCount} waitlistCount={vm.waitlist.length} />
         </div>
       </AdminGroup>
 
