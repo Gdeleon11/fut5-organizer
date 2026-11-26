@@ -1,0 +1,145 @@
+/* F5 Share & Invite V1 — uses shared --md-* tokens so both designs and all 4 palettes apply. */
+
+.f5s-modal {
+  max-inline-size: 560px;
+  inline-size: min(94vw, 560px);
+  max-block-size: 92dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.f5s-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px 20px;
+  overflow-y: auto;
+  flex: 1;
+  min-block-size: 0;
+}
+
+.f5s-preview-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--md-surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--md-line, rgba(255, 255, 255, 0.12));
+  border-radius: 16px;
+  padding: 12px;
+  min-block-size: 180px;
+}
+
+.f5s-preview-img {
+  display: block;
+  max-inline-size: 100%;
+  max-block-size: 38dvh;
+  inline-size: auto;
+  block-size: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.f5s-loading {
+  margin: 0;
+  color: var(--md-muted, #9aa8a0);
+  font-size: 14px;
+}
+
+.f5s-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--md-surface-2, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--md-line, rgba(255, 255, 255, 0.1));
+}
+
+.f5s-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-ink, inherit);
+  cursor: pointer;
+}
+
+.f5s-toggle input {
+  inline-size: 16px;
+  block-size: 16px;
+  accent-color: var(--md-accent, #5be584);
+}
+
+.f5s-actions {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 480px) {
+  .f5s-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+  .f5s-actions .f5s-primary {
+    grid-column: 1 / -1;
+  }
+}
+
+.f5s-actions .md-btn {
+  justify-content: center;
+  inline-size: 100%;
+  text-decoration: none;
+}
+
+.f5s-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--md-muted, #9aa8a0);
+}
+
+.f5s-status {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: color-mix(in oklab, var(--md-accent, #5be584) 14%, transparent);
+  color: var(--md-ink, inherit);
+  border: 1px solid color-mix(in oklab, var(--md-accent, #5be584) 35%, transparent);
+}
+
+.f5s-text-preview {
+  border: 1px solid var(--md-line, rgba(255, 255, 255, 0.12));
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--md-surface-2, rgba(255, 255, 255, 0.03));
+}
+
+.f5s-text-preview summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--md-muted, #9aa8a0);
+}
+
+.f5s-text-preview pre {
+  margin: 10px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--md-ink, inherit);
+}
+
+.f5s-trigger-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}

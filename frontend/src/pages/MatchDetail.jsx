@@ -11,6 +11,7 @@ import { AdminTools, FifaModal, StatsModal, useFifaModal } from "../components/m
 import PostmatchPanel from "../components/postmatch/PostmatchPanel.jsx";
 import { enrichPlayers, explainTeams } from "../teams/balance.js";
 import { Toast } from "../components/ui/Toast.jsx";
+import { InviteShareModal, ResultShareModal, TeamsShareModal } from "../components/share/MatchShareModals.jsx";
 
 export default function MatchDetail({
   confirmedCount,
@@ -47,10 +48,12 @@ export default function MatchDetail({
   onBack,
   forceDesign,
   radarPanel = null,
+  groupName = "",
 }) {
   const { design: preferredDesign } = useAppearance();
   const design = forceDesign || preferredDesign;
   const fifa = useFifaModal();
+  const [shareModal, setShareModal] = useState(null); // "invite" | "teams" | "result" | null
   const [guestLinkCopied, setGuestLinkCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("partido");
   const [teamInstructions, setTeamInstructions] = useState("");
@@ -367,6 +370,11 @@ export default function MatchDetail({
     isAdmin,
     roster: { onOpenPlayer: (p) => p && fifa.open(p), onCopyGuestLink: handleCopyGuestLink, guestLinkCopied },
     summary: { profile, matchStats, currentMatchStats, didParticipate },
+    share: {
+      onOpenInvite: () => setShareModal("invite"),
+      onOpenTeams: () => setShareModal("teams"),
+      onOpenResult: () => setShareModal("result"),
+    },
   };
 
   const admin = isAdmin ? (
@@ -392,6 +400,7 @@ export default function MatchDetail({
       onDeleteGuest={onDeleteGuest}
       onUpdateGuestRating={onUpdateGuestRating}
       onDeleteMatch={onDeleteMatch}
+      onOpenInvite={() => setShareModal("invite")}
     />
     </>
   ) : null;
@@ -414,6 +423,9 @@ export default function MatchDetail({
         title={`${vm.title} · ${vm.parts.longLabel}`}
       />
       <FifaModal player={fifa.player} onClose={fifa.close} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
+      <InviteShareModal open={shareModal === "invite"} onClose={() => setShareModal(null)} vm={vm} groupName={groupName} isAdmin={isAdmin} />
+      <TeamsShareModal open={shareModal === "teams"} onClose={() => setShareModal(null)} vm={vm} pins={pins} />
+      <ResultShareModal open={shareModal === "result"} onClose={() => setShareModal(null)} vm={vm} confirmedStats={currentMatchStats} />
     </div>
   );
 }

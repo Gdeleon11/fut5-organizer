@@ -76,7 +76,7 @@ export function PlayerBuilder({ profile, style, onSave, onCancel }) {
 }
 
 /** Three layers: style (self-declared), verified record, achievements. */
-export function PlayerLayers({ profile, activeGroupId, ratingObj, matches, attendances, matchStats, onSavePosition, styleApi = defaultApi, canEdit = true }) {
+export function PlayerLayers({ profile, activeGroupId, ratingObj, matches, attendances, matchStats, onSavePosition, styleApi = defaultApi, canEdit = true, onLayerData = null }) {
   const [style, setStyle] = useState(undefined); // undefined = loading, null = none, false = unavailable
   const [closures, setClosures] = useState([]);
   const [editing, setEditing] = useState(false);
@@ -94,6 +94,10 @@ export function PlayerLayers({ profile, activeGroupId, ratingObj, matches, atten
 
   const record = useMemo(() => verifiedRecord({ profileId: profile?.id, matches, attendances, stats: matchStats, closures, rating: ratingObj }), [profile?.id, matches, attendances, matchStats, closures, ratingObj]);
   const earned = useMemo(() => achievements(record), [record]);
+
+  useEffect(() => {
+    onLayerData?.({ style: style || null, record, earned });
+  }, [onLayerData, style, record, earned]);
 
   async function save({ primary, style: s }) {
     if (primary !== profile.preferred_position) await onSavePosition(primary);

@@ -11,6 +11,7 @@ import {
   VenueSection,
   WaitlistSection,
 } from "./DetailBlocks.jsx";
+import { ShareTriggerButton } from "../share/ShareSheetModal.jsx";
 
 function AnchorNav({ vm, admin }) {
   const links = [
@@ -43,6 +44,9 @@ export function EditorialMatchDetail({ vm, entry, actions, onBack, shared, admin
           <ArrowLeft size={16} aria-hidden="true" /> Partidos
         </button>
         <span className="mde-crumb">Detalle del partido</span>
+        {shared.share?.onOpenInvite && (
+          <ShareTriggerButton label="Compartir" variant="accent" onClick={shared.share.onOpenInvite} testId="match-share-btn" />
+        )}
       </div>
       <EditorialHero entry={entry} actions={actions} />
       <AnchorNav vm={vm} admin={Boolean(admin)} />
@@ -52,10 +56,10 @@ export function EditorialMatchDetail({ vm, entry, actions, onBack, shared, admin
           <WaitlistSection vm={vm} variant="editorial" />
         </div>
         <div className="mdd-ed-col">
-          <TeamsSection vm={vm} variant="editorial" isAdmin={shared.isAdmin} onOpenPlayer={shared.roster.onOpenPlayer} balance={shared.balance} />
+          <TeamsSection vm={vm} variant="editorial" isAdmin={shared.isAdmin} onOpenPlayer={shared.roster.onOpenPlayer} balance={shared.balance} onShareTeams={shared.share?.onOpenTeams} />
         </div>
       </div>
-      <SummarySection vm={vm} variant="editorial" {...shared.summary} />
+      <SummarySection vm={vm} variant="editorial" {...shared.summary} onShareResult={shared.share?.onOpenResult} />
       {shared.postmatch && React.cloneElement(shared.postmatch, { variant: "editorial" })}
       <VenueSection vm={vm} variant="editorial" />
       {admin && <div id="admin">{React.cloneElement(admin, { variant: "editorial" })}</div>}
@@ -80,14 +84,17 @@ export function CommandMatchDetail({ vm, entry, actions, onBack, shared, admin }
         {vm.waitlist.length > 0 && <span className="mdc-pill"><Clock size={14} aria-hidden="true" /> <b>{vm.waitlist.length}</b> en espera</span>}
         <span className="mdc-pill"><Shield size={14} aria-hidden="true" /> <b>{vm.teams.length}</b> equipos</span>
         <span className="mdc-pill"><CalendarDays size={14} aria-hidden="true" /> {vm.parts.longLabel}</span>
+        {shared.share?.onOpenInvite && (
+          <ShareTriggerButton label="Compartir" variant="accent" onClick={shared.share.onOpenInvite} testId="match-share-btn" />
+        )}
       </div>
       <CommandArena entry={entry} actions={actions} />
       <AnchorNav vm={vm} admin={Boolean(admin)} />
       <div className="mdd-cc-grid">
         <div className="mdd-cc-main">
-          <TeamsSection vm={vm} variant="command" isAdmin={shared.isAdmin} onOpenPlayer={shared.roster.onOpenPlayer} balance={shared.balance} />
+          <TeamsSection vm={vm} variant="command" isAdmin={shared.isAdmin} onOpenPlayer={shared.roster.onOpenPlayer} balance={shared.balance} onShareTeams={shared.share?.onOpenTeams} />
           <RosterSection vm={vm} variant="command" {...shared.roster} />
-          <SummarySection vm={vm} variant="command" {...shared.summary} />
+          <SummarySection vm={vm} variant="command" {...shared.summary} onShareResult={shared.share?.onOpenResult} />
           {shared.postmatch && React.cloneElement(shared.postmatch, { variant: "command" })}
         </div>
         <aside className="mdd-cc-side">
