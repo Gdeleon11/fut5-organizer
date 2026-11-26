@@ -40,6 +40,17 @@ describe("match detail model", () => {
     expect(vm.teams[0].members[0].isMe).toBe(true);
   });
 
+  it("entry.roster conserva el perfil para que PlayerFace renderice la foto en el detalle", () => {
+    const vm = buildMatchDetailModel({ match, attendances, guests: [{ id: "g1", name: "Pepe" }], profile: profiles[0], profileById: byId, teams, now: NOW });
+    const me = vm.entry.roster.find((r) => r.name === "Yo");
+    const dos = vm.entry.roster.find((r) => r.name === "Dos");
+    expect(me.profile).toEqual(profiles[0]);
+    expect(dos.profile).toEqual(profiles[1]);
+    // Los invitados no traen perfil de grupo (se respeta el fallback a iniciales).
+    const pepe = vm.entry.roster.find((r) => r.name === "Pepe");
+    expect(pepe.profile).toBeNull();
+  });
+
   it("totals post-match stats", () => {
     const vm = buildMatchDetailModel({
       match: { ...match, status: "closed" }, attendances, profile: profiles[0], profileById: byId, now: NOW,
@@ -87,5 +98,20 @@ describe("MatchDetail experiences", () => {
   it("non-admins do not see administration tools", () => {
     render(<MatchDetail {...base} isAdmin={false} forceDesign="editorial" />);
     expect(screen.queryByText(/Administración del partido/)).toBeNull();
+  });
+
+  it("command: convocatoria muestra confirmados y cupos libres cuando no hay equipos generados", () => {
+    const { container } = render(<MatchDetail {...base} teams={[]} forceDesign="command" />);
+    const conv = container.querySelector(".mdd-convocation");
+    expect(conv).not.toBeNull();
+    expect(conv.textContent).toMatch(/Dos/);
+    expect(conv.textContent).toMatch(/Yo/);
+    expect(container.querySelectorAll(".mdd-conv-free").length).toBe(8);
+  });
+
+  it("command: alineaciones muestra el pitch de formación cuando hay equipos", () => {
+    const { container } = render(<MatchDetail {...base} forceDesign="command" />);
+    expect(container.querySelector(".mdd-pitch")).not.toBeNull();
+    expect(container.querySelectorAll(".mdd-pitch-pos").length).toBeGreaterThan(0);
   });
 });

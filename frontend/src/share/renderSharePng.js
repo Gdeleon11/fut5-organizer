@@ -4,6 +4,7 @@
  * Formats: 1080x1350 (4:5 vertical, optimized for WhatsApp) with dynamic height for large rosters.
  */
 import { resolveShareTheme } from "./sharePalette.js";
+import { positionColor } from "../positionColors.js";
 
 const DISPLAY_FONT = "'Oswald', 'Arial Narrow', 'Impact', Arial, sans-serif";
 const BODY_FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
@@ -303,16 +304,33 @@ export async function renderTeamsPng(data, { palette = "neon", design = "editori
   const teams = data.teams || [];
   const cols = teams.length === 1 ? 1 : 2;
   const rowsOfTeams = Math.max(1, Math.ceil(teams.length / cols));
-  const maxMembersInRow = (rowIdx) => {
-    const slice = teams.slice(rowIdx * cols, rowIdx * cols + cols);
-    return Math.max(1, ...slice.map((tm) => tm.members.length));
+
+  // Formación por líneas de posición (portero → defensa → medio → delantero).
+  const SHORT_TO_POS = { POR: "Goalkeeper", DEF: "Defender", MED: "Midfielder", DEL: "Forward", FLX: "Flexible", INV: "Flexible" };
+  const LINE_ORDER = ["Goalkeeper", "Defender", "Midfielder", "Forward", "Flexible"];
+  const tokenW = 76, tokenGap = 10, lineH = 84, rowGapF = 10;
+  const colGap = 28;
+  const colW = cols === 1 ? W - pad * 2 : (W - pad * 2 - colGap) / 2;
+  const maxTokens = Math.max(1, Math.floor((colW - 56) / (tokenW + tokenGap)));
+
+  const formationHeight = (tm) => {
+    const byLine = {};
+    tm.members.forEach((m) => {
+      const pos = SHORT_TO_POS[m.positionShort] || "Flexible";
+      (byLine[pos] || (byLine[pos] = [])).push(m);
+    });
+    let rows = 0;
+    Object.values(byLine).forEach((lineMembers) => { rows += Math.ceil(lineMembers.length / maxTokens); });
+    return boxHeadH + Object.keys(byLine).length * 30 + rows * (lineH + rowGapF) + boxFootPad;
   };
 
-  const memberH = 54;
   const boxHeadH = 92;
   const boxFootPad = 24;
   const rowGap = 28;
-  const rowHeights = Array.from({ length: rowsOfTeams }, (_, r) => boxHeadH + maxMembersInRow(r) * memberH + boxFootPad);
+  const rowHeights = Array.from({ length: rowsOfTeams }, (_, r) => {
+    const slice = teams.slice(r * cols, r * cols + cols);
+    return Math.max(1, ...slice.map((tm) => formationHeight(tm)));
+  });
   const headerH = 296;
   const footerH = 128;
   const contentH = rowHeights.reduce((a, b) => a + b, 0) + (rowsOfTeams - 1) * rowGap;
@@ -338,8 +356,6 @@ export async function renderTeamsPng(data, { palette = "neon", design = "editori
   ctx.fillText(truncateText(ctx, metaParts, W - pad * 2), pad, 246);
 
   // Team cards grid
-  const colGap = 28;
-  const colW = cols === 1 ? W - pad * 2 : (W - pad * 2 - colGap) / 2;
   let curY = headerH;
 
   for (let r = 0; r < rowsOfTeams; r += 1) {
@@ -382,27 +398,53 @@ export async function renderTeamsPng(data, { palette = "neon", design = "editori
       ctx.fillStyle = t.borderSoft;
       ctx.fillRect(x + 24, curY + 84, colW - 48, 2);
 
-      // Members (NO ratings, NO private info)
-      team.members.forEach((m, mi) => {
-        const my = curY + boxHeadH + mi * memberH + 26;
-        let nameX = x + 28;
-        if (m.positionShort) {
-          roundRect(ctx, x + 24, my - 16, 62, 32, 8);
-          ctx.fillStyle = t.surfaceAlt;
-          ctx.fill();
-          ctx.font = `700 18px ${BODY_FONT}`;
-          ctx.fillStyle = t.accent;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(m.positionShort, x + 55, my);
-          ctx.textAlign = "left";
-          nameX = x + 98;
-        }
-        ctx.font = `600 27px ${BODY_FONT}`;
-        ctx.fillStyle = t.ink;
+      // Members en formación por línea de posición (portero → defensa → medio → delantero).
+      // Solo nombre deportivo, posición corta y color: sin ratings ni datos privados.
+      const LINE_LABEL = { Goalkeeper: "POR", Defender: "DEF", Midfielder: "MED", Forward: "DEL", Flexible: "FLX" };
+      const byLine = {};
+      team.members.forEach((m) => {
+        const pos = SHORT_TO_POS[m.positionShort] || "Flexible";
+        (byLine[pos] || (byLine[pos] = [])).push(m);
+      });
+      const drawToken = (tx, ty, m) => {
+        const fullPos = SHORT_TO_POS[m.positionShort] || "Flexible";
+        const pc = positionColor(fullPos);
+        roundRect(ctx, tx, ty, tokenW, lineH, 10);
+        ctx.fillStyle = t.surfaceAlt;
+        ctx.fill();
+        ctx.strokeStyle = pc;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.font = `700 20px ${DISPLAY_FONT}`;
+        ctx.fillStyle = pc;
+        ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        const availW = x + colW - 24 - nameX;
-        ctx.fillText(truncateText(ctx, m.name, availW), nameX, my);
+        ctx.fillText(m.positionShort || "FLX", tx + tokenW / 2, ty + 28);
+        ctx.font = `600 15px ${BODY_FONT}`;
+        ctx.fillStyle = t.ink;
+        ctx.textBaseline = "alphabetic";
+        ctx.fillText(truncateText(ctx, m.name, tokenW - 10), tx + tokenW / 2, ty + lineH - 14);
+        ctx.textAlign = "left";
+      };
+      let my = curY + boxHeadH + 16;
+      LINE_ORDER.forEach((line) => {
+        const members = byLine[line];
+        if (!members || members.length === 0) return;
+        ctx.font = `700 18px ${BODY_FONT}`;
+        ctx.fillStyle = t.muted;
+        ctx.textBaseline = "middle";
+        ctx.fillText(LINE_LABEL[line], x + 26, my);
+        my += 24;
+        let rowCount = 0;
+        members.forEach((m) => {
+          if (rowCount >= maxTokens) {
+            my += lineH + rowGapF;
+            rowCount = 0;
+          }
+          drawToken(x + 26 + rowCount * (tokenW + tokenGap), my, m);
+          rowCount += 1;
+        });
+        my += lineH + rowGapF + 6;
       });
     }
     curY += boxH + rowGap;

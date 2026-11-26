@@ -187,7 +187,16 @@ export function buildMatchDetailModel({
       waitlistCount: (attendances || []).filter((a) => a && a.status === "waitlist").length,
       attendance: myAttendance,
       state,
-      roster: roster.map((r) => ({ id: r.key, name: r.name, initial: r.initial, isMe: r.isMe, isGuest: r.isGuest })),
+      roster: roster.map((r) => ({
+        id: r.key,
+        name: r.name,
+        initial: r.initial,
+        isMe: r.isMe,
+        isGuest: r.isGuest,
+        // Conserva la referencia al perfil para que PlayerFace pueda renderizar la foto real
+        // en el detalle (mismo dato que ya usa la vista principal de Partidos).
+        profile: r.profile || null,
+      })),
     },
   };
 }

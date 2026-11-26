@@ -27,6 +27,7 @@ import Avatar from "../Avatar.jsx";
 import PlayerFace, { playerPhotoUrl } from "../PlayerFace.jsx";
 import PlayerBadge from "../PlayerBadge.jsx";
 import FifaCard from "../FifaCard.jsx";
+import { positionColor } from "../../positionColors.js";
 import WeatherWidget from "../WeatherWidget.jsx";
 import SelfStatsCard from "../SelfStatsCard.jsx";
 import PostMatchSummaryCard from "../PostMatchSummaryCard.jsx";
@@ -111,8 +112,8 @@ export function RosterSection({ vm, variant, onOpenPlayer, onCopyGuestLink, gues
           {vm.roster.map((p) => (
             <li key={p.key}>
               <button type="button" className={`mdd-cc-player${p.isMe ? " is-me" : ""}`} onClick={() => onOpenPlayer(asFifaPlayer(p))} disabled={!p.isGuest && !p.profile}>
-                <span className="mdd-cc-pos">{p.positionShort}</span>
-                <span className={`mdd-cc-tok${playerPhotoUrl(p.profile) ? " has-photo" : ""}`}><PlayerFace profile={p.profile} initial={p.initial} size={32} /></span>
+                <span className="mdd-cc-pos" style={{ color: positionColor(p.position) }}>{p.positionShort}</span>
+                <span className={`mdd-cc-tok${playerPhotoUrl(p.profile) ? " has-photo" : ""}`} style={{ borderColor: positionColor(p.position) }}><PlayerFace profile={p.profile} initial={p.initial} size={32} /></span>
                 <span className="mdd-cc-name">
                   {p.name}
                   <small>{p.isGuest ? "Invitado" : p.positionLabel}</small>
@@ -135,7 +136,7 @@ export function RosterSection({ vm, variant, onOpenPlayer, onCopyGuestLink, gues
                   {p.name}
                   {p.isMe && <em>Tú</em>}
                 </span>
-                <span className="mdd-ed-pos">{p.isGuest ? "Invitado" : p.positionLabel}</span>
+                <span className="mdd-ed-pos" style={{ color: positionColor(p.position) }}>{p.isGuest ? "Invitado" : p.positionLabel}</span>
                 {p.checkedIn ? <span className="mdd-ed-flag">En cancha</span> : <span className="mdd-ed-flag is-dim">Confirmado</span>}
               </button>
             </li>
@@ -189,11 +190,13 @@ export function TeamsPitch({ teams, onOpenPlayer }) {
                 type="button"
                 key={m.key}
                 className={`mdd-pitch-tok${m.isMe ? " is-me" : ""}${playerPhotoUrl(m.profile) ? " has-photo" : ""}`}
+                style={{ borderColor: positionColor(m.position) }}
                 onClick={() => onOpenPlayer(asFifaPlayer(m))}
                 disabled={!m.isGuest && !m.profile}
                 aria-label={`Ver ficha de ${m.name} · ${m.positionLabel}`}
                 title={`${m.name} · ${m.positionLabel}`}
               >
+                <span className="mdd-pitch-pos" style={{ color: positionColor(m.position) }}>{m.positionShort}</span>
                 <PlayerFace profile={m.profile} initial={m.initial} size={40} />
                 <small>{m.name}</small>
               </button>
@@ -243,52 +246,124 @@ function BalanceBox({ balance, isAdmin }) {
   );
 }
 
+/* ---------- Convocatoria (antes de generar equipos) ---------- */
+
+export function ConvocatoriaView({ vm, variant, onOpenPlayer }) {
+  const free = Math.max(0, vm.free);
+  return (
+    <>
+      <div className="mdd-conv-header">
+        <span className="mdd-conv-count"><b>{vm.confirmedCount}</b> {vm.confirmedCount === 1 ? "confirmado" : "confirmados"}</span>
+        {free > 0 && <span className="mdd-conv-free-count">{free} {free === 1 ? "cupo libre" : "cupos libres"}</span>}
+      </div>
+      <div className="mdd-convocation" role="grid" aria-label="Jugadores confirmados y cupos libres">
+        {vm.roster.map((p) => (
+          <button
+            key={p.key}
+            type="button"
+            className="mdd-conv-tok"
+            onClick={() => onOpenPlayer(asFifaPlayer(p))}
+            disabled={!p.isGuest && !p.profile}
+            aria-label={`Ver ficha de ${p.name} · ${p.positionLabel}`}
+          >
+            <span className="mdd-conv-face" style={{ borderColor: positionColor(p.position) }}>
+              <PlayerFace profile={p.profile} initial={p.initial} size={44} />
+            </span>
+            <span className="mdd-conv-pos" style={{ borderColor: positionColor(p.position) }}>{p.positionShort}</span>
+            <span className="mdd-conv-name">{p.name}</span>
+            {p.isGuest && <span className="mdd-conv-meta">Invitado</span>}
+            {!p.isGuest && p.checkedIn && <span className="mdd-conv-meta">En cancha</span>}
+          </button>
+        ))}
+        {Array.from({ length: free }).map((_, i) => (
+          <div key={`free-${i}`} className="mdd-conv-free" aria-hidden="true" role="gridcell">
+            <div className="mdd-conv-plus">+</div>
+            <span className="mdd-conv-name">Cupo libre</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/* ---------- Equipos / Alineaciones ---------- */
+
 export function TeamsSection({ vm, variant, isAdmin, onOpenPlayer, balance = null, onShareTeams = null }) {
   const has = vm.teams.length > 0;
+  const [view, setView] = useState(has ? "alineaciones" : "convocatoria");
   return (
     <section className={`mdd-section mdd-teams is-${variant}`} aria-labelledby="mdd-teams-title" id="equipos">
       <DetailHeading
         id="mdd-teams-title"
         title="Equipos"
         icon={variant === "command" ? Shield : null}
-        meta={has ? `${vm.teams.length} equipos` : "Pendientes"}
+        meta={
+          !has
+            ? `${vm.confirmedCount}/${vm.capacity} confirmados${vm.free > 0 ? ` · ${vm.free} libres` : ""}`
+            : `${vm.teams.length} equipos`
+        }
         action={has && onShareTeams ? <ShareTriggerButton label="Compartir equipos" onClick={onShareTeams} testId="teams-share-btn" /> : null}
       />
-      {!has ? (
-        <p className="mdd-empty">Los equipos aparecerán cuando el organizador los genere.</p>
+      <div className="mdd-teams-toggle">
+        <button
+          type="button"
+          className={view === "convocatoria" ? "is-on" : ""}
+          onClick={() => setView("convocatoria")}
+          aria-pressed={view === "convocatoria"}
+        >
+          <Users size={13} aria-hidden="true" /> Convocatoria
+        </button>
+        <button
+          type="button"
+          className={view === "alineaciones" ? "is-on" : ""}
+          disabled={!has}
+          onClick={() => setView("alineaciones")}
+          aria-pressed={view === "alineaciones"}
+          title={!has ? "Generá equipos para ver la formación." : undefined}
+        >
+          <Shield size={13} aria-hidden="true" /> Alineaciones
+        </button>
+        {!has && <span className="mdd-toggle-hint">Generá equipos para ver la formación.</span>}
+      </div>
+
+      {view === "convocatoria" ? (
+        <ConvocatoriaView vm={vm} variant={variant} onOpenPlayer={onOpenPlayer} />
       ) : (
         <>
-          {variant === "command" && vm.teams.length >= 2 && <TeamsPitch teams={vm.teams} onOpenPlayer={onOpenPlayer} />}
-          <BalanceBox balance={balance} isAdmin={isAdmin} />
-          <div className={`mdd-team-grid cols-${Math.min(vm.teams.length, 3)}`}>
-            {vm.teams.map((t, ti) => (
-              <article key={t.key} className="mdd-team" style={{ "--team": t.color }}>
-                <header>
-                  <span className="mdd-team-dot" aria-hidden="true" />
-                  <h3>{t.name}</h3>
-                  <small>{t.members.length} jugadores{isAdmin && t.totalRating ? ` · ${t.totalRating} ★` : ""}</small>
-                </header>
-                <ul>
-                  {t.members.map((m) => (
-                    <li key={m.key}>
-                      <button type="button" className={m.isMe ? "is-me" : ""} onClick={() => onOpenPlayer(asFifaPlayer(m))}>
-                        <span className="mdd-team-pos">{m.positionShort}</span>
-                        <span className="mdd-team-name">{m.name}</span>
-                        {m.isGuest && <span className="mdd-team-guest">Invitado</span>}
-                      </button>
-                      {isAdmin && balance?.onTogglePin && (
-                        <button type="button" className={`mdd-pin${balance.pins?.[m.id] === ti ? " is-on" : ""}`} aria-pressed={balance.pins?.[m.id] === ti}
-                          aria-label={`${balance.pins?.[m.id] === ti ? "Soltar" : "Fijar"} a ${m.name} en ${t.name}`} onClick={() => balance.onTogglePin(m.id, ti)}>
-                          <Pin size={14} aria-hidden="true" />
+          {!has && <p className="mdd-empty">Los equipos aparecerán cuando el organizador los genere.</p>}
+          {has && variant === "command" && vm.teams.length >= 2 && <TeamsPitch teams={vm.teams} onOpenPlayer={onOpenPlayer} />}
+          {has && <BalanceBox balance={balance} isAdmin={isAdmin} />}
+          {has && (
+            <div className={`mdd-team-grid cols-${Math.min(vm.teams.length, 3)}`}>
+              {vm.teams.map((t, ti) => (
+                <article key={t.key} className="mdd-team" style={{ "--team": t.color }}>
+                  <header>
+                    <span className="mdd-team-dot" aria-hidden="true" />
+                    <h3>{t.name}</h3>
+                    <small>{t.members.length} jugadores{isAdmin && t.totalRating ? ` · ${t.totalRating} ★` : ""}</small>
+                  </header>
+                  <ul>
+                    {t.members.map((m) => (
+                      <li key={m.key}>
+                        <button type="button" className={m.isMe ? "is-me" : ""} onClick={() => onOpenPlayer(asFifaPlayer(m))}>
+                          <span className="mdd-team-pos" style={{ color: positionColor(m.position) }}>{m.positionShort}</span>
+                          <span className="mdd-team-name">{m.name}</span>
+                          {m.isGuest && <span className="mdd-team-guest">Invitado</span>}
                         </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ))}
-          </div>
-          {isAdmin && (
+                        {isAdmin && balance?.onTogglePin && (
+                          <button type="button" className={`mdd-pin${balance.pins?.[m.id] === ti ? " is-on" : ""}`} aria-pressed={balance.pins?.[m.id] === ti}
+                            aria-label={`${balance.pins?.[m.id] === ti ? "Soltar" : "Fijar"} a ${m.name} en ${t.name}`} onClick={() => balance.onTogglePin(m.id, ti)}>
+                            <Pin size={14} aria-hidden="true" />
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </div>
+          )}
+          {has && isAdmin && (
             <details className="mdd-share">
               <summary>
                 Compartir equipos <ChevronDown size={16} aria-hidden="true" />
