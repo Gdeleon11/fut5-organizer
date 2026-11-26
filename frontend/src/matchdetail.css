@@ -169,7 +169,13 @@
 .mdd-pitch-tok {
   position: relative; inline-size: 40px; block-size: 40px; min-height: 0; padding: 0; border-radius: 50%; display: grid; place-items: center;
   font: 800 17px var(--md-score); color: #fff; background: var(--team); border: 2px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); cursor: pointer;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); cursor: pointer; overflow: visible;
+}
+.mdd-pitch-tok > .pf-face, .mdd-pitch-tok > img { inline-size: 100%; block-size: 100%; border-radius: 50%; overflow: hidden; }
+.mdd-pitch-pos {
+  position: absolute; inset-block-start: -8px; inset-inline-end: -8px; z-index: 2; pointer-events: none;
+  padding: 2px 5px; border-radius: 999px; background: rgba(8, 14, 10, 0.92);
+  border: 1px solid currentColor; font: 700 8.5px/1 var(--md-ui, ui-sans-serif, system-ui); letter-spacing: 0.04em;
 }
 .mdd-pitch-tok:hover:not(:disabled) { transform: scale(1.06); background: var(--team); color: #fff; }
 .mdd-pitch-tok.is-me { box-shadow: 0 0 0 3px var(--md-accent), 0 6px 16px rgba(0, 0, 0, 0.45); }
@@ -396,34 +402,37 @@ html[data-f5-design="editorial"] .md-create h2 { font: 600 clamp(30px, 3vw, 42px
 }
 .mdd-convocation { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); margin-top: 8px; }
 .mdd-conv-tok {
-  position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
-  border: 2px solid transparent; border-radius: 14px; padding: 8px 6px 10px; background: var(--surface-2);
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px;
+  border: 1px solid var(--md-line-2); border-radius: 14px; padding: 10px 8px; background: var(--md-surface);
+  color: var(--md-text);
 }
-.mdd-conv-tok .mdd-conv-face { position: relative; inline-size: 44px; block-size: 44px; border-radius: 50%; overflow: hidden; border: 2px solid; background: #0000; }
+.mdd-conv-tok .mdd-conv-face { position: relative; inline-size: 44px; block-size: 44px; border-radius: 50%; overflow: hidden; border: 2px solid; background: var(--md-surface-2, rgba(128,128,128,0.16)); display: grid; place-items: center; color: var(--md-text); }
 .mdd-conv-tok .mdd-conv-face img { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
 .mdd-conv-tok .mdd-conv-pos {
-  position: absolute; inset-block-end: 2px; inset-inline-start: 50%; translate: -50% 0;
-  inline-size: 20px; block-size: 20px; border-radius: 50%; border: 2px solid; background: #0000;
-  color: #eef3ef; font: 700 9px var(--md-ui, ui-sans-serif, system-ui); display: grid; place-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  padding: 2px 8px; border-radius: 999px; border: 1.5px solid; background: var(--md-bg);
+  color: var(--md-text); font: 700 9.5px/1.2 var(--md-ui, ui-sans-serif, system-ui); letter-spacing: 0.04em;
 }
-.mdd-conv-tok .mdd-conv-name { font: 600 11px var(--md-ui, ui-sans-serif, system-ui); color: #fff; text-align: center; line-height: 1.25; }
-.mdd-conv-tok .mdd-conv-meta { font: 500 9px var(--md-ui, ui-sans-serif, system-ui); color: var(--md-text-3); text-align: center; }
+.mdd-conv-tok .mdd-conv-name { font: 600 11.5px var(--md-ui, ui-sans-serif, system-ui); color: var(--md-text); text-align: center; line-height: 1.25; }
+.mdd-conv-tok .mdd-conv-meta { font: 500 9.5px var(--md-ui, ui-sans-serif, system-ui); color: var(--md-text-3); text-align: center; }
 .mdd-conv-free {
-  position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
-  border: 2px dashed var(--md-line-2); border-radius: 14px; padding: 8px 6px 10px; background: rgba(0,0,0,0.2);
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  border: 2px dashed var(--md-line-2); border-radius: 14px; padding: 10px 8px; background: color-mix(in oklab, var(--md-text) 4%, transparent);
 }
-.mdd-conv-free .mdd-conv-plus { inline-size: 44px; block-size: 44px; border-radius: 50%; background: rgba(0,0,0,0.35); color: var(--md-text-3); font: 700 16px var(--md-ui, ui-sans-serif, system-ui); display: grid; place-items: center; }
+.mdd-conv-free .mdd-conv-plus { inline-size: 44px; block-size: 44px; border-radius: 50%; background: color-mix(in oklab, var(--md-text) 8%, transparent); color: var(--md-text-3); font: 700 16px var(--md-ui, ui-sans-serif, system-ui); display: grid; place-items: center; }
 .mdd-conv-free .mdd-conv-name { font: 600 11px var(--md-ui, ui-sans-serif, system-ui); color: var(--md-text-3); text-align: center; }
 
 /* Toggle convocatoria / alineaciones */
 .mdd-teams-toggle { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; border-bottom: 1px solid var(--md-line-2); padding-bottom: 8px; }
-.mdd-teams-toggle button { display: inline-flex; align-items: center; gap: 6px; font: 600 12px var(--md-ui, ui-sans-serif, system-ui); }
-.mdd-teams-toggle button.is-on { color: var(--md-accent); }
-.mdd-teams-toggle button:disabled { opacity: 0.55; cursor: default; }
+.mdd-teams-toggle button {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; min-height: 34px;
+  border-radius: 999px; border: 1px solid var(--md-line-2); background: transparent;
+  color: var(--md-text-2); font: 600 12px var(--md-ui, ui-sans-serif, system-ui); cursor: pointer;
+}
+.mdd-teams-toggle button.is-on { background: var(--md-accent); color: var(--md-accent-ink); border-color: transparent; }
+.mdd-teams-toggle button:disabled { opacity: 0.5; cursor: default; }
 .mdd-toggle-hint { font: 500 11px var(--md-ui, ui-sans-serif, system-ui); color: var(--md-text-3); margin-left: auto; }
 
-.mdd-conv-header { display: flex; align-items: baseline; gap: 14px; font: 700 13px var(--md-ui, ui-sans-serif, system-ui); color: #fff; margin-bottom: 6px; }
+.mdd-conv-header { display: flex; align-items: baseline; gap: 14px; font: 700 13px var(--md-ui, ui-sans-serif, system-ui); color: var(--md-text); margin-bottom: 6px; }
 .mdd-conv-free-count { color: var(--md-text-2); }
 
 /* ---------- Postmatch ---------- */
