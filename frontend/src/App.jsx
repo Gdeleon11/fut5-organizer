@@ -908,6 +908,18 @@ export default function App() {
       api.radarGroupOutsiders(groupId).catch(() => []),
     ]);
     setRadarOutsiders(radarRows || []);
+    // Matchday recurrencias V1: prepara los próximos partidos de las recurrencias activas
+    // sin crear duplicados. Solo administradores, no bloquea la UI y no confirma asistencia.
+    let matchesToSet = matchRows || [];
+    if (isAdmin) {
+      try {
+        await api.generateUpcomingRecurringMatches(groupId, 4);
+        const refreshed = await api.listMatches(groupId);
+        matchesToSet = refreshed || [];
+      } catch (genErr) {
+        console.warn("Generación de partidos recurrentes omitida:", genErr?.message);
+      }
+    }
     api.listPlayerStyles((profileRows || []).map((p) => p.id))
       .then((rows) => { setPlayerStyles(new Map((rows || []).map((r) => [r.profile_id, r]))); setStylesAvailable(true); })
       .catch(() => { setPlayerStyles(new Map()); setStylesAvailable(false); });
@@ -919,7 +931,7 @@ export default function App() {
       matchRows.filter((m) => Number(m.court_cost) > 0)
         .map(async (m) => api.getMatchFee(m.id))
     );
-    setMatches(matchRows || []); setAttendances(attendanceRows || []); setFines(fineRows || []);
+    setMatches(matchesToSet || []); setAttendances(attendanceRows || []); setFines(fineRows || []);
     setRatings(ratingRows || []); setSettings(settingRows?.[0] || null);
     setVotes(voteRows || []);
     setProfiles(profileRows || []); setTeamsByMatch(teamsMap || {});
@@ -2410,6 +2422,7 @@ export default function App() {
               guests={guests}
               onOpenPizarra={() => setIsSimulating(true)}
               groupName={activeGroup?.name || ""}
+              groupId={activeGroupId}
               ratingMap={ratingMap}
               skills={skills}
               matchStats={matchStats}

@@ -864,3 +864,28 @@ button.mdc-tok:focus-visible { outline: 3px solid var(--md-accent); outline-offs
 .ob-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .ob-actions a.md-btn { text-decoration: none; }
 .ob-close { position: absolute; inset-block-start: 8px; inset-inline-end: 8px; }
+
+/* ---------- Partidos recurrentes (configuración y listado) ---------- */
+.recurring-config { margin-block: 8px 18px; }
+.recurring-form { display: flex; flex-direction: column; gap: 10px; }
+.recurring-form-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.rf-field { display: flex; flex-direction: column; gap: 5px; }
+.rf-field label { font: 600 12px var(--md-ui, ui-sans-serif, system-ui); color: var(--md-text-2); }
+.rf-field input, .rf-field select {
+  width: 100%; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--md-line-2); background: var(--md-surface-2); color: var(--md-text);
+  font: 14px var(--md-ui, ui-sans-serif, system-ui);
+}
+.rf-actions { display: flex; gap: 8px; margin-top: 4px; }
+.recurring-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.recurring-item { display: grid; gap: 6px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--md-line-2); background: var(--md-surface); }
+.recurring-item.is-paused { opacity: 0.85; background: color-mix(in oklab, var(--md-text-3) 8%, var(--md-surface)); }
+.recurring-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.recurring-info { display: flex; flex-direction: column; gap: 3px; min-inline-size: 0; }
+.recurring-info strong { color: var(--md-text); font: 600 15px var(--md-ui, ui-sans-serif, system-ui); }
+.recurring-meta { font-size: 12.5px; color: var(--md-text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-inline-size: 0; }
+.recurring-badge { display: inline-flex; align-items: center; gap: 5px; font: 600 11px var(--md-ui, ui-sans-serif, system-ui); border-radius: 99px; padding: 2px 8px; color: #fff; flex: none; }
+.recurring-badge.badge-active { background: var(--md-accent); }
+.recurring-badge.badge-paused { background: var(--md-text-3); }
+.recurring-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.recurring-foot { margin: 8px 0 0 0; font-size: 12px; color: var(--md-text-2); line-height: 1.5; }
+.recurring-hint { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--md-text-2); margin-block: 6px 0; }

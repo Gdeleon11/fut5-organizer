@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import MatchForm from "../components/MatchForm.jsx";
+import RecurringConfig from "../components/matchday/RecurringConfig.jsx";
 import { SectionHeader } from "../components/ui/SectionHeader.jsx";
 import { useAppearance } from "../appearance/AppearanceProvider.jsx";
 import { buildMatchdayModel } from "../matchday/matchdayModel.js";
@@ -38,6 +39,7 @@ export default function MatchesPage({
   guests = {},
   onOpenPizarra,
   groupName = "",
+  groupId = "",
   forceDesign,
   now,
   ratingMap,
@@ -184,6 +186,9 @@ export default function MatchesPage({
         />
       ) : (
         <EditorialMatchesView {...shared} />
+      )}
+      {isAdmin && groupId && (
+        <RecurringConfig groupId={groupId} isAdmin={isAdmin} onNotice={onNotice} />
       )}
       <FifaModal player={fifa.player} onClose={fifa.close} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
     </div>

@@ -16,6 +16,68 @@ function raise(error) {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Zona horaria America/Guatemala (UTC-6, sin horario de verano).     */
+/* Todos los cálculos de recurrencia se hacen en el calendario local  */
+/* de Guatemala para que la fecha generada coincida con la que ve el  */
+/* organizador, independientemente de la zona horaria del navegador.  */
+/* ------------------------------------------------------------------ */
+function guatemalaParts(date = new Date()) {
+  const f = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Guatemala",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "long",
+  });
+  const parts = f.formatToParts(date);
+  const get = (type) => Number(parts.find((p) => p.type === type).value);
+  const dowMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+  const dow = dowMap[parts.find((p) => p.type === "weekday").value];
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    dow,
+  };
+}
+
+function guatemalaISODate(year, month, day) {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+// Mediodía UTC evita problemas de bordes de medianoche al leer/escibir componentes de fecha.
+function guatemalaDateFromParts(year, month, day) {
+  return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+}
+
+function addGuatemalaDays(year, month, day, days) {
+  const d = guatemalaDateFromParts(year, month, day);
+  d.setUTCDate(d.getUTCDate() + days);
+  return { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
+}
+
+/** Fecha ISO (AAAA-MM-DD) en Guatemala del siguiente día_día_de_semana >= referencia. */
+function nextOccurrenceStr(dayOfWeek, reference = new Date()) {
+  const { year, month, day, dow } = guatemalaParts(reference);
+  const diff = ((dayOfWeek - dow) % 7 + 7) % 7;
+  const target = addGuatemalaDays(year, month, day, diff);
+  return guatemalaISODate(target.year, target.month, target.day);
+}
+
+/** Fecha ISO (AAAA-MM-DD) en Guatemala `weeks` semanas después de `reference`. */
+function addWeeksStr(reference, weeks) {
+  const { year, month, day } = guatemalaParts(reference);
+  const target = addGuatemalaDays(year, month, day, weeks * 7);
+  return guatemalaISODate(target.year, target.month, target.day);
+}
+
+/** Fecha ISO de hoy en Guatemala. */
+function todayStr() {
+  const { year, month, day } = guatemalaParts();
+  return guatemalaISODate(year, month, day);
+}
+
 async function readOne(query) {
   const { data, error } = await query;
   raise(error);
@@ -131,6 +193,25 @@ function latestRatingsByProfile(ratings = []) {
 
   return latest;
 }
+
+/** Devuelve true si ya existe un partido del grupo en esa fecha/hora/venido (evita duplicados). */
+async function matchExistsOnDate(groupId, date, startTime, venue, title) {
+  const client = requireSupabase();
+  const { data } = await client
+    .from("matches")
+    .select("id, match_date, start_time, venue, title")
+    .eq("group_id", groupId)
+    .eq("match_date", date);
+  if (!data || data.length === 0) return false;
+  return data.some(
+    (m) =>
+      (m.start_time || "") === (startTime || "") &&
+      (m.venue || "") === (venue || "") &&
+      (m.title || "") === (title || ""),
+  );
+}
+
+export { guatemalaParts, guatemalaISODate, addGuatemalaDays, nextOccurrenceStr, addWeeksStr, todayStr };
 
 export const api = {
   async getProfile(profileId) {
@@ -1736,16 +1817,14 @@ export const api = {
       client.from("recurring_matches").update(payload).eq("id", id).select("*").single(),
     );
   },
-
   async generateRecurringMatch(recurring) {
     const client = requireSupabase();
-    const nextDate = new Date();
-    const dayMap = { 0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday", 4: "thursday", 5: "friday", 6: "saturday" };
-    const targetDay = recurring.day_of_week;
-    const diff = ((targetDay - nextDate.getDay()) % 7 + 7) % 7 || 7;
-    nextDate.setDate(nextDate.getDate() + diff);
-    const dateStr = nextDate.toISOString().split("T")[0];
-
+    const dateStr = nextOccurrenceStr(recurring.day_of_week);
+    // Idempotente: si ya existe un partido para esta recurrencia en esa fecha, no duplicar.
+    if (await matchExistsOnDate(recurring.group_id, dateStr, recurring.match_time, recurring.venue, recurring.title)) {
+      await client.from("recurring_matches").update({ last_generated_date: dateStr }).eq("id", recurring.id);
+      return null;
+    }
     const match = await readOne(
       client.from("matches").insert({
         group_id: recurring.group_id,
@@ -1758,9 +1837,71 @@ export const api = {
         status: "upcoming",
       }).select("*").single(),
     );
-
     await client.from("recurring_matches").update({ last_generated_date: dateStr }).eq("id", recurring.id);
     return match;
+  },
+
+  /** Genera los próximos partidos de todas las recurrencias activas del grupo dentro de un horizonte
+   *  (semanas). Nunca crea duplicados si se ejecuta más de una vez. Cada partido generado es una fila
+   *  independiente de `matches`, así que editar o cancelar un encuentro no afecta a la serie ni a las
+   *  demás recurrencias. No confirma asistencia de nadie (cada jugador confirma por su cuenta). */
+  async generateUpcomingRecurringMatches(groupId, horizonWeeks = 4) {
+    const client = requireSupabase();
+    const [recurrings, existing] = await Promise.all([
+      client.from("recurring_matches").select("*").eq("group_id", groupId),
+      client
+        .from("matches")
+        .select("id, match_date, start_time, venue, title")
+        .eq("group_id", groupId)
+        .gte("match_date", todayStr()),
+    ]);
+    const active = (recurrings || []).filter((r) => r.is_active);
+    const nowRef = new Date();
+    const horizonEnd = addWeeksStr(nowRef, horizonWeeks);
+    let generated = 0;
+    let skipped = 0;
+    for (const r of active) {
+      let dateStr = nextOccurrenceStr(r.day_of_week, nowRef);
+      while (dateStr <= horizonEnd) {
+        const dup = (existing || []).some(
+          (m) =>
+            m.match_date === dateStr &&
+            (m.start_time || "") === (r.match_time || "") &&
+            (m.venue || "") === (r.venue || "") &&
+            (m.title || "") === (r.title || ""),
+        );
+        if (dup) {
+          skipped += 1;
+        } else {
+          await client.from("matches").insert({
+            group_id: r.group_id,
+            title: r.title,
+            match_date: dateStr,
+            start_time: r.match_time,
+            venue: r.venue,
+            min_players: r.min_players,
+            max_players: r.max_players,
+            status: "upcoming",
+          });
+          generated += 1;
+        }
+        dateStr = addWeeksStr(dateStr, 1);
+      }
+      await client.from("recurring_matches").update({ last_generated_date: horizonEnd }).eq("id", r.id);
+    }
+    return { generated, skipped, horizonEnd };
+  },
+
+  async deleteRecurringMatch(id) {
+    const client = requireSupabase();
+    const { error, count } = await client
+      .from("recurring_matches")
+      .delete({ count: "exact" })
+      .eq("id", id);
+    raise(error);
+    if (count === 0) {
+      throw new Error("No se pudo eliminar la recurrencia. Verificá tus permisos.");
+    }
   },
 
   // ---------------------------------------------------------------------------
