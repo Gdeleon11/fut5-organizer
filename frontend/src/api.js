@@ -573,6 +573,25 @@ export const api = {
 
   async updateMatch(matchId, payload) {
     const client = requireSupabase();
+    // En V1, restringir el cambio de fecha de un encuentro generado por una recurrencia.
+    // Cambiar match_date rompería la clave de idempotencia (recurring_match_id, match_date)
+    // y haría que la serie regenerara la fecha original. Para reprogramar, el organizador
+    // debe cancelar la ocurrencia original y crear un partido independiente en la nueva fecha.
+    // Otros campos (título, hora, cancha…) sí son editables sin romper la identidad.
+    if (payload && payload.match_date != null) {
+      const { data: current, error: fetchErr } = await client
+        .from("matches")
+        .select("recurring_match_id, match_date, title")
+        .eq("id", matchId)
+        .single();
+      if (fetchErr) throw fetchErr;
+      if (current && current.recurring_match_id && String(current.match_date) !== String(payload.match_date)) {
+        throw new Error(
+          "No se puede cambiar la fecha de un encuentro de una serie recurrente. " +
+          "Cancelá esta ocurrencia y creá un partido independiente en la nueva fecha.",
+        );
+      }
+    }
 
     return readOne(
       client.from("matches").update(payload).eq("id", matchId).select("*").single(),

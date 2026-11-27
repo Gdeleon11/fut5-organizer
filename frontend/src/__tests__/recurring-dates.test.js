@@ -1,6 +1,6 @@
-import fs from "node:fs";
-import path from "node:path";
-import { describe, expect, it } from "vitest";
+import fs from "fs";
+import path from "path";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   guatemalaParts,
   guatemalaISODate,
@@ -8,6 +8,54 @@ import {
   addWeeksStr,
   todayStr,
 } from "../api.js";
+
+const mockChain = {
+  select: vi.fn().mockReturnThis(),
+  eq: vi.fn().mockReturnThis(),
+  update: vi.fn().mockImplementation(function (payload) {
+    this._lastPayload = payload;
+    return this;
+  }),
+  single: vi.fn().mockImplementation(function () {
+    const base = {
+      id: "m-recurring",
+      recurring_match_id: "rec-1",
+      match_date: "2026-12-03",
+      title: "Jueves F5",
+    };
+    const merged = this._lastPayload ? { ...base, ...this._lastPayload } : base;
+    this._lastPayload = undefined;
+    return Promise.resolve({ data: merged, error: null });
+  }),
+};
+
+vi.mock("../supabaseClient.js", () => ({
+  supabase: { from: () => mockChain },
+  hasSupabaseConfig: true,
+}));
+
+import { api } from "../api.js";
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  mockChain.select.mockReturnThis();
+  mockChain.eq.mockReturnThis();
+  mockChain.update.mockImplementation(function (payload) {
+    this._lastPayload = payload;
+    return this;
+  });
+  mockChain.single.mockImplementation(function () {
+    const base = {
+      id: "m-recurring",
+      recurring_match_id: "rec-1",
+      match_date: "2026-12-03",
+      title: "Jueves F5",
+    };
+    const merged = this._lastPayload ? { ...base, ...this._lastPayload } : base;
+    this._lastPayload = undefined;
+    return Promise.resolve({ data: merged, error: null });
+  });
+});
 
 /** Convierte una cadena ISO de fecha (YYYY-MM-DD) a partes en zona horaria de Guatemala. */
 function partsOfISO(dateISO) {
@@ -74,5 +122,24 @@ describe("Recurring Matchday — zona horaria America/Guatemala", () => {
     expect(sql).toMatch(/ON DELETE SET NULL/i);
     expect(sql).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS matches_recurring_unique_date_idx/i);
     expect(sql).toMatch(/WHERE recurring_match_id IS NOT NULL/i);
+  });
+
+  describe("updateMatch — restricción de cambio de fecha en encuentros recurrentes", () => {
+    it("rechaza cambiar match_date de un encuentro vinculado a una recurrencia", async () => {
+      await expect(
+        api.updateMatch("m-recurring", { match_date: "2026-12-10" }),
+      ).rejects.toThrow(/No se puede cambiar la fecha de un encuentro de una serie recurrente/);
+    });
+
+    it("permite editar otros campos (título) de un encuentro recurrente sin cambiar la fecha", async () => {
+      const result = await api.updateMatch("m-recurring", { title: "Jueves F5 — Editado" });
+      expect(result.title).toBe("Jueves F5 — Editado");
+      expect(result.match_date).toBe("2026-12-03");
+    });
+
+    it("no rechaza cuando se envía la misma fecha ya guardada (no es un cambio)", async () => {
+      const result = await api.updateMatch("m-recurring", { match_date: "2026-12-03" });
+      expect(result.match_date).toBe("2026-12-03");
+    });
   });
 });
