@@ -114,7 +114,7 @@ export default function RecurringConfig({ groupId, isAdmin = false, onNotice }) 
         max_players: Number(form.maxPlayers) || 18,
         is_active: Boolean(form.isActive),
       });
-      setNoticeText("Recurrencia creada. Los próximos partidos se preparan solos.");
+      setNoticeText("Recurrencia creada. Los próximos partidos (4 semanas) se preparan al abrir el grupo o al tocar «Generar próximos partidos ahora».");
       setForm({ title: "Chamuscón semanal", dayOfWeek: new Date().getDay(), matchTime: "19:00", venue: "", minPlayers: 10, maxPlayers: 18, isActive: true });
       await load();
     } catch (err) {
@@ -128,14 +128,14 @@ export default function RecurringConfig({ groupId, isAdmin = false, onNotice }) 
 
   return (
     <section className="recurring-config" aria-label="Partidos recurrentes">
-      <SectionHeader title="Partidos recurrentes" subtitle="Configurá una chamusca semanal y los partidos se preparan solos." />
+      <SectionHeader title="Partidos recurrentes" subtitle="Configurá tu chamusca semanal una sola vez (horizonte de 4 semanas)." />
       {error && <div className="alert error" role="alert">{error}</div>}
       {notice && <div className="alert success" role="status">{notice}</div>}
 
       {isAdmin && (
         <>
           <Card className="recurring-form-card">
-            <SectionHeader title="Nueva recurrencia" subtitle="Configurá una vez; la app genera los siguientes partidos automáticamente." />
+            <SectionHeader title="Nueva recurrencia" subtitle="Los próximos encuentros se preparan cuando un administrador abre el grupo o toca «Generar ahora»." />
             <form className="recurring-form" onSubmit={handleCreate}>
               <div className="recurring-form-grid">
                 <div className="rf-field">
@@ -227,7 +227,7 @@ export default function RecurringConfig({ groupId, isAdmin = false, onNotice }) 
             )}
             <p className="muted recurring-foot">
               <ChevronRight size={12} aria-hidden="true" /> Cada partido generado es independiente: podés editarlo o cancelarlo sin tocar el resto de la serie.
-              Los jugadores confirman su asistencia normalmente; la recurrencia no los confirma automáticamente.
+              Los jugadores confirman su asistencia normalmente (sin confirmación automática). Los recordatorios push/WhatsApp automáticos aún no están activos en esta versión.
             </p>
           </Card>
         </>

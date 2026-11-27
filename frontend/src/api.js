@@ -194,14 +194,27 @@ function latestRatingsByProfile(ratings = []) {
   return latest;
 }
 
-/** Devuelve true si ya existe un partido del grupo en esa fecha/hora/venido (evita duplicados). */
-async function matchExistsOnDate(groupId, date, startTime, venue, title) {
+/** Devuelve true si ya existe un partido generado por esa recurrencia en esa fecha.
+ *  Si se pasa `recurringMatchId`, compara de forma exacta por (recurring_match_id, match_date)
+ *  para no colisionar con partidos independientes ni perder el vínculo al editar título/hora/cancha. */
+async function matchExistsOnDate(groupId, date, startTime, venue, title, recurringMatchId = null) {
   const client = requireSupabase();
-  const { data } = await client
+  if (recurringMatchId) {
+    const { data, error } = await client
+      .from("matches")
+      .select("id")
+      .eq("recurring_match_id", recurringMatchId)
+      .eq("match_date", date)
+      .limit(1);
+    raise(error);
+    return Boolean(data && data.length > 0);
+  }
+  const { data, error } = await client
     .from("matches")
     .select("id, match_date, start_time, venue, title")
     .eq("group_id", groupId)
     .eq("match_date", date);
+  raise(error);
   if (!data || data.length === 0) return false;
   return data.some(
     (m) =>
@@ -1820,61 +1833,71 @@ export const api = {
   async generateRecurringMatch(recurring) {
     const client = requireSupabase();
     const dateStr = nextOccurrenceStr(recurring.day_of_week);
-    // Idempotente: si ya existe un partido para esta recurrencia en esa fecha, no duplicar.
-    if (await matchExistsOnDate(recurring.group_id, dateStr, recurring.match_time, recurring.venue, recurring.title)) {
+    if (await matchExistsOnDate(recurring.group_id, dateStr, recurring.match_time, recurring.venue, recurring.title, recurring.id)) {
       await client.from("recurring_matches").update({ last_generated_date: dateStr }).eq("id", recurring.id);
       return null;
     }
-    const match = await readOne(
-      client.from("matches").insert({
-        group_id: recurring.group_id,
-        title: recurring.title,
-        match_date: dateStr,
-        start_time: recurring.match_time,
-        venue: recurring.venue,
-        min_players: recurring.min_players,
-        max_players: recurring.max_players,
-        status: "upcoming",
-      }).select("*").single(),
-    );
+    const { data: match, error } = await client.from("matches").insert({
+      group_id: recurring.group_id,
+      recurring_match_id: recurring.id,
+      title: recurring.title,
+      match_date: dateStr,
+      start_time: recurring.match_time,
+      venue: recurring.venue,
+      min_players: recurring.min_players,
+      max_players: recurring.max_players,
+      status: "upcoming",
+    }).select("*").single();
+    if (error?.code === "23505") {
+      await client.from("recurring_matches").update({ last_generated_date: dateStr }).eq("id", recurring.id);
+      return null;
+    }
+    raise(error);
     await client.from("recurring_matches").update({ last_generated_date: dateStr }).eq("id", recurring.id);
     return match;
   },
 
   /** Genera los próximos partidos de todas las recurrencias activas del grupo dentro de un horizonte
-   *  (semanas). Nunca crea duplicados si se ejecuta más de una vez. Cada partido generado es una fila
-   *  independiente de `matches`, así que editar o cancelar un encuentro no afecta a la serie ni a las
-   *  demás recurrencias. No confirma asistencia de nadie (cada jugador confirma por su cuenta). */
+   *  de 4 semanas cuando un administrador abre el grupo o pulsa «Generar ahora».
+   *  Idempotencia atómica: el índice único parcial (recurring_match_id, match_date) en BD impide
+   *  duplicados incluso con dos administradores simultáneos, no colisiona con partidos independientes
+   *  (recurring_match_id IS NULL) ni con otras recurrencias, y preserva ediciones individuales. */
   async generateUpcomingRecurringMatches(groupId, horizonWeeks = 4) {
     const client = requireSupabase();
-    const [recurrings, existing] = await Promise.all([
+    const [recRes, exRes] = await Promise.all([
       client.from("recurring_matches").select("*").eq("group_id", groupId),
       client
         .from("matches")
-        .select("id, match_date, start_time, venue, title")
+        .select("id, recurring_match_id, match_date")
         .eq("group_id", groupId)
         .gte("match_date", todayStr()),
     ]);
-    const active = (recurrings || []).filter((r) => r.is_active);
+    raise(recRes.error);
+    raise(exRes.error);
+    const recurrings = recRes.data || [];
+    const existing = exRes.data || [];
+    const existingKeys = new Set(
+      existing
+        .filter((m) => m.recurring_match_id)
+        .map((m) => `${m.recurring_match_id}|${m.match_date}`),
+    );
+    const active = recurrings.filter((r) => r.is_active);
     const nowRef = new Date();
     const horizonEnd = addWeeksStr(nowRef, horizonWeeks);
     let generated = 0;
     let skipped = 0;
     for (const r of active) {
       let dateStr = nextOccurrenceStr(r.day_of_week, nowRef);
+      let lastOkDate = null;
       while (dateStr <= horizonEnd) {
-        const dup = (existing || []).some(
-          (m) =>
-            m.match_date === dateStr &&
-            (m.start_time || "") === (r.match_time || "") &&
-            (m.venue || "") === (r.venue || "") &&
-            (m.title || "") === (r.title || ""),
-        );
-        if (dup) {
+        const key = `${r.id}|${dateStr}`;
+        if (existingKeys.has(key)) {
           skipped += 1;
+          lastOkDate = dateStr;
         } else {
-          await client.from("matches").insert({
+          const { error: insErr } = await client.from("matches").insert({
             group_id: r.group_id,
+            recurring_match_id: r.id,
             title: r.title,
             match_date: dateStr,
             start_time: r.match_time,
@@ -1883,11 +1906,27 @@ export const api = {
             max_players: r.max_players,
             status: "upcoming",
           });
-          generated += 1;
+          if (insErr?.code === "23505") {
+            // Carrera simultánea resuelta atómicamente por el índice único en BD.
+            skipped += 1;
+            existingKeys.add(key);
+            lastOkDate = dateStr;
+          } else {
+            raise(insErr);
+            generated += 1;
+            existingKeys.add(key);
+            lastOkDate = dateStr;
+          }
         }
         dateStr = addWeeksStr(dateStr, 1);
       }
-      await client.from("recurring_matches").update({ last_generated_date: horizonEnd }).eq("id", r.id);
+      if (lastOkDate) {
+        const { error: updErr } = await client
+          .from("recurring_matches")
+          .update({ last_generated_date: lastOkDate })
+          .eq("id", r.id);
+        raise(updErr);
+      }
     }
     return { generated, skipped, horizonEnd };
   },

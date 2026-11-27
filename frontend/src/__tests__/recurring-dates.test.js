@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   guatemalaParts,
@@ -59,5 +61,18 @@ describe("Recurring Matchday — zona horaria America/Guatemala", () => {
     expect(/^\d{4}-\d{2}-\d{2}$/.test(t)).toBe(true);
     const { year, month, day } = guatemalaParts();
     expect(t).toBe(`${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`);
+  });
+
+  it("la migración aditiva de recurrencias define recurring_match_id con ON DELETE SET NULL e índice único parcial", () => {
+    const sql = fs.readFileSync(
+      path.resolve(process.cwd(), "../supabase/migrations/20261126183000_recurring_matches_idempotency.sql"),
+      "utf8",
+    );
+    expect(sql).toMatch(/\bBEGIN;/);
+    expect(sql).toMatch(/\bCOMMIT;/);
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS recurring_match_id uuid/i);
+    expect(sql).toMatch(/ON DELETE SET NULL/i);
+    expect(sql).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS matches_recurring_unique_date_idx/i);
+    expect(sql).toMatch(/WHERE recurring_match_id IS NOT NULL/i);
   });
 });

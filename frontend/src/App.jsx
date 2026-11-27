@@ -908,14 +908,24 @@ export default function App() {
       api.radarGroupOutsiders(groupId).catch(() => []),
     ]);
     setRadarOutsiders(radarRows || []);
-    // Matchday recurrencias V1: prepara los próximos partidos de las recurrencias activas
-    // sin crear duplicados. Solo administradores, no bloquea la UI y no confirma asistencia.
+    // Matchday recurrencias V1: prepara los próximos partidos (horizonte 4 semanas) al abrir el grupo
+    // como administrador, sin crear duplicados y sin confirmar asistencia automáticamente.
     let matchesToSet = matchRows || [];
-    if (isAdmin) {
+    const callerIsAdmin =
+      isAdmin ||
+      (profileRows || []).some(
+        (p) =>
+          p.id === currentProfile?.id &&
+          p.membership_is_active &&
+          ["admin", "super_admin"].includes(p.membership_role),
+      );
+    if (callerIsAdmin) {
       try {
-        await api.generateUpcomingRecurringMatches(groupId, 4);
-        const refreshed = await api.listMatches(groupId);
-        matchesToSet = refreshed || [];
+        const gen = await api.generateUpcomingRecurringMatches(groupId, 4);
+        if (gen?.generated > 0) {
+          const refreshed = await api.listMatches(groupId);
+          matchesToSet = refreshed || [];
+        }
       } catch (genErr) {
         console.warn("Generación de partidos recurrentes omitida:", genErr?.message);
       }
