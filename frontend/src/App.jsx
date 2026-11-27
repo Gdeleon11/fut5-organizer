@@ -1420,15 +1420,19 @@ export default function App() {
         setNotice("Partido eliminado (Simulación Local).");
         return;
       }
-      await api.deleteMatch(matchId);
-      setMatches((c) => c.filter((m) => m.id !== matchId));
-      setTeamsByMatch((c) => { const n = { ...c }; delete n[matchId]; return n; });
-      setMatchFees((c) => c.filter((f) => f.match_id !== matchId));
-      if (selectedMatchId === matchId) { setSelectedMatchId(null); setPage("matches"); }
-      setNotice("Partido eliminado.");
+      const result = await api.deleteMatch(matchId);
+      if (result.softCanceled) {
+        setMatches((c) => c.map((m) => m.id === matchId ? { ...m, status: "canceled" } : m));
+        setNotice("Ocurrencia cancelada. No se regenerará en la serie.");
+      } else {
+        setMatches((c) => c.filter((m) => m.id !== matchId));
+        setTeamsByMatch((c) => { const n = { ...c }; delete n[matchId]; return n; });
+        setMatchFees((c) => c.filter((f) => f.match_id !== matchId));
+        if (selectedMatchId === matchId) { setSelectedMatchId(null); setPage("matches"); }
+        setNotice("Partido eliminado.");
+      }
     } catch (err) { setError(err.message); }
   }
-
   async function updateProfileAdmin(profileId, payload) {
     setNotice(""); setError("");
     try {

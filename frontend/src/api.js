@@ -581,18 +581,36 @@ export const api = {
 
   async deleteMatch(matchId) {
     const client = requireSupabase();
+    // ¿Es un encuentro generado por una recurrencia?
+    // Si sí, NO borramos la fila: soft-cancelamos (status='canceled') para que
+    // generateUpcomingRecurringMatches no la regenere al reactivar la serie,
+    // respetando la cancelación individual del organizador. Solo los partidos
+    // independientes se borran duro.
+    const { data: match, error: matchErr } = await client
+      .from("matches")
+      .select("recurring_match_id, status")
+      .eq("id", matchId)
+      .single();
+    if (matchErr) throw matchErr;
+    if (match && match.recurring_match_id && match.status === "upcoming") {
+      const { error } = await client
+        .from("matches")
+        .update({ status: "canceled" })
+        .eq("id", matchId);
+      raise(error);
+      return { count: 1, softCanceled: true };
+    }
     const { error, count } = await client
       .from("matches")
       .delete({ count: "exact" })
       .eq("id", matchId);
-
     raise(error);
-
     if (count === 0) {
-      throw new Error("No se pudo eliminar el partido. Verificá tus permisos.");
+      throw new Error("No se pudo eliminar el partido. Veri\
+ficá tus permisos.");
     }
+    return { count: count || 0, softCanceled: false };
   },
-
   async listAttendances(groupId) {
     const client = requireSupabase();
 
