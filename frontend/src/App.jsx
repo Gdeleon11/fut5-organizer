@@ -43,6 +43,7 @@ import { hasSupabaseConfig, supabase } from "./supabaseClient.js";
 import { activeReservationStatus, canUseReservationAssistant } from "./reservationAssistant.js";
 import { canAccessMatch, collectGroupTags } from "./tags.js";
 import { appShareUrl, classNames, displayName, formatMatchDate, groupInvitationText, profileComplete, roleLabel } from "./utils.js";
+import { track } from "./analytics.js";
 import OnboardingCards from "./components/matchday/OnboardingCards.jsx";
 import { AppHeader, AppSidebar, MobileBottomNav, DevRoleBanner } from "./components/shell/index.js";
 import { AppearanceScope, useAppearance } from "./appearance/AppearanceProvider.jsx";
@@ -1047,6 +1048,7 @@ export default function App() {
         return;
       }
       const membership = await api.createGroup(profile.id, name);
+      track("group_created", { source: "app" }, { dedupe: `group:${membership.group_id}` });
       const rows = await api.listMyGroups(profile.id);
       setMemberships(rows); setActiveGroupId(membership.group_id);
       if (typeof window !== "undefined")
@@ -1135,6 +1137,7 @@ export default function App() {
         return;
       }
       const row = await api.confirmAttendance(match.id, profile.id);
+      track("first_player_confirmed", { source: "app" }, { dedupe: "milestone" });
       setAttendances((c) => [...c.filter((a) => a.id !== row.id), row]);
 
       const relatedFines = fines.filter(
@@ -1375,6 +1378,7 @@ export default function App() {
         return mockMatch;
       }
       let created = await api.createMatch({ ...payload, group_id: activeGroupId });
+      track("first_match_created", { source: "app" }, { dedupe: "milestone" });
       setMatches((c) => [...c, created]);
       setSelectedMatchId(created.id);
       // Auto-create match fee if court_cost > 0
@@ -1741,6 +1745,7 @@ export default function App() {
       const match = matches.find((m) => m.id === matchId);
       if (match && match.status !== "closed") {
         const updated = await api.updateMatch(matchId, { status: "closed" });
+        track("first_match_completed", { source: "app" }, { dedupe: "milestone" });
         setMatches((c) => c.map((m) => (m.id === updated.id ? updated : m)));
       }
     } catch (err) {

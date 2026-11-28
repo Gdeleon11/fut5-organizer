@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { copyToClipboard, waUrl } from "../utils.js";
+import { track } from "../analytics.js";
 
 export default function ExportCard({ label, text }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
     await copyToClipboard(text);
+    track("invite_shared", { channel: "clipboard", source: "export_card" }, { dedupe: "session" });
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   }
@@ -21,7 +23,13 @@ export default function ExportCard({ label, text }) {
         <button type="button" onClick={copy}>
           Copiar texto
         </button>
-        <a className="share-link" href={waUrl(text)} rel="noreferrer" target="_blank">
+        <a
+          className="share-link"
+          href={waUrl(text)}
+          rel="noreferrer"
+          target="_blank"
+          onClick={() => track("invite_shared", { channel: "whatsapp", source: "export_card" }, { dedupe: "session" })}
+        >
           Abrir WhatsApp
         </a>
       </div>

@@ -1,37 +1,27 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import FounderInterestForm from "../components/FounderInterestForm.jsx";
-
-const insertCalls = [];
-vi.mock("../supabaseClient.js", () => {
-  const from = () => ({
-    insert: (payload) => {
-      insertCalls.push(payload);
-      return {
-        select: () => ({
-          single: () =>
-            Promise.resolve({
-              data: { id: "lead-1", created_at: "2026-11-28T00:00:00Z" },
-              error: null,
-            }),
-        }),
-      };
-    },
-  });
-  return {
-    supabase: { from },
-    hasSupabaseConfig: true,
-  };
-});
-
-import { api } from "../api.js";
-
-beforeEach(() => {
-  vi.resetAllMocks();
-  insertCalls.length = 0;
-});
+import { resetAnalyticsState } from "../analytics.js";
 
 describe("FounderInterestForm — captación de organizadores fundadores", () => {
+  let fetchMock;
+
+  beforeEach(() => {
+    resetAnalyticsState();
+    fetchMock = vi.fn(() =>
+      Promise.resolve({
+        ok: true,
+        status: 201,
+        json: () => Promise.resolve({ ok: true }),
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   const fillForm = () => {
     fireEvent.change(screen.getByLabelText(/Nombre de contacto/), {
       target: { value: "Ana Organiza" },
@@ -51,23 +41,24 @@ describe("FounderInterestForm — captación de organizadores fundadores", () =>
     fireEvent.click(screen.getByLabelText(/Acepto que F5 Manager almacene mis datos/));
   };
 
-  it("envía los datos del lead con consentimiento", async () => {
+  it("envía el lead a /api/founder-leads con consentimiento y sin campos admin", async () => {
     render(<FounderInterestForm onClose={() => {}} onSubmitted={() => {}} />);
 
     fillForm();
-
     fireEvent.click(screen.getByRole("button", { name: /Solicitar lugar de fundador/ }));
 
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(insertCalls).toHaveLength(1);
-    expect(insertCalls[0].contact_name).toBe("Ana Organiza");
-    expect(insertCalls[0].email).toBe("ana@ejemplo.com");
-    expect(insertCalls[0].city).toBe("Ciudad de Guatemala");
-    expect(insertCalls[0].group_frequency).toBe("semanal");
-    expect(insertCalls[0].group_size).toBe("10-14");
-    expect(insertCalls[0].consent).toBe(true);
-    expect(insertCalls[0].status).toBe("new");
+    const leadCall = fetchMock.mock.calls.find(([url]) => url === "/api/founder-leads");
+    expect(leadCall).toBeTruthy();
+    const sent = JSON.parse(leadCall[1].body);
+    expect(sent.contactName).toBe("Ana Organiza");
+    expect(sent.email).toBe("ana@ejemplo.com");
+    expect(sent.city).toBe("Ciudad de Guatemala");
+    expect(sent.groupFrequency).toBe("semanal");
+    expect(sent.groupSize).toBe("10-14");
+    expect(sent.consent).toBe(true);
+    expect(sent.status).toBeUndefined();
   });
 
   it("no envía sin consentimiento", async () => {
@@ -85,31 +76,63 @@ describe("FounderInterestForm — captación de organizadores fundadores", () =>
 
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(insertCalls).toHaveLength(0);
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(
       screen.getByText(/Debés aceptar el consentimiento para continuar./),
     ).toBeTruthy();
   });
 
-  it("muestra confirmación tras envío exitoso", async () => {
+  it("muestra confirmación tras envío exitoso y evita doble envío", async () => {
+    let resolveReq;
+    fetchMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveReq = resolve;
+        }),
+    );
+
+    render(<FounderInterestForm onClose={() => {}} onSubmitted={() => {}} />);
+    fillForm();
+    const submitBtn = screen.getByRole("button", { name: /Solicitar lugar de fundador/ });
+    fireEvent.click(submitBtn);
+    fireEvent.click(submitBtn); // doble clic
+
+    resolveReq({ ok: true, status: 201, json: () => Promise.resolve({ ok: true }) });
+    await new Promise((r) => setTimeout(r, 50));
+
+    const leadCalls = fetchMock.mock.calls.filter(([url]) => url === "/api/founder-leads");
+    expect(leadCalls).toHaveLength(1);
+    expect(screen.getByText(/¡Gracias por sumarte!/)).toBeTruthy();
+  });
+
+  it("muestra mensaje comprensible cuando el servidor responde 429", async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: false,
+      status: 429,
+      json: () => Promise.resolve({ error: "Ya recibimos una solicitud reciente con este correo." }),
+    });
+
     render(<FounderInterestForm onClose={() => {}} onSubmitted={() => {}} />);
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: /Solicitar lugar de fundador/ }));
 
     await new Promise((r) => setTimeout(r, 50));
 
-    expect(screen.getByText(/¡Gracias por sumarte!/)).toBeTruthy();
-    expect(
-      screen.queryByRole("button", { name: /Solicitar lugar de fundador/ }),
-    ).toBeNull();
+    expect(screen.getByRole("alert").textContent).toContain("Ya recibimos una solicitud reciente");
   });
 
-  it("tiene el campo honeypot oculto (sistema anti-spam básico)", async () => {
-    render(<FounderInterestForm onClose={() => {}} onSubmitted={() => {}} />);
+  it("descarta silenciosamente si se rellena el honeypot", async () => {
+    const onSubmitted = vi.fn();
+    render(<FounderInterestForm onClose={() => {}} onSubmitted={onSubmitted} />);
+    fillForm();
     const honeypot = document.querySelector('input[name="website"]');
     expect(honeypot).not.toBeNull();
-    const style = getComputedStyle(honeypot);
-    expect(style.position).toBe("absolute");
-    expect(parseInt(style.left, 10)).toBeLessThan(0);
+    fireEvent.change(honeypot, { target: { value: "https://spam.example" } });
+    fireEvent.click(screen.getByRole("button", { name: /Solicitar lugar de fundador/ }));
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(onSubmitted).toHaveBeenCalledWith(false);
   });
 });

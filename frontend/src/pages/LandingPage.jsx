@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PublicHeader from "../components/PublicHeader.jsx";
 import PublicFooter from "../components/PublicFooter.jsx";
 import FounderInterestForm from "../components/FounderInterestForm.jsx";
@@ -61,7 +61,7 @@ export default function LandingPage({ onLogin, onNavigate }) {
 
   const steps = [
     { number: "1", title: "Crea tu cuenta y tu grupo", text: "Regístrate gratis y ponele nombre a tu chamusca." },
-    { number: "2", title: "Organiza un e invita a los jugadores", text: "Define fecha, hora y cancha; comparte el enlace por WhatsApp." },
+    { number: "2", title: "Organiza un partido e invita a los jugadores", text: "Define fecha, hora y cancha; comparte el enlace por WhatsApp." },
     { number: "3", title: "Recibe confirmaciones y arma equipos", text: "Cada jugador confirma por su cuenta y se arman alineaciones parejas." },
     { number: "4", title: "Juega, registra el resultado y comparte", text: "Carga goles, asistencias y MVP; comparte el resumen con el grupo." },
   ];
@@ -89,8 +89,12 @@ export default function LandingPage({ onLogin, onNavigate }) {
     },
   ];
 
+  useEffect(() => {
+    track("landing_view", { page: "/" }, { dedupe: "session" });
+  }, []);
+
   const handleSignup = () => {
-    track("signup_start");
+    track("signup_start", { source: "landing_hero" }, { dedupe: "session" });
     onLogin?.("signup");
   };
 
@@ -101,7 +105,11 @@ export default function LandingPage({ onLogin, onNavigate }) {
 
   const handleFounderSubmitted = (accepted) => {
     setFounderSubmitted(Boolean(accepted));
-    setShowFounderForm(false);
+    // Si fue descartado por honeypot (accepted=false), cerramos silenciosamente;
+    // si fue envío exitoso (accepted=true), mantenemos visible la confirmación.
+    if (!accepted) {
+      setShowFounderForm(false);
+    }
   };
 
   return (

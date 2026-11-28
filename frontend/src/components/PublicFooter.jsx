@@ -53,7 +53,7 @@ export default function PublicFooter({ onNavigate }) {
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.6rem" }}>
             <li><a href="/blog" onClick={(e) => handleLinkClick(e, "/blog")} style={{ color: "inherit", textDecoration: "none" }}>Blog Principal</a></li>
             <li><a href="/blog/guia-organizar-partidos-futbol-5" onClick={(e) => handleLinkClick(e, "/blog/guia-organizar-partidos-futbol-5")} style={{ color: "inherit", textDecoration: "none" }}>Guía Organización Fútbol 5</a></li>
-            <li><a href="/blog/algoritmo-ia-balancear-equipos" onClick={(e) => handleLinkClick(e, "/blog/algoritmo-ia-balancear-equipos")} style={{ color: "inherit", textDecoration: "none" }}>Balance de Equipos con IA</a></li>
+            <li><a href="/blog/algoritmo-ia-balancear-equipos" onClick={(e) => handleLinkClick(e, "/blog/algoritmo-ia-balancear-equipos")} style={{ color: "inherit", textDecoration: "none" }}>Guía de Equipos Equilibrados</a></li>
             <li><a href="/blog/gestion-caja-multas-futbol-amateur" onClick={(e) => handleLinkClick(e, "/blog/gestion-caja-multas-futbol-amateur")} style={{ color: "inherit", textDecoration: "none" }}>Gestión de Finanzas y Multas</a></li>
           </ul>
         </div>

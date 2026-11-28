@@ -2535,23 +2535,39 @@ ficá tus permisos.");
   // ---------------------------------------------------------------------------
 
   async createFounderLead(payload) {
-    const client = requireSupabase();
+    const response = await fetch("/api/founder-leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contactName: payload.contactName,
+        email: payload.email,
+        city: payload.city,
+        groupFrequency: payload.groupFrequency,
+        groupSize: payload.groupSize,
+        consent: Boolean(payload.consent),
+        source: payload.source || "landing",
+        hp: payload.hp || "",
+      }),
+    });
 
-    return readOne(
-      client
-        .from("founder_leads")
-        .insert({
-          contact_name: payload.contactName,
-          email: payload.email,
-          city: payload.city,
-          group_frequency: payload.groupFrequency,
-          group_size: payload.groupSize,
-          consent: Boolean(payload.consent),
-          source: payload.source || "landing",
-          status: "new",
-        })
-        .select("id, created_at")
-        .single(),
-    );
+    let body = null;
+    try {
+      body = await response.json();
+    } catch {
+      body = null;
+    }
+
+    if (!response.ok) {
+      const message =
+        body?.error ||
+        (response.status === 429
+          ? "Recibimos demasiadas solicitudes recientemente. Intentá de nuevo más tarde."
+          : "No se pudo enviar la solicitud. Intentá de nuevo más tarde.");
+      const err = new Error(message);
+      err.status = response.status;
+      throw err;
+    }
+
+    return body || { ok: true };
   },
 };

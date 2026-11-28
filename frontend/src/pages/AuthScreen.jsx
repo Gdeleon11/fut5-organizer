@@ -3,6 +3,7 @@ import { hasSupabaseConfig, supabase } from "../supabaseClient.js";
 import { api } from "../api.js";
 import { authErrorMessage, invitedGroupId } from "../authMessages.js";
 import { classNames } from "../utils.js";
+import { track } from "../analytics.js";
 
 function initialMode() {
   if (typeof window === "undefined") return "login";
@@ -145,8 +146,10 @@ export default function AuthScreen({ onMockLogin }) {
         if (data?.user?.identities?.length === 0) {
           setError("Ya existe una cuenta con este email. Probá iniciar sesión.");
         } else if (data?.user?.confirmed_at) {
+          track("signup_complete", { has_invite: Boolean(invite), mode: "auto_confirmed" }, { dedupe: "milestone" });
           setNotice("Cuenta creada. Podés empezar a usar la app.");
         } else {
+          track("signup_complete", { has_invite: Boolean(invite), mode: "email_confirm" }, { dedupe: "milestone" });
           setNotice(
             "Cuenta creada. Revisá tu correo para confirmar tu email. Si no lo encontrás, hacé clic en reenviar.",
           );

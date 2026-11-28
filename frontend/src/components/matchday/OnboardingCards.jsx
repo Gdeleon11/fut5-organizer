@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Check, Link2, MessageCircle, Sparkles, UserCheck, X } from "lucide-react";
 import { copyToClipboard, displayName, waUrl } from "../../utils.js";
+import { track } from "../../analytics.js";
 
 /**
  * First-steps cards on Partidos (both designs). Only real data, nothing simulated:
@@ -40,11 +41,22 @@ export default function OnboardingCards({ invite, pending, styleTip }) {
           <h2 id="ob-invite-t"><MessageCircle size={18} aria-hidden="true" /> Invitá a tu grupo</h2>
           <p>Mandá el enlace por WhatsApp. Cada uno crea su cuenta en un minuto y vos lo activás desde acá.</p>
           <div className="ob-actions">
-            <a className="md-btn md-btn-accent fx-btn-sm" href={waUrl(invite.text)} target="_blank" rel="noreferrer">
+            <a
+              className="md-btn md-btn-accent fx-btn-sm"
+              href={waUrl(invite.text)}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => track("invite_shared", { channel: "whatsapp", source: "onboarding" }, { dedupe: "session" })}
+            >
               <MessageCircle size={15} aria-hidden="true" /> Enviar por WhatsApp
             </a>
             <button type="button" className="md-btn md-btn-ghost fx-btn-sm"
-              onClick={async () => { await copyToClipboard(invite.link); setCopied(true); window.setTimeout(() => setCopied(false), 1600); }}>
+              onClick={async () => {
+                await copyToClipboard(invite.link);
+                track("invite_shared", { channel: "clipboard", source: "onboarding" }, { dedupe: "session" });
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 1600);
+              }}>
               <Link2 size={15} aria-hidden="true" /> {copied ? "Enlace copiado" : "Copiar enlace"}
             </button>
           </div>

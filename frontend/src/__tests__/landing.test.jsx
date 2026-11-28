@@ -49,7 +49,7 @@ describe("LandingPage — comercial V1", () => {
 
     expect(screen.getByText(/Convocatorias y asistencia/)).toBeTruthy();
     expect(screen.getByText(/Partidos semanales/)).toBeTruthy();
-    expect(screen.getByText(/Equipos equilibrados/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /Equipos equilibrados/ })).toBeTruthy();
     expect(screen.getByText(/Mi FIFA y estadísticas/)).toBeTruthy();
     expect(screen.getByText(/Campeonatos informales/)).toBeTruthy();
     expect(screen.getByText(/Caja y cuotas/)).toBeTruthy();
