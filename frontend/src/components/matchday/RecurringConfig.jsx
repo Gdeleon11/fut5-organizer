@@ -16,7 +16,7 @@ const WEEKDAYS = [
   { key: 6, label: "Sábado" },
 ];
 
-export default function RecurringConfig({ groupId, isAdmin = false, onNotice }) {
+export default function RecurringConfig({ groupId, isAdmin = false, onNotice, onGenerate }) {
   const [recurrences, setRecurrences] = useState([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState(null);
@@ -91,6 +91,7 @@ export default function RecurringConfig({ groupId, isAdmin = false, onNotice }) 
       const result = await api.generateUpcomingRecurringMatches(groupId, 4);
       setNoticeText(`Se prepararon ${result.generated} partido${result.generated !== 1 ? "s" : ""} nuevo${result.generated !== 1 ? "s" : ""}${result.skipped > 0 ? ` (${result.skipped} ya existían)` : ""}.`);
       await load();
+      onGenerate?.();
     } catch (err) {
       setError(err?.message || "No se pudieron generar los próximos partidos.");
     } finally {

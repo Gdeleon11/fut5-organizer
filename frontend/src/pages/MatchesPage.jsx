@@ -41,6 +41,7 @@ export default function MatchesPage({
   groupName = "",
   groupId = "",
   forceDesign,
+  onGenerate,
   now,
   ratingMap,
   skills = [],
@@ -90,6 +91,8 @@ export default function MatchesPage({
     if (historyTo && match.match_date > historyTo) return false;
     return true;
   });
+  // Los encuentros cancelados no se contabilizan como jugados, aunque se conservan en el historial.
+  const playedHistoryCount = filteredHistory.filter((h) => h.state.key !== "cancelled").length;
 
   function resetPaging(setter, value) {
     setter(value);
@@ -98,7 +101,7 @@ export default function MatchesPage({
 
   const history = {
     entries: filteredHistory.slice(0, visiblePastCount),
-    summary: `${filteredHistory.length} ${filteredHistory.length === 1 ? "jugado" : "jugados"}${hasFilter ? " en el rango" : ""}`,
+    summary: `${playedHistoryCount} ${playedHistoryCount === 1 ? "jugado" : "jugados"}${hasFilter ? " en el rango" : ""}`,
     emptyText: hasFilter
       ? "No se encontraron partidos jugados en el rango de fechas seleccionado."
       : "No hay partidos pasados registrados en el historial.",
@@ -188,7 +191,7 @@ export default function MatchesPage({
         <EditorialMatchesView {...shared} />
       )}
       {isAdmin && groupId && (
-        <RecurringConfig groupId={groupId} isAdmin={isAdmin} onNotice={onNotice} />
+        <RecurringConfig groupId={groupId} isAdmin={isAdmin} onNotice={onNotice} onGenerate={onGenerate} />
       )}
       <FifaModal player={fifa.player} onClose={fifa.close} ratingMap={ratingMap} skills={skills} matchStats={matchStats} />
     </div>

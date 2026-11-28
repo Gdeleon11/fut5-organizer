@@ -889,3 +889,38 @@ button.mdc-tok:focus-visible { outline: 3px solid var(--md-accent); outline-offs
 .recurring-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .recurring-foot { margin: 8px 0 0 0; font-size: 12px; color: var(--md-text-2); line-height: 1.5; }
 .recurring-hint { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--md-text-2); margin-block: 6px 0; }
+
+/* Mobile fixes at 390px width */
+@media (max-width: 390px) {
+  .recurring-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .rf-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .rf-actions button {
+    width: 100%;
+    text-align: center;
+  }
+  .recurring-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .recurring-actions button {
+    width: 100%;
+    text-align: center;
+    padding-inline: 8px;
+  }
+  .recurring-main {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .recurring-info {
+    width: 100%;
+  }
+  .recurring-meta {
+    white-space: normal;
+  }
+}

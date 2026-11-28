@@ -2441,6 +2441,7 @@ export default function App() {
               skills={skills}
               matchStats={matchStats}
               rosterProfiles={matchProfiles}
+              onGenerate={loadData}
               onboarding={isDemoMode ? null : (
                 <OnboardingCards
                   pending={isAdmin ? {

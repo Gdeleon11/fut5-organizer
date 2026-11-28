@@ -23,6 +23,10 @@ function raise(error) {
 /* organizador, independientemente de la zona horaria del navegador.  */
 /* ------------------------------------------------------------------ */
 function guatemalaParts(date = new Date()) {
+  // Acepta Date o cadena ISO (YYYY-MM-DD). Las cadenas se convierten a Date al
+  // mediodía UTC para evitar desplazamientos de día por zona horaria y que
+  // Intl.DateTimeFormat no lance RangeError por valor inválido.
+  const d = typeof date === "string" ? new Date(`${date}T12:00:00Z`) : date;
   const f = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Guatemala",
     year: "numeric",
@@ -30,7 +34,7 @@ function guatemalaParts(date = new Date()) {
     day: "2-digit",
     weekday: "long",
   });
-  const parts = f.formatToParts(date);
+  const parts = f.formatToParts(d);
   const get = (type) => Number(parts.find((p) => p.type === type).value);
   const dowMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
   const dow = dowMap[parts.find((p) => p.type === "weekday").value];
