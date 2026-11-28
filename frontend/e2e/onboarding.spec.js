@@ -17,9 +17,9 @@ test("signed-out visitor sees the landing with sign-up and sign-in", async ({ co
   await blockOthers(context);
   await mockSupabase(context);
   await page.goto("/");
-  await expect(page.getByRole("button", { name: /Crear mi cuenta gratis/ }).first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("button", { name: /Crear mi grupo gratis/ }).first()).toBeVisible({ timeout: 15000 });
   await expect(page.getByText(/\+10[.,]000|99[.,]4%/)).toHaveCount(0);
-  await page.getByRole("button", { name: /Crear mi cuenta gratis/ }).first().click();
+  await page.getByRole("button", { name: /Crear mi grupo gratis/ }).first().click();
   await expect(page.locator("form.auth-form button[type=submit]")).toHaveText(/Crear mi cuenta/);
 });
 

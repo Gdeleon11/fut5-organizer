@@ -5,10 +5,10 @@ import PublicFooter from "../components/PublicFooter.jsx";
 export default function FeaturesPage({ onNavigate }) {
   const features = [
     {
-      icon: "🤖",
-      title: "Armado de Equipos Equilibrados con IA",
-      description: "Nuestro algoritmo de Inteligencia Artificial analiza el historial de rendimiento de cada jugador, sus atributos en ataque, defensa y portería (OVR) para generar 2, 3 o 4 equipos matemáticamente parejos. Se acabaron los partidos desequilibrados.",
-      details: ["Evaluación por 4 posiciones (Ataque, Medio, Defensa, Portero)", "Ajuste dinámico según rendimiento de partidos anteriores", "Simulador visual de alineaciones antes de saltar a la cancha"]
+      icon: "🤝",
+      title: "Armado de Equipos Equilibrados",
+      description: "Genera alineaciones basadas en posiciones y la valoración disponible de cada jugador para formar equipos más parejos en segundos.",
+      details: ["Evaluación por posición (Ataque, Medio, Defensa, Portero)", "Ajuste según el rendimiento disponible de partidos anteriores", "Vista previa de alineaciones antes de saltar a la cancha"]
     },
     {
       icon: "🎴",
@@ -94,7 +94,7 @@ export default function FeaturesPage({ onNavigate }) {
                 <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}>
                   <td style={{ padding: "1rem", fontWeight: "bold" }}>Armado de Equipos</td>
                   <td style={{ padding: "1rem", color: "#94a3b8" }}>A ojo o a mano, resultando en goleadas desparejas</td>
-                  <td style={{ padding: "1rem", color: "#e2e8f0" }}>Algoritmo de IA ponderado por OVR de jugador</td>
+                  <td style={{ padding: "1rem", color: "#e2e8f0" }}>Algoritmo ponderado por posición y valoración disponible</td>
                 </tr>
                 <tr style={{ borderBottom: "1px solid rgba(255, 255, 255, 0.05)" }}>
                   <td style={{ padding: "1rem", fontWeight: "bold" }}>Cobro de Cuota de Cancha</td>

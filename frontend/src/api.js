@@ -2529,4 +2529,29 @@ ficá tus permisos.");
   async markNotificationsRead(ids = null) {
     return readOne(requireSupabase().rpc("notifications_mark_read", { p_ids: ids && ids.length ? ids : null }));
   },
+
+  // ---------------------------------------------------------------------------
+  // Founder leads capture (Commercial Launch V1)
+  // ---------------------------------------------------------------------------
+
+  async createFounderLead(payload) {
+    const client = requireSupabase();
+
+    return readOne(
+      client
+        .from("founder_leads")
+        .insert({
+          contact_name: payload.contactName,
+          email: payload.email,
+          city: payload.city,
+          group_frequency: payload.groupFrequency,
+          group_size: payload.groupSize,
+          consent: Boolean(payload.consent),
+          source: payload.source || "landing",
+          status: "new",
+        })
+        .select("id, created_at")
+        .single(),
+    );
+  },
 };
